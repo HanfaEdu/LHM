@@ -29,8 +29,10 @@ tiap file kelas secara langsung.
 | `schema.sql` | Skema Supabase. Jalankan di SQL Editor, aman diulang. |
 | `sync.js` | Google Apps Script. Dipasang di file Master Rekap. |
 | `quran_mapping.js` | Peta poin → nama surah (Tahfidz) & bab materi (Tahsin). |
-| `app/` | Frontend Next.js. |
+| `app/rapor/[token]/` | Dashboard orang tua (tautan pribadi, tanpa login). |
+| `app/api/rapor/` | Endpoint server: verifikasi token/PIN + penyamaran nama sekelas. |
 | `docs/PERBAIKAN_SPREADSHEET.md` | Audit rumus + daftar perbaikan sebelum sync pertama. |
+| `docs/AKSES_ORANG_TUA.md` | Cara menerbitkan tautan & PIN untuk orang tua. |
 
 ## Urutan penyiapan
 

@@ -3,6 +3,16 @@
 // =========================================================================
 // File ini mengekspor objek pemetaan poin angka ke nama Surah / Materi.
 
+/**
+ * Urutan bulan mengikuti TAHUN AJARAN, bukan kalender.
+ * Dipakai sebagai sumbu X seluruh grafik; mengurutkan bulan menurut abjad
+ * atau menurut kalender akan mengacaukan pembacaan tren.
+ */
+export const BULAN_AJARAN = [
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni"
+];
+
 export const TAHFIDZ_MAPPING = {
   1: "Al Faatihah",
   2: "An Nass",
