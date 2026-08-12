@@ -193,6 +193,52 @@ disimpulkan sebagai kerusakan rumus seperti temuan nomor 1.
 
 ---
 
+## 10. 🔴 Tabel sebaran nilai tidak menjumlah seluruh siswa
+
+Ditemukan saat menghitung ulang angka rapor untuk dasbor wali kelas.
+Tabel rekap pada `LAPORAN AKADEMIK` Kelas 2 bulan Februari (19 siswa)
+berisi:
+
+| Rentang | B. Indo | MTK | IPA |
+|---|---|---|---|
+| < 70 | 0 | 0 | 0 |
+| 71-79 | 1 | 0 | 0 |
+| 80-89 | 6 | 1 | 2 |
+| 90-98 | 11 | 6 | 5 |
+| 99-100 | 0 | 8 | 9 |
+| **Jumlah** | **18** | **15** | **16** |
+
+Tidak satu pun kolom mencapai 19. B. Indonesia kehilangan 1 siswa,
+Matematika 4, IPA 3. Persentasenya pun tidak menjumlah 100% — kolom
+Matematika hanya mencapai 79%.
+
+Dihitung ulang dari tabel nilai di halaman yang sama, sebarannya
+seharusnya:
+
+| Rentang | B. Indo | MTK | IPA |
+|---|---|---|---|
+| < 70 | 0 | 0 | 0 |
+| 70–79 | 1 | 0 | 0 |
+| 80–89 | 6 | 1 | 2 |
+| 90–98 | 11 | 8 | 5 |
+| 99–100 | 1 | 10 | 12 |
+| **Jumlah** | **19** | **19** | **19** |
+
+Contoh yang paling gampang diperiksa: Della memperoleh 99 pada B.
+Indonesia, tetapi baris `99-100` tertulis 0.
+
+Dampaknya nyata untuk laporan ke direktur — sebaran nilai terlihat lebih
+rendah daripada kenyataannya, terutama pada Matematika. Silakan periksa
+rumus `COUNTIFS` pada tabel rekap tersebut; kemungkinan batas atas dan
+batas bawah antar rentang tidak bersambung, sehingga sebagian nilai jatuh
+di celah antar rentang.
+
+Dasbor menghitung sendiri sebarannya dari nilai mentah, jadi angka di
+aplikasi sudah benar tanpa menunggu perbaikan ini. Yang perlu diperbaiki
+adalah rapor PDF yang masih dicetak dari spreadsheet.
+
+---
+
 ## Tentang target yang kadang diisi per semester, kadang per bulan
 
 Ini tidak perlu diseragamkan. `sync.js` memakai aturan **"pakai target
