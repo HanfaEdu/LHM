@@ -106,8 +106,11 @@ function sinkronkanSemua() {
   });
 
   try {
-    const n = sinkronkanUserAccess();
-    catatan.push('[OK]   Hak akses: ' + n + ' pengguna.');
+    const hasilUser = sinkronkanUserAccess();
+    catatan.push(
+      '[OK]   Hak akses: ' + hasilUser.terkirim + ' pengguna' +
+      (hasilUser.dilewati ? ', ' + hasilUser.dilewati + ' baris dilewati (lihat log).' : '.')
+    );
   } catch (e) {
     catatan.push('[GAGAL] Hak akses: ' + e.message);
   }
@@ -407,20 +410,40 @@ function sinkronkanSatuKelas(berkas) {
   return { siswa: siswa.length, nilai: nilai.length };
 }
 
+/**
+ * Peran yang diterima tabel users_access. Sengaja hanya guru & kepala
+ * sekolah — akses orang tua memakai jalur terpisah (lihat akses_ortu
+ * dan docs/AKSES_ORANG_TUA.md), bukan baris di sheet ini.
+ */
+const PERAN_VALID = ['kepala_sekolah', 'wali_kelas'];
+
 /** Membaca sheet 'users_access' di file Master (tempat script ini terpasang). */
 function sinkronkanUserAccess() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
   if (!sheet) {
     Logger.log('Sheet "' + SHEET_USER + '" tidak ada. Sinkronisasi hak akses dilewati.');
-    return 0;
+    return { terkirim: 0, dilewati: 0 };
   }
 
   const tabel = sheet.getDataRange().getValues();
   const daftar = [];
+  const dilewati = [];
+
   for (let i = 1; i < tabel.length; i++) {
     const email = teks(tabel[i][0]).toLowerCase();
     if (!email) continue;
-    const role = teks(tabel[i][2]).toLowerCase() || 'wali_kelas';
+
+    const role = teks(tabel[i][2]).toLowerCase();
+
+    // Baris dengan peran di luar daftar dilewati, bukan ikut dikirim.
+    // Database menolak peran yang tidak dikenal (CHECK constraint), dan
+    // karena seluruh baris dikirim dalam satu paket, satu baris salah
+    // akan menggagalkan sinkronisasi guru & kepsek yang sebenarnya benar.
+    if (PERAN_VALID.indexOf(role) === -1) {
+      dilewati.push(email + ' (peran "' + teks(tabel[i][2]) + '" tidak dikenal)');
+      continue;
+    }
+
     daftar.push({
       email:      email,
       nama:       teks(tabel[i][1]),
@@ -428,8 +451,12 @@ function sinkronkanUserAccess() {
       nama_kelas: role === 'wali_kelas' ? normalKelas(tabel[i][3]) : null,
     });
   }
+
+  if (dilewati.length) {
+    Logger.log('Baris users_access dilewati:\n' + dilewati.join('\n'));
+  }
   if (daftar.length) kirim('users_access', daftar, 'email');
-  return daftar.length;
+  return { terkirim: daftar.length, dilewati: dilewati.length };
 }
 
 // ===================================================================
