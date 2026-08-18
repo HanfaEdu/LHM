@@ -1,6 +1,6 @@
 /**
  * ===================================================================
- * GOOGLE APPS SCRIPT — SINKRONISASI SPREADSHEET KELAS -> SUPABASE
+ * GOOGLE APPS SCRIPT — SINKRONISASI MASTER REKAP -> SUPABASE
  * Sistem Rapor Digital (SiPaDi) — SD Yaumi Fatimah Kudus
  * ===================================================================
  *
@@ -9,7 +9,7 @@
  * 1. Buka file Master Rekap di Google Sheets.
  * 2. Menu: Ekstensi > Apps Script.
  * 3. Hapus kode bawaan, tempel seluruh isi file ini.
- * 4. Isi SUPABASE_URL, SUPABASE_KEY, dan daftar FILE_KELAS di bawah.
+ * 4. Isi SUPABASE_URL dan SUPABASE_KEY di bawah.
  * 5. Simpan, lalu jalankan sekali fungsi `sinkronkanSemua` untuk
  *    memberi izin akses (authorize).
  * 6. Atur Pemicu: Pemicu > Tambah Pemicu > `sinkronkanSemua` >
@@ -17,12 +17,27 @@
  *
  * CATATAN ARSITEKTUR
  * ------------------
- * Script ini membaca LANGSUNG tiap file kelas lewat openById(), dan
- * TIDAK memakai IMPORTRANGE. IMPORTRANGE adalah titik gagal paling
- * rapuh dalam rantai ini: kena kuota, sering menghasilkan #REF! saat
- * file sumber dibuka-tutup, perlu authorize manual per file, dan
- * rentangnya (mis. A2:P301) diam-diam memotong data begitu jumlah
- * siswa bertambah. Membaca langsung menghilangkan semuanya.
+ * Script ini membaca SATU sheet saja: `Sheet1` di Master Rekap, yang
+ * berisi 7 blok IMPORTRANGE (satu per kelas) yang sudah digabung wali
+ * kelas. Ini lebih sederhana daripada membuka 7 file kelas satu per
+ * satu — setiap baris sudah membawa kolom "Kelas" sendiri, sehingga
+ * script ini tidak perlu tahu batas antar-blok sama sekali.
+ *
+ * Konsekuensinya: script ini bergantung pada IMPORTRANGE tetap hidup.
+ * Untuk menjaga itu, `cekKesehatanData()` memvalidasi bahwa ketujuh
+ * kelas di KELAS_DIHARAPKAN benar-benar muncul dengan jumlah siswa
+ * yang wajar — kalau otorisasi salah satu file kelas putus, IMPORTRANGE
+ * untuk kelas itu diam-diam kosong (bukan error keras), dan validasi
+ * inilah yang menangkapnya sebelum data lompong ikut tersinkron.
+ *
+ * Sumber tiap blok (untuk keperluan investigasi bila IMPORTRANGE putus):
+ *   Kelas 1  -> https://docs.google.com/spreadsheets/d/1ni-fA-2z6sDIjOV0WojK3KjOnBk2D9mvwqCSLbMVhqU
+ *   Kelas 2A -> https://docs.google.com/spreadsheets/d/1ZRQk2OniU9a6py1JlNlgvKRnQlnu74XvD4oGf5mDc30
+ *   Kelas 2B -> https://docs.google.com/spreadsheets/d/1mPPXLgRUi3udMbkSyEwJJha857IRQqXQNEVvhGG1Bxo
+ *   Kelas 3  -> https://docs.google.com/spreadsheets/d/1-xj70IwyCD5YAvnf2Icimu4D6qRsp-zdL2mnDFRvwRI
+ *   Kelas 4  -> https://docs.google.com/spreadsheets/d/1cv2W0S-0XZPJMoS_XqNlnowChGp9wODd0SCdxIu9bek
+ *   Kelas 5  -> https://docs.google.com/spreadsheets/d/1CTR3F1mqzcTMYppMJH68id3lM8T5ofMPfPCmhPUVMk4
+ *   Kelas 6  -> https://docs.google.com/spreadsheets/d/13ylW9o1lZ79WoFyeZqngrmbZCYXvey7L5LOnzni03oc
  */
 
 // ===================================================================
@@ -35,24 +50,17 @@ const SUPABASE_URL = 'https://xxxxxxxxxxxx.supabase.co';
 // Google, tidak pernah dikirim ke browser siapa pun.
 const SUPABASE_KEY = 'ISI_DENGAN_SERVICE_ROLE_KEY';
 
-// Daftar file spreadsheet tiap kelas.
-// ID diambil dari URL: docs.google.com/spreadsheets/d/<ID_INI>/edit
-const FILE_KELAS = [
-  { label: 'Kelas 1',  id: '1ni-fA-2z6sDIjOV0WojK3KjOnBk2D9mvwqCSLbMVhqU' },
-  { label: 'Kelas 2A', id: 'GANTI_DENGAN_ID_FILE_KELAS_2A' },
-  { label: 'Kelas 2B', id: 'GANTI_DENGAN_ID_FILE_KELAS_2B' },
-  { label: 'Kelas 3',  id: 'GANTI_DENGAN_ID_FILE_KELAS_3' },
-  { label: 'Kelas 6',  id: '13ylW9o1lZ79WoFyeZqngrmbZCYXvey7L5LOnzni03oc' },
-];
+/** Kelas yang seharusnya selalu ada di Master Rekap. Dipakai untuk
+ *  mendeteksi kalau IMPORTRANGE salah satu kelas berhenti mengalir. */
+const KELAS_DIHARAPKAN = ['1', '2A', '2B', '3', '4', '5', '6'];
 
 /**
- * Penyelamat untuk target yang terlanjur ditulis sebagai teks.
+ * Penyelamat untuk target yang terlanjur ditulis sebagai teks DAN
+ * namanya ambigu (Tahsin saja — nama Tahfidz tidak pernah berulang,
+ * jadi selalu bisa dikenali otomatis lewat NAMA_TAHFIDZ).
  *
- * Nama materi Tahsin berulang: "Mad Asli" ada di bab 7, 8, DAN 9.
- * Jadi teks "Mad Ashli" tidak bisa dipulihkan otomatis menjadi angka —
- * script akan menolak menebak. Daftarkan di sini bila ada.
- *
- * Kunci: '<nama kelas>|<tahfidz|tahsin>|<teks apa adanya, huruf kecil>'
+ * "Mad Asli" ada di bab 7, 8, DAN 9 — jadi tidak bisa ditebak otomatis.
+ * Kunci: '<nama kelas>|tahsin|<teks apa adanya, huruf kecil>'
  */
 const OVERRIDE_TARGET_TEKS = {
   '2A|tahsin|mad ashli': 7,   // disamakan dengan Kelas 2B yang menulis "Bab 7"
@@ -69,9 +77,8 @@ const BULAN_AJARAN = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
 ];
 
-const SHEET_DATA_SISWA = 'Data Siswa';
-const SHEET_REKAP      = 'Rekap Kelas';
-const SHEET_USER       = 'users_access';
+const SHEET_REKAP_MASTER = 'Sheet1';
+const SHEET_USER = 'users_access';
 
 // ===================================================================
 // TITIK MASUK
@@ -91,19 +98,21 @@ function sinkronkanSemua() {
   const mulai = new Date();
   const catatan = [];
 
-  FILE_KELAS.forEach(function (berkas) {
-    if (berkas.id.indexOf('GANTI_DENGAN') === 0) {
-      catatan.push('[LEWAT] ' + berkas.label + ': ID file belum diisi.');
-      return;
+  try {
+    const isi = bacaMasterRekap();
+    const hasil = sinkronkanDariMaster(isi);
+    catatan.push(
+      '[OK]   Nilai: ' + hasil.kelas + ' kelas, ' + hasil.siswa +
+      ' siswa, ' + hasil.nilai + ' baris nilai.'
+    );
+    if (isi.targetTeksBermasalah.length) {
+      catatan.push('       (' + isi.targetTeksBermasalah.length +
+                   ' peringatan target — lihat log untuk detail.)');
+      Logger.log('Peringatan target:\n' + isi.targetTeksBermasalah.join('\n'));
     }
-    try {
-      const hasil = sinkronkanSatuKelas(berkas);
-      catatan.push('[OK]   ' + berkas.label + ': ' + hasil.siswa +
-                   ' siswa, ' + hasil.nilai + ' baris nilai.');
-    } catch (e) {
-      catatan.push('[GAGAL] ' + berkas.label + ': ' + e.message);
-    }
-  });
+  } catch (e) {
+    catatan.push('[GAGAL] Nilai: ' + e.message);
+  }
 
   try {
     const hasilUser = sinkronkanUserAccess();
@@ -122,122 +131,124 @@ function sinkronkanSemua() {
 }
 
 /**
- * Membaca semua file kelas dan melaporkan masalah data TANPA mengirim
- * apa pun ke Supabase. Jalankan ini dulu sebelum sinkronisasi pertama.
+ * Membaca Master Rekap dan melaporkan masalah TANPA mengirim apa pun ke
+ * Supabase. Jalankan ini dulu sebelum sinkronisasi pertama, dan setiap
+ * kali menambah kelas atau siswa baru.
  */
 function cekKesehatanData() {
   const temuan = [];
+  let isi;
 
-  FILE_KELAS.forEach(function (berkas) {
-    if (berkas.id.indexOf('GANTI_DENGAN') === 0) {
-      temuan.push(berkas.label + ': ID file belum diisi.');
-      return;
-    }
-    try {
-      const isi = bacaFileKelas(berkas);
-      const tanpaNis = isi.roster.filter(function (s) { return !s.nis; });
-      if (tanpaNis.length) {
-        temuan.push(berkas.label + ': ' + tanpaNis.length +
-                    ' siswa tanpa NIS (' +
-                    tanpaNis.map(function (s) { return s.namaPanggilan; }).join(', ') + ')');
-      }
+  try {
+    isi = bacaMasterRekap();
+  } catch (e) {
+    temuan.push('Gagal membaca Master Rekap: ' + e.message);
+    laporkanKesehatan(temuan);
+    return temuan.join('\n');
+  }
 
-      // Kolom yang kosong total padahal bulan itu punya data lain
-      const perBulan = {};
-      isi.nilai.forEach(function (b) {
-        if (!perBulan[b.bulan]) perBulan[b.bulan] = [];
-        perBulan[b.bulan].push(b);
-      });
-      Object.keys(perBulan).forEach(function (bulan) {
-        const baris = perBulan[bulan];
-        const adaIsi = baris.some(function (b) {
-          return b.rata_b_indo !== null || b.rata_mtk !== null ||
-                 b.capaian_tahsin !== null;
-        });
-        if (!adaIsi) return;
-        [['rata_ipa', 'Rata IPA'],
-         ['capaian_tahfidz', 'Capaian Tahfidz'],
-         ['capaian_tahsin', 'Capaian Tahsin']].forEach(function (pasangan) {
-          const terisi = baris.filter(function (b) { return b[pasangan[0]] !== null; }).length;
-          if (terisi === 0) {
-            temuan.push(berkas.label + ' / ' + bulan + ': kolom ' + pasangan[1] +
-                        ' kosong untuk semua ' + baris.length + ' siswa.');
-          } else if (terisi === 1 && baris.length > 3) {
-            temuan.push(berkas.label + ' / ' + bulan + ': kolom ' + pasangan[1] +
-                        ' hanya terisi 1 dari ' + baris.length +
-                        ' siswa — rumusnya kemungkinan besar belum ditarik ke bawah.');
-          }
-        });
-      });
+  // 1. Apakah ketujuh kelas yang diharapkan benar-benar muncul?
+  const kelasDitemukan = {};
+  isi.nilai.forEach(function (n) { kelasDitemukan[n.nama_kelas] = true; });
 
-      isi.targetTeksBermasalah.forEach(function (t) { temuan.push(berkas.label + ': ' + t); });
-    } catch (e) {
-      temuan.push(berkas.label + ': GAGAL DIBACA — ' + e.message);
+  KELAS_DIHARAPKAN.forEach(function (k) {
+    if (!kelasDitemukan[k]) {
+      temuan.push(
+        'Kelas ' + k + ' TIDAK ditemukan di Master Rekap. Kemungkinan ' +
+        'IMPORTRANGE terputus (izin berbagi file sumber berubah) — ' +
+        'buka file kelas ' + k + ' dan cek apakah formula IMPORTRANGE ' +
+        'masih menampilkan data, bukan #REF!.'
+      );
     }
   });
 
+  // 2. Untuk kelas yang muncul, apakah jumlah siswanya wajar (bukan 0)?
+  KELAS_DIHARAPKAN.forEach(function (k) {
+    if (!kelasDitemukan[k]) return;
+    const siswaKelas = unik(
+      isi.nilai.filter(function (n) { return n.nama_kelas === k && n.nis; })
+               .map(function (n) { return n.nis; })
+    );
+    if (siswaKelas.length === 0) {
+      temuan.push(
+        'Kelas ' + k + ': ada baris di Master Rekap tapi 0 siswa punya ' +
+        'NIS. Cek kolom NISN/NIS di file kelas ' + k + '.'
+      );
+    }
+  });
+
+  // 3. Siswa tanpa NIS (per kelas, supaya jelas kelas mana yang perlu dibenahi)
+  const tanpaNisPerKelas = {};
+  isi.nilai.forEach(function (n) {
+    if (n.nama_lengkap && !n.nis) {
+      tanpaNisPerKelas[n.nama_kelas] = (tanpaNisPerKelas[n.nama_kelas] || 0) + 1;
+    }
+  });
+  Object.keys(tanpaNisPerKelas).forEach(function (k) {
+    temuan.push('Kelas ' + k + ': ' + tanpaNisPerKelas[k] + ' baris siswa tanpa NIS.');
+  });
+
+  // 4. Kapasitas blok 25 baris/bulan — peringatkan kalau sudah mepet (>=23)
+  KELAS_DIHARAPKAN.forEach(function (k) {
+    const siswaKelas = unik(
+      isi.nilai.filter(function (n) { return n.nama_kelas === k && n.nis; })
+               .map(function (n) { return n.nis; })
+    );
+    if (siswaKelas.length >= 23) {
+      temuan.push(
+        'Kelas ' + k + ': ' + siswaKelas.length + ' dari kapasitas 25 siswa ' +
+        'per blok bulan. Hampir penuh — tambah siswa lagi berisiko merusak ' +
+        'susunan blok bulan berikutnya di sheet Rekap Kelas.'
+      );
+    }
+  });
+
+  // 5. Target/capaian Tahfidz-Tahsin yang tidak bisa dikenali otomatis
+  isi.targetTeksBermasalah.forEach(function (t) { temuan.push(t); });
+
+  laporkanKesehatan(temuan);
+  return temuan.join('\n');
+}
+
+function laporkanKesehatan(temuan) {
   const laporan = temuan.length
     ? 'Ditemukan ' + temuan.length + ' hal yang perlu diperiksa:\n\n' + temuan.join('\n')
     : 'Tidak ada masalah terdeteksi. Data siap disinkronkan.';
   Logger.log(laporan);
-
   try {
     SpreadsheetApp.getUi().alert('Cek Kesehatan Data', laporan, SpreadsheetApp.getUi().ButtonSet.OK);
   } catch (e) {
     // Dipanggil dari pemicu, bukan dari menu — cukup ke Logger.
   }
-  return laporan;
 }
 
 // ===================================================================
-// PEMBACAAN SPREADSHEET
+// PEMBACAAN MASTER REKAP
 // ===================================================================
 
 /**
- * Membaca satu file kelas menjadi objek terstruktur.
- * Tidak menyentuh jaringan sama sekali — murni baca + normalisasi.
+ * Membaca Sheet1 di Master Rekap menjadi objek terstruktur. Tidak
+ * menyentuh jaringan sama sekali — murni baca + normalisasi.
  */
-function bacaFileKelas(berkas) {
-  const ss = SpreadsheetApp.openById(berkas.id);
+function bacaMasterRekap() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_REKAP_MASTER);
+  if (!sheet) {
+    throw new Error('Sheet "' + SHEET_REKAP_MASTER + '" tidak ditemukan di Master Rekap.');
+  }
 
-  // --- Metadata kelas, dari Data Siswa!G2:H4 ---
-  const sheetSiswa = ss.getSheetByName(SHEET_DATA_SISWA);
-  if (!sheetSiswa) throw new Error('Sheet "' + SHEET_DATA_SISWA + '" tidak ditemukan.');
-
-  const meta = sheetSiswa.getRange('G2:H4').getValues();
-  const namaKelas   = normalKelas(meta[0][1]);
-  const waliKelas   = teks(meta[1][1]);
-  const tahunAjaran = teks(meta[2][1]);
-
-  if (!namaKelas)   throw new Error('Nama kelas kosong di Data Siswa!H2.');
-  if (!tahunAjaran) throw new Error('Tahun ajaran kosong di Data Siswa!H4.');
-
-  // --- Daftar siswa, dari Data Siswa!A2:E ---
-  const barisSiswa = sheetSiswa.getRange(2, 1, Math.max(sheetSiswa.getLastRow() - 1, 1), 5).getValues();
-  const roster = [];
-  barisSiswa.forEach(function (r) {
-    const namaLengkap = teks(r[1]);
-    if (!namaLengkap) return;
-    roster.push({
-      namaLengkap:    namaLengkap,
-      namaPanggilan:  teks(r[2]) || namaLengkap,
-      nis:            normalNis(r[3]),
-      noWa:           teks(r[4]),
-    });
-  });
-
-  // --- Nilai bulanan, dari Rekap Kelas ---
-  const sheetRekap = ss.getSheetByName(SHEET_REKAP);
-  if (!sheetRekap) throw new Error('Sheet "' + SHEET_REKAP + '" tidak ditemukan.');
-
-  const tabel = sheetRekap.getDataRange().getValues();
-  const header = tabel[0].map(function (h) { return teks(h); });
+  const tabel = sheet.getDataRange().getValues();
+  const header = tabel[0].map(teks);
   const kol = {
+    tahunAjaran:    header.indexOf('Tahun Ajaran'),
+    namaKelas:      header.indexOf('Kelas'),
+    waliKelas:      header.indexOf('Wali Kelas'),
     namaLengkap:    header.indexOf('Nama Lengkap'),
     namaSiswa:      header.indexOf('Nama Siswa'),
     nis:            header.indexOf('NISN/NIS'),
     noWa:           header.indexOf('No WA'),
     bulan:          header.indexOf('Bulan'),
+    targetAkademik: header.indexOf('Target 3 Mapel'),
     rataBIndo:      header.indexOf('Rata B. Indo'),
     rataMtk:        header.indexOf('Rata MTK'),
     rataIpa:        header.indexOf('Rata IPA'),
@@ -246,38 +257,61 @@ function bacaFileKelas(berkas) {
     targetTahsin:   header.indexOf('Target Tahsin'),
     capaianTahsin:  header.indexOf('Capaian Tahsin'),
   };
-  if (kol.namaLengkap === -1 || kol.bulan === -1) {
-    throw new Error('Header "Nama Lengkap" / "Bulan" tidak ditemukan di ' + SHEET_REKAP + '.');
+  if (kol.namaKelas === -1 || kol.bulan === -1 || kol.tahunAjaran === -1 || kol.namaLengkap === -1) {
+    throw new Error(
+      'Kolom krusial (Tahun Ajaran/Kelas/Bulan/Nama Lengkap) tidak ' +
+      'ditemukan di header Sheet1. Header tidak boleh diubah namanya.'
+    );
   }
 
-  // Peta nama panggilan -> NIS, sebagai cadangan bila kolom NIS di
-  // Rekap Kelas kosong (terjadi di file yang Data Siswa-nya belum diisi).
-  const nisDariPanggilan = {};
-  roster.forEach(function (s) {
-    if (s.nis) nisDariPanggilan[kunci(s.namaPanggilan)] = s.nis;
-  });
-
-  const targetTeksBermasalah = [];
+  const roster = [];            // {nis, namaLengkap, namaPanggilan} — dedup per NIS
+  const rosterTerlihat = {};
+  const kelasMap = {};          // 'tahunAjaran|namaKelas' -> {tahunAjaran, namaKelas, waliKelas, targetAkademik}
   const nilai = [];
+  const targetTeksBermasalah = [];
 
   for (let i = 1; i < tabel.length; i++) {
     const r = tabel[i];
     const namaLengkap = teks(r[kol.namaLengkap]);
     const bulan = teks(r[kol.bulan]);
+    const namaKelas = normalKelas(r[kol.namaKelas]);
 
     // Blok bulan menyisakan baris kosong sebagai cadangan siswa baru.
-    if (!namaLengkap || !bulan) continue;
+    if (!namaLengkap || !bulan || !namaKelas) continue;
     if (BULAN_AJARAN.indexOf(bulan) === -1) continue;
 
+    const tahunAjaran = teks(r[kol.tahunAjaran]);
+    const nis = normalNis(r[kol.nis]);
     const namaPanggilan = kol.namaSiswa !== -1 ? teks(r[kol.namaSiswa]) : '';
-    let nis = kol.nis !== -1 ? normalNis(r[kol.nis]) : '';
-    if (!nis) nis = nisDariPanggilan[kunci(namaPanggilan)] || '';
+
+    if (nis && !rosterTerlihat[nis]) {
+      rosterTerlihat[nis] = true;
+      roster.push({ nis: nis, namaLengkap: namaLengkap, namaPanggilan: namaPanggilan || namaLengkap });
+    }
+
+    const kunciKelas = tahunAjaran + '|' + namaKelas;
+    if (!kelasMap[kunciKelas]) {
+      kelasMap[kunciKelas] = {
+        tahunAjaran: tahunAjaran, namaKelas: namaKelas,
+        waliKelas: '', targetAkademik: null,
+      };
+    }
+    const infoKelas = kelasMap[kunciKelas];
+    if (!infoKelas.waliKelas) {
+      const wk = kol.waliKelas !== -1 ? teks(r[kol.waliKelas]) : '';
+      if (wk) infoKelas.waliKelas = wk;
+    }
+    if (infoKelas.targetAkademik === null) {
+      const ta = kol.targetAkademik !== -1 ? angka(r[kol.targetAkademik]) : null;
+      if (ta !== null) infoKelas.targetAkademik = ta;
+    }
 
     nilai.push({
       nis:             nis,
       nama_lengkap:    namaLengkap,
       nama_panggilan:  namaPanggilan || namaLengkap,
-      no_wa:           kol.noWa !== -1 ? teks(r[kol.noWa]) : '',
+      nama_kelas:      namaKelas,
+      tahun_ajaran:    tahunAjaran,
       bulan:           bulan,
       urutan_bulan:    BULAN_AJARAN.indexOf(bulan) + 1,
       rata_b_indo:     angka(r[kol.rataBIndo]),
@@ -293,46 +327,39 @@ function bacaFileKelas(berkas) {
   isiTargetKeBulanBerikutnya(nilai);
 
   return {
-    namaKelas:   namaKelas,
-    waliKelas:   waliKelas,
-    tahunAjaran: tahunAjaran,
-    roster:      roster,
-    nilai:       nilai,
+    roster: roster,
+    kelasMap: kelasMap,
+    nilai: nilai,
     targetTeksBermasalah: unik(targetTeksBermasalah),
   };
 }
 
 /**
- * Meneruskan target ke bulan-bulan berikutnya yang kosong.
+ * Meneruskan target ke bulan-bulan berikutnya yang kosong, per siswa
+ * PER KELAS (satu siswa yang naik kelas antar tahun ajaran punya baris
+ * target tersendiri untuk tiap kelasnya, tidak boleh tercampur).
  *
  * Sebagian guru mengisi target sekali di awal semester, sebagian lagi
  * mengisinya tiap bulan berjalan. Aturan "pakai target terakhir yang
- * pernah diisi" melayani kedua kebiasaan itu sekaligus, tanpa memaksa
- * siapa pun mengubah caranya:
+ * pernah diisi" melayani kedua kebiasaan itu sekaligus.
  *
- *   diisi Juli saja      -> Agustus s/d Juni ikut target Juli
- *   diisi tiap bulan     -> tiap bulan pakai targetnya sendiri
- *   diisi Juli lalu Jan  -> Agustus-Desember ikut Juli, Januari-Juni ikut Januari
- *
- * CAPAIAN sengaja TIDAK diteruskan. Target adalah janji yang berlaku
- * sampai diubah; capaian adalah fakta bulan itu. Bulan tanpa capaian
- * harus tetap kosong supaya grafik menggambarnya sebagai belum dinilai,
- * bukan sebagai hafalan yang mandek di angka yang sama.
+ * CAPAIAN sengaja TIDAK diteruskan — itu fakta bulan itu, bukan janji
+ * yang berlaku sampai diubah. Bulan tanpa capaian harus tetap kosong.
  */
 function isiTargetKeBulanBerikutnya(nilai) {
-  const perSiswa = {};
+  const perSiswaKelas = {};
   nilai.forEach(function (b) {
-    const k = b.nis || kunci(b.nama_lengkap);
-    if (!perSiswa[k]) perSiswa[k] = [];
-    perSiswa[k].push(b);
+    const k = (b.nis || kunci(b.nama_lengkap)) + '|' + b.tahun_ajaran + '|' + b.nama_kelas;
+    if (!perSiswaKelas[k]) perSiswaKelas[k] = [];
+    perSiswaKelas[k].push(b);
   });
 
-  Object.keys(perSiswa).forEach(function (k) {
-    const baris = perSiswa[k].sort(function (a, b) {
+  Object.keys(perSiswaKelas).forEach(function (k) {
+    const baris = perSiswaKelas[k].sort(function (a, b) {
       return a.urutan_bulan - b.urutan_bulan;
     });
     let tahfidzTerakhir = null;
-    let tahsinTerakhir  = null;
+    let tahsinTerakhir = null;
     baris.forEach(function (b) {
       if (b.target_tahfidz !== null) tahfidzTerakhir = b.target_tahfidz;
       else if (tahfidzTerakhir !== null) b.target_tahfidz = tahfidzTerakhir;
@@ -347,67 +374,80 @@ function isiTargetKeBulanBerikutnya(nilai) {
 // SINKRONISASI
 // ===================================================================
 
-function sinkronkanSatuKelas(berkas) {
-  const isi = bacaFileKelas(berkas);
-
+function sinkronkanDariMaster(isi) {
   // 1. Kelas — dibuat/diperbarui dulu karena baris lain merujuk ke id-nya.
-  const kelasTersimpan = kirim('kelas', [{
-    tahun_ajaran: isi.tahunAjaran,
-    nama_kelas:   isi.namaKelas,
-    wali_kelas:   isi.waliKelas,
-    updated_at:   new Date().toISOString(),
-  }], 'tahun_ajaran,nama_kelas', true);
+  const daftarKelas = Object.keys(isi.kelasMap).map(function (k) { return isi.kelasMap[k]; });
+  const kelasTersimpan = kirim('kelas', daftarKelas.map(function (k) {
+    return {
+      tahun_ajaran: k.tahunAjaran,
+      nama_kelas: k.namaKelas,
+      wali_kelas: k.waliKelas,
+      target_akademik: k.targetAkademik !== null ? k.targetAkademik : 90,
+      updated_at: new Date().toISOString(),
+    };
+  }), 'tahun_ajaran,nama_kelas', true);
 
-  const kelasId = kelasTersimpan[0].id;
+  const kelasIdMap = {};
+  kelasTersimpan.forEach(function (row) {
+    kelasIdMap[row.tahun_ajaran + '|' + row.nama_kelas] = row.id;
+  });
 
   // 2. Siswa — identitas, disimpan sekali saja (bukan diulang tiap bulan).
-  const siswa = isi.roster
-    .filter(function (s) { return s.nis; })
-    .map(function (s) {
+  const siswaValid = isi.roster.filter(function (s) { return s.nis; });
+  if (siswaValid.length) {
+    kirim('siswa', siswaValid.map(function (s) {
       return {
-        nis:            s.nis,
-        nama_lengkap:   s.namaLengkap,
-        nama_panggilan: s.namaPanggilan,
-        updated_at:     new Date().toISOString(),
+        nis: s.nis, nama_lengkap: s.namaLengkap, nama_panggilan: s.namaPanggilan,
+        updated_at: new Date().toISOString(),
       };
-    });
-  if (siswa.length) kirim('siswa', siswa, 'nis');
+    }), 'nis');
+  }
+  const nisValid = {};
+  siswaValid.forEach(function (s) { nisValid[s.nis] = true; });
 
-  // 3. Penempatan siswa di kelas ini pada tahun ajaran ini.
-  const penempatan = siswa.map(function (s) {
-    return { nis: s.nis, kelas_id: kelasId };
+  // 3. Penempatan siswa di kelasnya masing-masing (dedup nis+kelas_id).
+  const penempatanTerlihat = {};
+  const penempatan = [];
+  isi.nilai.forEach(function (n) {
+    if (!n.nis || !nisValid[n.nis]) return;
+    const kelasId = kelasIdMap[n.tahun_ajaran + '|' + n.nama_kelas];
+    if (!kelasId) return;
+    const key = n.nis + '|' + kelasId;
+    if (penempatanTerlihat[key]) return;
+    penempatanTerlihat[key] = true;
+    penempatan.push({ nis: n.nis, kelas_id: kelasId });
   });
   if (penempatan.length) kirim('penempatan', penempatan, 'nis,kelas_id');
 
   // 4. Nilai bulanan — hanya angka.
-  const nisDikenal = {};
-  siswa.forEach(function (s) { nisDikenal[s.nis] = true; });
-
-  const nilai = isi.nilai
-    .filter(function (b) { return b.nis && nisDikenal[b.nis]; })
-    .map(function (b) {
+  const nilaiKirim = isi.nilai
+    .filter(function (n) {
+      return n.nis && nisValid[n.nis] && kelasIdMap[n.tahun_ajaran + '|' + n.nama_kelas];
+    })
+    .map(function (n) {
+      const kelasId = kelasIdMap[n.tahun_ajaran + '|' + n.nama_kelas];
       return {
-        nis:             b.nis,
-        kelas_id:        kelasId,
-        bulan:           b.bulan,
-        urutan_bulan:    b.urutan_bulan,
-        rata_b_indo:     b.rata_b_indo,
-        rata_mtk:        b.rata_mtk,
-        rata_ipa:        b.rata_ipa,
-        target_tahfidz:  b.target_tahfidz,
-        capaian_tahfidz: b.capaian_tahfidz,
-        target_tahsin:   b.target_tahsin,
-        capaian_tahsin:  b.capaian_tahsin,
-        disinkron_pada:  new Date().toISOString(),
+        nis: n.nis,
+        kelas_id: kelasId,
+        bulan: n.bulan,
+        urutan_bulan: n.urutan_bulan,
+        rata_b_indo: n.rata_b_indo,
+        rata_mtk: n.rata_mtk,
+        rata_ipa: n.rata_ipa,
+        target_tahfidz: n.target_tahfidz,
+        capaian_tahfidz: n.capaian_tahfidz,
+        target_tahsin: n.target_tahsin,
+        capaian_tahsin: n.capaian_tahsin,
+        disinkron_pada: new Date().toISOString(),
       };
     });
 
   // Dikirim bertahap supaya satu payload tidak melebihi batas UrlFetchApp.
-  for (let i = 0; i < nilai.length; i += 400) {
-    kirim('nilai_bulanan', nilai.slice(i, i + 400), 'nis,kelas_id,bulan');
+  for (let i = 0; i < nilaiKirim.length; i += 400) {
+    kirim('nilai_bulanan', nilaiKirim.slice(i, i + 400), 'nis,kelas_id,bulan');
   }
 
-  return { siswa: siswa.length, nilai: nilai.length };
+  return { kelas: daftarKelas.length, siswa: siswaValid.length, nilai: nilaiKirim.length };
 }
 
 /**
@@ -417,7 +457,7 @@ function sinkronkanSatuKelas(berkas) {
  */
 const PERAN_VALID = ['kepala_sekolah', 'wali_kelas'];
 
-/** Membaca sheet 'users_access' di file Master (tempat script ini terpasang). */
+/** Membaca sheet 'users_access' di Master Rekap. */
 function sinkronkanUserAccess() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
   if (!sheet) {
@@ -497,9 +537,12 @@ function teks(v) {
   return String(v).trim().replace(/\s+/g, ' ');
 }
 
-/** Kunci pembanding yang tahan beda spasi & kapital. */
+/**
+ * Kunci pembanding yang tahan beda spasi, kapital, dan tanda hubung.
+ * "Al-Qiyamah" dan "Al Qiyamah" harus dikenali sebagai nama yang sama.
+ */
 function kunci(v) {
-  return teks(v).toLowerCase();
+  return teks(v).toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -549,10 +592,11 @@ function angka(v) {
 /**
  * Sel target/capaian Al-Qur'an -> poin (angka).
  *
- * Angka dipakai apa adanya. Teks dicoba dicocokkan ke nama surah/materi;
- * bila namanya ambigu (nama materi Tahsin berulang di beberapa bab),
- * script menolak menebak dan mencatatnya sebagai temuan agar diperbaiki
- * di spreadsheet — lebih baik kosong daripada salah angka.
+ * Angka dipakai apa adanya. Teks dicoba dicocokkan ke nama surah/materi
+ * (tahan beda tanda hubung/spasi/kapital lewat kunci()). Nama Tahfidz
+ * tidak pernah berulang sehingga selalu bisa dikenali otomatis; nama
+ * Tahsin bisa ambigu (mis. "Mad Asli" ada di bab 7, 8, dan 9) — untuk
+ * itu dicek dulu ke OVERRIDE_TARGET_TEKS sebelum menyerah.
  */
 function poinQuran(v, jenis, namaKelas, catatan) {
   const langsung = angka(v);
@@ -572,12 +616,13 @@ function poinQuran(v, jenis, namaKelas, catatan) {
 
   if (cocok.length === 1) return cocok[0];
 
-  catatan.push(cocok.length === 0
-    ? 'Target/capaian ' + jenis + ' bertuliskan "' + teks(v) +
-      '" tidak dikenali. Isi dengan angka, atau daftarkan di OVERRIDE_TARGET_TEKS.'
-    : 'Target/capaian ' + jenis + ' bertuliskan "' + teks(v) +
-      '" ambigu (cocok dengan bab ' + cocok.join(', ') +
-      '). Isi dengan angka, atau daftarkan di OVERRIDE_TARGET_TEKS.');
+  catatan.push(
+    'Kelas ' + namaKelas + ': target/capaian ' + jenis + ' bertuliskan "' + teks(v) + '" ' +
+    (cocok.length === 0
+      ? 'tidak dikenali. Isi dengan angka, atau daftarkan di OVERRIDE_TARGET_TEKS.'
+      : 'ambigu (cocok dengan bab ' + cocok.join(', ') + '). Isi dengan angka, ' +
+        'atau daftarkan di OVERRIDE_TARGET_TEKS.')
+  );
   return null;
 }
 

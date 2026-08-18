@@ -7,9 +7,11 @@ kepala sekolah. SD Yaumi Fatimah Kudus.
 ## Alur data
 
 ```
-File kelas (Google Sheets)      <- wali kelas input di sini, tidak berubah
-        |
-        |  Apps Script, openById(), pemicu tengah malam
+File kelas x7 (Google Sheets)   <- wali kelas input di sini, tidak berubah
+        |  IMPORTRANGE (per kelas, sudah dipasang di tiap file)
+        v
+Master Rekap - Sheet1           <- gabungan 7 kelas, kolom "Kelas" per baris
+        |  Apps Script, baca 1 sheet, pemicu tengah malam
         v
      Supabase (Postgres)        <- riwayat lintas tahun, RLS
         |
@@ -19,8 +21,12 @@ File kelas (Google Sheets)      <- wali kelas input di sini, tidak berubah
 ```
 
 Input tetap di Google Sheets. Supabase hanya menjadi cermin baca-saja yang
-diperbarui tiap malam. **IMPORTRANGE tidak dipakai** — Apps Script membaca
-tiap file kelas secara langsung.
+diperbarui tiap malam. Apps Script membaca **satu sheet saja** (`Sheet1` di
+Master Rekap) — setiap baris sudah membawa kolom "Kelas" sendiri lewat
+IMPORTRANGE, jadi GAS tidak perlu tahu batas antar-blok atau membuka 7 file
+satu-satu. Konsekuensinya, `sync.js` memvalidasi bahwa ketujuh kelas selalu
+muncul dengan jumlah siswa wajar — kalau otorisasi IMPORTRANGE salah satu
+file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 
 ## Isi repositori
 

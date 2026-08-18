@@ -1,12 +1,36 @@
 # Audit Rumus & Daftar Perbaikan Spreadsheet Kelas
 
-Hasil pemeriksaan file Kelas 1, 2A, 2B, 3, dan 6 (tahun ajaran 2026-2027).
+Hasil pemeriksaan ketujuh file kelas (1, 2A, 2B, 3, 4, 5, 6) tahun ajaran
+2026-2027, dan Master Rekap tempat semuanya digabung lewat IMPORTRANGE.
 Dokumen ini adalah daftar kerja untuk dibereskan di spreadsheet **sebelum**
 sinkronisasi pertama ke Supabase dijalankan.
 
 Perbaikan cukup dilakukan sekali di **file template**, lalu template itu
 disalin ulang — hampir semua temuan di bawah muncul di semua kelas karena
 berasal dari template yang sama.
+
+## Status terkini
+
+✅ **Temuan #1 dan #3 (rumus) sudah diperbaiki di ketujuh file**, sudah
+diverifikasi langsung dari isi formula (bukan sekadar hasil tampilan) —
+kolom Capaian Tahfidz tertarik penuh ke 301 baris, dan rentang rumus
+rata-rata sudah `$994`. Tidak ada `#REF!` atau error lain di seluruh 2100
+baris Master Rekap.
+
+🔴 **Yang masih menghalangi sinkronisasi pertama:**
+- NIS Kelas 1 masih kosong (0 dari 19 siswa) — **kalau dibiarkan, seluruh
+  Kelas 1 tidak akan tersimpan ke database**, bukan cuma sebagian, karena
+  NIS adalah kunci utama.
+- NIS Kelas 2B: 2 dari 16 siswa belum punya NIS — kedua siswa itu saja
+  yang tidak akan tersimpan.
+
+⚪ **Sudah tidak perlu diperbaiki secara manual:** target Tahfidz Kelas 5
+yang ditulis `"Al-Qiyamah"` kini dikenali otomatis oleh `sync.js` (nama
+surah Tahfidz tidak pernah berulang, beda dengan Tahsin). Target Tahfidz
+Kelas 2A/2B (`"Al Insyirah"`) dan Tahsin (`"Mad Ashli"`/`"Bab 7"`) tetap
+memerlukan `OVERRIDE_TARGET_TEKS` karena nama Tahsin bisa ambigu — sudah
+ditangani di kode, tidak wajib diubah di sheet, tapi tetap lebih rapi kalau
+suatu saat diganti jadi angka.
 
 ---
 
@@ -263,18 +287,22 @@ tersimpan sebagai kosong, tidak pernah sebagai 0.
 
 ## Ringkasan urutan pengerjaan
 
-| # | Perbaikan | Prioritas |
+| # | Perbaikan | Status |
 |---|---|---|
-| 1 | Tarik rumus `N2` ke `N3:N301` (Capaian Tahfidz) | Wajib sebelum sync |
-| 2 | Isi NIS Kelas 1 | Wajib sebelum sync |
-| 3 | Ubah `$100` → `$994` pada rumus rata-rata | Wajib sebelum sync |
-| 5 | Target 2A & 2B jadi angka | Wajib sebelum sync |
-| 9 | Isi `users_access` | Wajib sebelum login guru |
-| 4 | Perlebar blok bulan jadi 30 baris | Sebelum ada siswa baru |
+| 1 | Tarik rumus `N2` ke `N3:N301` (Capaian Tahfidz) | ✅ Selesai, 7/7 file |
+| 3 | Ubah `$100` → `$994` pada rumus rata-rata | ✅ Selesai, 7/7 file |
+| 2 | Isi NIS Kelas 1 (19 siswa) | 🔴 **Wajib sebelum sync** |
+| 2 | Isi NIS Kelas 2B (2 siswa) | 🔴 **Wajib sebelum sync** |
+| 9 | Isi `users_access` (guru & kepsek) | Wajib sebelum login guru |
+| 5 | Target 2A/2B/Tahsin jadi angka | Sudah ditangani kode, opsional |
+| 4 | Perlebar blok bulan jadi 30 baris | Sebelum ada siswa baru (Kelas 6 di 24/25) |
 | 6 | Dropdown nama di `Grafik Siswa` | Kapan saja |
 | 7 | Target 3 Mapel jadi rujukan sel | Kapan saja |
 | 9 | Isi kolom `No WA` | Sebelum kirim link ke orang tua |
 
-Setelah nomor 1, 2, 3, dan 5 selesai, jalankan menu
-**SiPaDi → Cek Kesehatan Data** di Master Rekap. Menu itu membaca semua file
-kelas dan melaporkan sisa masalah tanpa mengirim apa pun ke database.
+Setelah NIS Kelas 1 & 2B selesai, jalankan menu
+**SiPaDi → Cek Kesehatan Data** di Master Rekap. Menu itu sekarang membaca
+Master Rekap langsung (bukan tiap file kelas satu-satu) dan melaporkan sisa
+masalah — termasuk kalau salah satu dari 7 kelas tiba-tiba hilang dari
+Master Rekap, tanda IMPORTRANGE-nya putus — tanpa mengirim apa pun ke
+database.
