@@ -44,11 +44,30 @@
 // KONFIGURASI — ISI BAGIAN INI
 // ===================================================================
 
-const SUPABASE_URL = 'https://xxxxxxxxxxxx.supabase.co';
+// URL aplikasi Next.js Anda di Vercel (tanpa garis miring di akhir).
+// GAS mengirim data ke SINI, bukan ke Supabase langsung -- lihat
+// catatan "KENAPA LEWAT PROXY" di bawah.
+const APP_URL = 'https://ISI_DENGAN_DOMAIN_VERCEL_ANDA.vercel.app';
 
-// Gunakan service_role key. Aman karena script ini berjalan di server
-// Google, tidak pernah dikirim ke browser siapa pun.
-const SUPABASE_KEY = 'ISI_DENGAN_SERVICE_ROLE_KEY';
+// Kunci rahasia bersama antara GAS dan endpoint /api/sync di Vercel.
+// HARUS SAMA PERSIS dengan env var SYNC_SHARED_SECRET di Vercel.
+// Ini BUKAN kunci Supabase -- boleh dibuat sendiri, string acak apa saja.
+const SYNC_SECRET = 'ISI_DENGAN_KUNCI_RAHASIA_YANG_SAMA_DENGAN_VERCEL';
+
+/**
+ * KENAPA LEWAT PROXY, BUKAN LANGSUNG KE SUPABASE
+ * -----------------------------------------------
+ * Supabase menolak kunci sb_secret_... kalau permintaan terdeteksi
+ * berasal dari browser ("Forbidden use of secret API key in browser").
+ * UrlFetchApp Apps Script ikut ter-deteksi sebagai browser oleh
+ * heuristik itu, walau GAS jelas berjalan di server Google -- menambah
+ * header User-Agent kustom pun tidak menembusnya.
+ *
+ * Solusinya: GAS memanggil endpoint /api/sync di aplikasi Vercel kita
+ * sendiri (pakai SYNC_SECRET di atas, bukan kunci Supabase). Endpoint
+ * itu yang berjalan di server Vercel -- bukan browser -- barulah bicara
+ * ke Supabase dengan kunci sb_secret_... yang sebenarnya.
+ */
 
 /** Kelas yang seharusnya selalu ada di Master Rekap. Dipakai untuk
  *  mendeteksi kalau IMPORTRANGE salah satu kelas berhenti mengalir. */
@@ -503,40 +522,25 @@ function sinkronkanUserAccess() {
 // HELPER
 // ===================================================================
 
-/** POST upsert ke Supabase REST. Mengembalikan baris hasil bila diminta. */
+/**
+ * Upsert lewat /api/sync di Vercel (lihat "KENAPA LEWAT PROXY" di atas).
+ * Mengembalikan baris hasil bila diminta.
+ */
 function kirim(tabel, data, kolomKonflik, kembalikan) {
-  const preferensi = ['resolution=merge-duplicates'];
-  preferensi.push(kembalikan ? 'return=representation' : 'return=minimal');
-
-  const respons = UrlFetchApp.fetch(
-    SUPABASE_URL + '/rest/v1/' + tabel + '?on_conflict=' + encodeURIComponent(kolomKonflik),
-    {
-      method: 'post',
-      contentType: 'application/json',
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: 'Bearer ' + SUPABASE_KEY,
-        Prefer: preferensi.join(','),
-        // Supabase menolak kunci sb_secret_... kalau permintaan
-        // "terlihat" berasal dari browser (heuristik berbasis
-        // User-Agent). UrlFetchApp Apps Script mengirim User-Agent
-        // bawaan yang mengandung "Mozilla", sehingga ikut ter-blokir
-        // meski script ini jelas berjalan di server. Header di bawah
-        // menegaskan konteksnya server, bukan browser.
-        'User-Agent': 'SiPaDi-GAS-Sync/1.0 (+Google-Apps-Script)',
-        'X-Client-Info': 'sipadi-gas-sync/1.0',
-      },
-      payload: JSON.stringify(data),
-      muteHttpExceptions: true,
-    }
-  );
+  const respons = UrlFetchApp.fetch(APP_URL + '/api/sync', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'x-sync-secret': SYNC_SECRET },
+    payload: JSON.stringify({ tabel: tabel, data: data, onConflict: kolomKonflik }),
+    muteHttpExceptions: true,
+  });
 
   const kode = respons.getResponseCode();
   if (kode < 200 || kode >= 300) {
-    throw new Error('Supabase menolak tabel [' + tabel + '] (HTTP ' + kode + '): ' +
+    throw new Error('Proxy /api/sync menolak tabel [' + tabel + '] (HTTP ' + kode + '): ' +
                     respons.getContentText().slice(0, 300));
   }
-  return kembalikan ? JSON.parse(respons.getContentText()) : null;
+  return kembalikan ? JSON.parse(respons.getContentText()).data : null;
 }
 
 /** Sel -> teks bersih. */
