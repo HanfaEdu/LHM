@@ -517,6 +517,14 @@ function kirim(tabel, data, kolomKonflik, kembalikan) {
         apikey: SUPABASE_KEY,
         Authorization: 'Bearer ' + SUPABASE_KEY,
         Prefer: preferensi.join(','),
+        // Supabase menolak kunci sb_secret_... kalau permintaan
+        // "terlihat" berasal dari browser (heuristik berbasis
+        // User-Agent). UrlFetchApp Apps Script mengirim User-Agent
+        // bawaan yang mengandung "Mozilla", sehingga ikut ter-blokir
+        // meski script ini jelas berjalan di server. Header di bawah
+        // menegaskan konteksnya server, bukan browser.
+        'User-Agent': 'SiPaDi-GAS-Sync/1.0 (+Google-Apps-Script)',
+        'X-Client-Info': 'sipadi-gas-sync/1.0',
       },
       payload: JSON.stringify(data),
       muteHttpExceptions: true,
