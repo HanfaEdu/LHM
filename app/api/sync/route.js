@@ -26,8 +26,24 @@ const TABEL_DIIZINKAN = ['kelas', 'siswa', 'penempatan', 'nilai_bulanan', 'users
 
 export async function POST(request) {
   const kunciRahasia = request.headers.get('x-sync-secret');
-  if (!kunciRahasia || kunciRahasia !== process.env.SYNC_SHARED_SECRET) {
-    return NextResponse.json({ error: 'Tidak diizinkan.' }, { status: 401 });
+  const kunciServer = process.env.SYNC_SHARED_SECRET;
+
+  if (!kunciRahasia || kunciRahasia !== kunciServer) {
+    // Info diagnostik SEMENTARA -- tidak membocorkan isi kunci, cuma
+    // panjang karakternya, supaya kelihatan penyebabnya env var belum
+    // ke-load (kosong) atau memang isinya beda (spasi nyasar, dll).
+    // Hapus blok "diagnostik" ini setelah sinkronisasi berhasil sekali.
+    return NextResponse.json(
+      {
+        error: 'Tidak diizinkan.',
+        diagnostik: {
+          kunci_dari_gas_panjang: kunciRahasia ? kunciRahasia.length : 0,
+          kunci_di_server_ada: Boolean(kunciServer),
+          kunci_di_server_panjang: kunciServer ? kunciServer.length : 0,
+        },
+      },
+      { status: 401 }
+    );
   }
 
   let body;
