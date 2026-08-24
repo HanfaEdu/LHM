@@ -142,10 +142,17 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
           <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
           {/* Target digambar sebagai seri, bukan ReferenceLine: hanya seri
               yang ikut muncul di legenda, dan legenda itulah tempat pembaca
-              mengetahui arti garis merah putus-putus ini. */}
+              mengetahui arti garis merah putus-putus ini.
+
+              legendType="plainline" wajib: ikon legenda bawaan untuk seri
+              garis selalu digambar utuh dan mengabaikan strokeDasharray,
+              sehingga legendanya menjanjikan garis penuh sementara grafiknya
+              menggambar garis putus-putus. Hanya tipe ikon ini yang membaca
+              strokeDasharray dari seri yang bersangkutan. */}
           <Line
             dataKey="target"
             name="Target"
+            legendType="plainline"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
@@ -243,6 +250,7 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
           <Line
             dataKey={kTarget}
             name="Target"
+            legendType="plainline"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="4 4"
@@ -463,6 +471,7 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
           <Line
             dataKey="target"
             name="Target"
+            legendType="plainline"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
@@ -524,6 +533,7 @@ export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
           <Line
             dataKey={kTarget}
             name="Target"
+            legendType="plainline"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="4 4"

@@ -314,6 +314,7 @@ export default function DasborKepalaSekolah() {
                   <Line
                     dataKey="ambang"
                     name={`Ambang ${AMBANG_KETUNTASAN}%`}
+                    legendType="plainline"
                     stroke="var(--target)"
                     strokeWidth={2}
                     strokeDasharray="6 4"

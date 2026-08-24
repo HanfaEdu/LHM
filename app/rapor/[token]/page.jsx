@@ -266,6 +266,7 @@ function GrafikAkademik({ bulanan, target }) {
               <Line
                 dataKey="target_akademik"
                 name="Target"
+                legendType="plainline"
                 stroke={WARNA.target}
                 strokeWidth={2}
                 strokeDasharray="6 4"
@@ -376,6 +377,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
               <Line
                 dataKey={kolomTarget}
                 name="Target"
+                legendType="plainline"
                 stroke={WARNA.target}
                 strokeWidth={2}
                 strokeDasharray="4 4"
@@ -729,6 +731,7 @@ function GrafikSatuUkuran({
               <Line
                 dataKey="target"
                 name="Target"
+                legendType="plainline"
                 stroke={WARNA.target}
                 strokeWidth={2}
                 strokeDasharray="6 4"
