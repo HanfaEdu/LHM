@@ -216,3 +216,135 @@
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1rem;
 }
+
+/* ================================================================
+   Gerak halus
+   ================================================================
+   Animasi di sini hanya bertugas mengarahkan mata, bukan menghibur:
+   kartu masuk berurutan supaya urutan baca jelas, dan titik target
+   berpendar supaya patokan "seharusnya sampai di mana" tetap terlihat
+   walau grafiknya ramai. Semuanya dimatikan bagi pengguna yang
+   meminta gerak minimal lewat setelan sistem. */
+
+.kartu {
+  animation: munculNaik 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Jeda berjenjang: kartu bawah menyusul sesudah kartu atas, bukan
+   semuanya melompat bersamaan. */
+.kartu:nth-of-type(1) { animation-delay: 0.02s; }
+.kartu:nth-of-type(2) { animation-delay: 0.08s; }
+.kartu:nth-of-type(3) { animation-delay: 0.14s; }
+.kartu:nth-of-type(4) { animation-delay: 0.20s; }
+
+.kepala {
+  animation: munculNaik 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes munculNaik {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Lingkaran pendar di belakang titik target. Radius tetap, yang
+   berdenyut hanya opasitas dan skala — supaya tidak terbaca sebagai
+   perubahan nilai. */
+.pendarTarget {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: berpendar 2.4s ease-in-out infinite;
+}
+
+@keyframes berpendar {
+  0%, 100% { opacity: 0.10; transform: scale(1); }
+  50%      { opacity: 0.30; transform: scale(1.7); }
+}
+
+/* Kartu sedikit terangkat saat disentuh/diarahkan kursor: memberi
+   tanda bahwa isinya bisa digulir/diklik, tanpa mengubah tata letak. */
+.kartu {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.kartu:hover {
+  border-color: var(--tinta-samar);
+  box-shadow: 0 2px 14px rgb(0 0 0 / 6%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kartu,
+  .kepala,
+  .pendarTarget {
+    animation: none;
+  }
+  .kartu {
+    transition: none;
+  }
+}
+
+/* ================================================================
+   Rincian bulanan yang bisa dilipat
+   ================================================================
+   Di awal tahun ajaran, sebelas dari dua belas barisnya masih "–".
+   Tabel dibiarkan tertutup secara bawaan supaya grafik dan posisi di
+   kelas — yang benar-benar dilihat orang tua tiap bulan — tidak
+   terdorong jauh ke bawah layar. */
+
+.lipatan > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.lipatan > summary::-webkit-details-marker {
+  display: none;
+}
+
+.penanda {
+  color: var(--tinta-samar);
+  font-size: 0.8rem;
+  transition: transform 0.2s ease;
+}
+
+.lipatan[open] .penanda {
+  transform: rotate(90deg);
+}
+
+.lipatan[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+.isiLipatan {
+  animation: munculNaik 0.3s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .penanda { transition: none; }
+  .isiLipatan { animation: none; }
+}
+
+/* Tahun ajaran di kepala halaman: selalu terlihat, bukan hanya saat
+   ada lebih dari satu tahun. Orang tua perlu tahu data yang sedang
+   dilihat itu tahun yang mana. */
+.tahunAjaran {
+  text-align: right;
+}
+
+.labelTahun {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tinta-samar);
+  margin-bottom: 0.25rem;
+}
+
+.nilaiTahun {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--tinta);
+}

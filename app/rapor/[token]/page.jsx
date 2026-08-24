@@ -138,13 +138,18 @@ export default function HalamanRapor({ params }) {
               {data.kelas.wali_kelas ? ` · Wali Kelas: ${data.kelas.wali_kelas}` : ''}
             </p>
           </div>
-          {data.tahunAjaranTersedia.length > 1 && (
-            <label className={gaya.subJudul}>
-              Tahun Ajaran
-              <br />
+          {/* Tahun ajaran selalu ditampilkan, bukan hanya saat sudah ada
+              lebih dari satu. Tanpa ini, orang tua di tahun pertama tidak
+              punya petunjuk data yang dilihatnya itu tahun yang mana --
+              dan begitu tahun kedua berjalan, kolom ini berubah sendiri
+              menjadi pilihan untuk menengok tahun-tahun sebelumnya. */}
+          <div className={gaya.tahunAjaran}>
+            <span className={gaya.labelTahun}>Tahun Ajaran</span>
+            {data.tahunAjaranTersedia.length > 1 ? (
               <select
                 className={gaya.pilih}
                 value={tahunAjaran}
+                aria-label="Pilih tahun ajaran"
                 onChange={(e) => ambilData(pin || undefined, e.target.value)}
               >
                 {data.tahunAjaranTersedia.map((t) => (
@@ -153,8 +158,10 @@ export default function HalamanRapor({ params }) {
                   </option>
                 ))}
               </select>
-            </label>
-          )}
+            ) : (
+              <span className={gaya.nilaiTahun}>{data.kelas.tahun_ajaran}</span>
+            )}
+          </div>
         </header>
 
         <GrafikAkademik bulanan={data.bulanan} target={data.kelas.target_akademik} />
@@ -174,12 +181,17 @@ export default function HalamanRapor({ params }) {
           />
         </div>
 
-        <TabelBulanan bulanan={data.bulanan} />
-
+        {/* Posisi di kelas naik ke atas tabel: inilah yang dicari orang tua
+            tiap bulan. Tabel dua belas bulan ditaruh paling bawah karena di
+            awal tahun ajaran hampir seluruh barisnya masih "-", dan
+            menempatkannya di tengah memaksa menggulir jauh hanya untuk
+            melewati sebelas baris kosong. */}
         <PerbandinganKelas
           perbandingan={data.perbandingan}
           namaAnak={data.anak.nama_panggilan}
         />
+
+        <TabelBulanan bulanan={data.bulanan} />
       </div>
     </div>
   );
@@ -348,7 +360,8 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
                 stroke={WARNA.target}
                 strokeWidth={2}
                 strokeDasharray="4 4"
-                dot={{ r: 4, fill: WARNA.target, stroke: 'var(--kartu)', strokeWidth: 2 }}
+                dot={<TitikTargetBerpendar />}
+                activeDot={{ r: 6, fill: WARNA.target, stroke: 'var(--kartu)', strokeWidth: 2 }}
                 connectNulls={false}
               />
             </ComposedChart>
@@ -363,6 +376,25 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
   );
 }
 
+/**
+ * Titik target dengan lingkaran pendar di belakangnya.
+ *
+ * Yang berdenyut hanya lingkaran halo, bukan titik intinya — kalau titik
+ * yang membesar-mengecil, pembaca bisa salah menyangka nilainya berubah.
+ * Bulan tanpa target tidak digambar sama sekali (bukan digambar di nol).
+ */
+function TitikTargetBerpendar({ cx, cy, value }) {
+  if (value === null || value === undefined || cx === undefined || cy === undefined) {
+    return null;
+  }
+  return (
+    <g>
+      <circle className={gaya.pendarTarget} cx={cx} cy={cy} r={6} fill={WARNA.target} />
+      <circle cx={cx} cy={cy} r={4} fill={WARNA.target} stroke="var(--kartu)" strokeWidth={2} />
+    </g>
+  );
+}
+
 /* ================================================================
    Tabel 12 bulan
    ================================================================ */
@@ -373,9 +405,29 @@ function TabelBulanan({ bulanan }) {
     return angka.reduce((a, b) => a + b, 0) / angka.length;
   };
 
+  // Jumlah bulan yang benar-benar sudah terisi dipakai sebagai ringkasan di
+  // kepala lipatan, supaya orang tua tahu ada berapa isinya tanpa membuka.
+  const bulanTerisi = bulanan.filter(
+    (b) =>
+      b.rata_b_indo !== null ||
+      b.rata_mtk !== null ||
+      b.rata_ipa !== null ||
+      b.capaian_tahfidz !== null ||
+      b.capaian_tahsin !== null
+  ).length;
+
   return (
     <section className={gaya.kartu}>
-      <h2 className={gaya.judulKartu}>Rincian Bulanan</h2>
+      <details className={gaya.lipatan}>
+        <summary>
+          <span className={gaya.penanda}>▶</span>
+          Rincian Bulanan
+          <span className={gaya.ketKartu} style={{ margin: 0, fontWeight: 400 }}>
+            ({bulanTerisi} dari 12 bulan sudah terisi)
+          </span>
+        </summary>
+
+        <div className={gaya.isiLipatan}>
       <p className={gaya.ketKartu}>
         Tanda “–” berarti bulan tersebut belum dinilai.
       </p>
@@ -428,6 +480,8 @@ function TabelBulanan({ bulanan }) {
           </tbody>
         </table>
       </div>
+        </div>
+      </details>
     </section>
   );
 }

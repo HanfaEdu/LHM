@@ -39,6 +39,7 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 | `app/api/rapor/` | Endpoint server: verifikasi token (PIN opsional) + penyamaran nama sekelas. |
 | `docs/PERBAIKAN_SPREADSHEET.md` | Audit rumus + daftar perbaikan sebelum sync pertama. |
 | `docs/AKSES_ORANG_TUA.md` | Cara menerbitkan tautan untuk orang tua (token saja secara default). |
+| `docs/TAHUN_AJARAN_BARU.md` | Yang disiapkan tiap naik tahun ajaran — dan yang tidak perlu disentuh. |
 
 ## Urutan penyiapan
 
