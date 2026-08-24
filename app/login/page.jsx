@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LogIn } from 'lucide-react';
+import LogoBerbintang from './LogoBerbintang';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -71,6 +72,7 @@ export default function LoginPage() {
       position: 'relative'
     }}>
       <div className="glass-card" style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}>
+        <LogoBerbintang />
         <h1 style={{
           fontSize: '2.25rem',
           marginBottom: '8px',

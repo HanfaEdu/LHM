@@ -1,0 +1,90 @@
+/* ================================================================
+   Logo + butiran bintang di halaman masuk
+   ================================================================
+   Bintang bergerak keluar dari balik logo, berpendar, lalu memudar.
+   Seluruhnya CSS: tidak ada loop JavaScript per-frame, sehingga tidak
+   membebani perangkat lama maupun baterai — halaman ini bisa saja
+   dibiarkan terbuka lama sebelum guru sempat menekan tombol masuk.
+
+   Arah, jarak, ukuran, dan jeda tiap butir dibawa lewat custom property
+   yang ditetapkan di JSX (--dx, --dy, dst), sehingga satu aturan
+   @keyframes melayani seluruh butir tanpa perlu satu aturan per butir. */
+
+.panggung {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 132px;
+  height: 132px;
+  margin: 0 auto 20px;
+}
+
+.logo {
+  position: relative;
+  z-index: 2;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  border-radius: 50%;
+  /* Cahaya lembut di tepi logo menyatukannya dengan bintang di
+     belakangnya, supaya bintang terbaca memancar dari logo dan bukan
+     sekadar melintas di dekatnya. */
+  box-shadow:
+    0 0 0 3px rgb(255 255 255 / 8%),
+    0 0 28px rgb(0 245 212 / 22%);
+}
+
+/* Lapisan bintang berada di belakang logo dan tidak menangkap sentuhan,
+   supaya tidak pernah menghalangi tombol masuk. */
+.langit {
+  position: absolute;
+  inset: -60px;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.bintang {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--ukuran);
+  height: var(--ukuran);
+  margin: calc(var(--ukuran) / -2) 0 0 calc(var(--ukuran) / -2);
+  border-radius: 50%;
+  background: var(--warna);
+  box-shadow: 0 0 6px var(--warna);
+  opacity: 0;
+  animation: memancar var(--durasi) ease-out var(--jeda) infinite;
+}
+
+@keyframes memancar {
+  /* Muncul dari balik logo: mulai dari titik pusat dengan ukuran nol,
+     bukan dari kondisi terlihat penuh yang akan terbaca sebagai kedipan. */
+  0% {
+    transform: translate(0, 0) scale(0.2);
+    opacity: 0;
+  }
+  15% {
+    opacity: var(--terang);
+  }
+  70% {
+    opacity: var(--terang);
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Gerak dimatikan bagi yang memintanya lewat setelan sistem. Bintangnya
+   tidak ikut dihapus, hanya dibekukan pada posisi menyebar dengan
+   pendar tetap — hiasannya tetap ada, gerakannya yang tidak. */
+@media (prefers-reduced-motion: reduce) {
+  .bintang {
+    animation: none;
+    opacity: calc(var(--terang) * 0.5);
+    transform: translate(var(--dx), var(--dy)) scale(0.8);
+  }
+}
