@@ -116,9 +116,28 @@ export default function HalamanTautan() {
 
   const belumPunya = tampil.filter((d) => !d.token);
 
-  /** Alamat lengkap dibangun dari domain yang sedang dibuka, bukan dipatok. */
-  const asalDomain = typeof window !== 'undefined' ? window.location.origin : '';
+  /**
+   * Tautan selalu dibangun dari alamat RESMI aplikasi, bukan dari alamat
+   * yang kebetulan sedang dibuka.
+   *
+   * Vercel menyediakan beberapa alamat cadangan untuk proyek yang sama --
+   * mis. lhm-<slug-akun>.vercel.app, yang tetap hidup setelah nama proyek
+   * diganti. Kalau tautan dibangun dari window.location.origin, kepala
+   * sekolah yang membuka dasbor lewat salah satu alamat cadangan akan
+   * menerbitkan dan mengunduh tautan beralamat cadangan itu, lalu
+   * membagikannya ke ratusan orang tua. Tautannya berfungsi, tetapi
+   * alamatnya bukan alamat resmi sekolah dan tidak bisa ditarik kembali
+   * setelah tersebar.
+   *
+   * window.location.origin hanya dipakai kalau NEXT_PUBLIC_SITE_URL belum
+   * terisi sama sekali (mis. saat dijalankan lokal).
+   */
+  const [asalCadangan, setAsalCadangan] = useState('');
+  useEffect(() => setAsalCadangan(window.location.origin), []);
+
+  const asalDomain = process.env.NEXT_PUBLIC_SITE_URL || asalCadangan;
   const tautanPenuh = (token) => `${asalDomain}/rapor/${token}`;
+  const bedaAlamat = Boolean(asalCadangan && asalDomain && asalCadangan !== asalDomain);
 
   async function terbitkan(nisDaftar) {
     if (!nisDaftar.length) return;
@@ -296,6 +315,16 @@ export default function HalamanTautan() {
               ← Kembali ke dasbor
             </Link>
           </div>
+
+          {bedaAlamat && (
+            <p className={`${gaya.narasi} ${gaya.peringatan}`}>
+              Dasbor ini sedang dibuka lewat alamat cadangan{' '}
+              <strong>{asalCadangan}</strong>. Tautan yang diterbitkan dan
+              diunduh tetap memakai alamat resmi{' '}
+              <strong>{asalDomain}</strong>, jadi aman dibagikan — tetapi
+              sebaiknya dasbor dibuka dari alamat resmi itu juga.
+            </p>
+          )}
 
           {pesan && <p className={gaya.narasi}>{pesan}</p>}
           {galat && (
