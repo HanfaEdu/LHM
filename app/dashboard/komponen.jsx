@@ -7,7 +7,6 @@ import {
   ComposedChart,
   Legend,
   Line,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -108,6 +107,7 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
   const data = baris.map((b) => ({
     nama: anonim ? b.label : b.nama_panggilan,
     ...b,
+    target,
   }));
 
   const adaIsi = data.some((b) => MAPEL.some((m) => b[m.kunci] !== null));
@@ -140,11 +140,18 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
             formatter={(v, n) => [v === null ? 'belum dinilai' : bulat(v, 1), n]}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
-          <ReferenceLine
-            y={target}
+          {/* Target digambar sebagai seri, bukan ReferenceLine: hanya seri
+              yang ikut muncul di legenda, dan legenda itulah tempat pembaca
+              mengetahui arti garis merah putus-putus ini. */}
+          <Line
+            dataKey="target"
+            name="Target"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
+            dot={false}
+            activeDot={false}
+            connectNulls
           />
           {/* Batang, bukan garis. Sumbu X di sini adalah nama siswa --
               kategori yang tidak berurutan. Garis akan menyambungkan Aksara
@@ -393,7 +400,7 @@ export function KeteranganQuran({ jenis }) {
   return (
     <details className={gaya.keterangan}>
       <summary>
-        Lihat keterangan seluruh poin {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
+        Lihat keterangan seluruh capaian {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
       </summary>
       <ol className={gaya.daftarKeterangan}>
         {daftar.map((d) => (
@@ -426,7 +433,10 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
   return (
     <div className={gaya.grafik}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
+        <ComposedChart
+          data={bulanan.map((b) => ({ ...b, target }))}
+          margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
+        >
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
             dataKey="bulan"
@@ -450,7 +460,16 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
             formatter={(v, n) => [v === null || v === undefined ? 'belum dinilai' : v, n]}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
-          <ReferenceLine y={target} stroke="var(--target)" strokeWidth={2} strokeDasharray="6 4" />
+          <Line
+            dataKey="target"
+            name="Target"
+            stroke="var(--target)"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            dot={false}
+            activeDot={false}
+            connectNulls
+          />
           <Line dataKey="rata_b_indo" name="B. Indonesia" stroke="var(--seri-1)"
                 strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
           <Line dataKey="rata_mtk" name="Matematika" stroke="var(--seri-2)"

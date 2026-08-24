@@ -7,7 +7,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Legend,
-  ReferenceLine,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -173,6 +173,7 @@ export default function DasborKepalaSekolah() {
       'B. Indonesia': r.perMapel[0]?.persen ?? null,
       Matematika: r.perMapel[1]?.persen ?? null,
       IPA: r.perMapel[2]?.persen ?? null,
+      ambang: AMBANG_KETUNTASAN,
     }));
 
   const kelasFokus = ringkasan.find((r) => String(r.kelas.id) === String(fokus));
@@ -304,11 +305,17 @@ export default function DasborKepalaSekolah() {
                       <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
                     )}
                   />
-                  <ReferenceLine
-                    y={AMBANG_KETUNTASAN}
+                  {/* Sebagai seri, bukan ReferenceLine, supaya simbol garis
+                      merah putus-putusnya ikut muncul di legenda. */}
+                  <Line
+                    dataKey="ambang"
+                    name={`Ambang ${AMBANG_KETUNTASAN}%`}
                     stroke="var(--target)"
                     strokeWidth={2}
                     strokeDasharray="6 4"
+                    dot={false}
+                    activeDot={false}
+                    connectNulls
                   />
                   <Bar dataKey="B. Indonesia" fill="var(--seri-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
                   <Bar dataKey="Matematika" fill="var(--seri-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />

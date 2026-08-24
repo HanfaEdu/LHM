@@ -9,7 +9,6 @@ import {
   Legend,
   Line,
   LineChart,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -210,10 +209,6 @@ function GrafikAkademik({ bulanan, target }) {
   return (
     <section className={gaya.kartu}>
       <h2 className={gaya.judulKartu}>Capaian Akademik</h2>
-      <p className={gaya.ketKartu}>
-        Garis merah putus-putus adalah target sekolah ({target}). Bulan yang belum
-        dinilai sengaja dibiarkan kosong, bukan digambar sebagai nol.
-      </p>
 
       {adaIsi ? (
         <div className={gaya.grafik}>
@@ -249,12 +244,19 @@ function GrafikAkademik({ bulanan, target }) {
                   <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
                 )}
               />
-              <ReferenceLine
-                y={target}
+              {/* Target digambar sebagai seri, bukan ReferenceLine: hanya
+                  seri yang muncul di legenda, dan legenda itulah satu-satunya
+                  tempat pembaca bisa tahu garis merah putus-putus ini artinya
+                  apa setelah keterangan panjangnya dihapus. */}
+              <Line
+                dataKey="target_akademik"
+                name="Target"
                 stroke={WARNA.target}
                 strokeWidth={2}
                 strokeDasharray="6 4"
-                ifOverflow="extendDomain"
+                dot={false}
+                activeDot={false}
+                connectNulls
               />
               {/* connectNulls dibiarkan false: bulan tanpa nilai harus memutus
                   garis, bukan disambung seolah-olah nilainya berpindah halus. */}
@@ -397,7 +399,7 @@ function KeteranganQuran({ jenis }) {
   return (
     <details className={gaya.keterangan}>
       <summary>
-        Lihat keterangan seluruh poin {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
+        Lihat keterangan seluruh capaian {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
       </summary>
       <ol className={gaya.daftarKeterangan}>
         {daftar.map((d) => (
@@ -466,11 +468,6 @@ function TabelBulanan({ bulanan }) {
         </summary>
 
         <div className={gaya.isiLipatan}>
-      <p className={gaya.ketKartu}>
-        Tanda “–” berarti bulan tersebut belum dinilai. Kolom{' '}
-        <strong>Capaian</strong> adalah hasil yang sudah dicapai,{' '}
-        <strong>Target</strong> adalah patokan yang seharusnya dicapai bulan itu.
-      </p>
       <div className={gaya.gulirTabel}>
         <table className={gaya.tabel}>
           {/* Kepala tabel dua tingkat: tanpa pengelompokan ini, kolom
@@ -591,9 +588,7 @@ function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
     <section className={gaya.kartu}>
       <h2 className={gaya.judulKartu}>Posisi di Kelas</h2>
       <p className={gaya.ketKartu}>
-        Nama teman sekelas ditampilkan sebagai inisial demi menjaga privasi mereka.
-        Batang berwarna adalah putra/putri Anda. Garis merah putus-putus adalah
-        target bulan yang sedang dilihat.
+        Batang berwarna adalah capaian putra/putri Anda.
       </p>
 
       <div className={gaya.penyaring}>
@@ -622,7 +617,10 @@ function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
       {baris.length ? (
         <div className={gaya.grafik}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={baris} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
+            <ComposedChart
+              data={baris.map((r) => ({ ...r, target }))}
+              margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
+            >
               <CartesianGrid stroke="var(--garis)" vertical={false} />
               <XAxis
                 dataKey="label"
@@ -647,13 +645,24 @@ function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
                     : [nilai, nama]
                 }
               />
+              <Legend
+                wrapperStyle={{ fontSize: 12 }}
+                formatter={(nilai) => (
+                  <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
+                )}
+              />
+              {/* Target sebagai seri, bukan ReferenceLine: hanya seri yang
+                  ikut muncul di legenda beserta simbol garis putus-putusnya. */}
               {target !== null && (
-                <ReferenceLine
-                  y={target}
+                <Line
+                  dataKey="target"
+                  name="Target"
                   stroke={WARNA.target}
                   strokeWidth={2}
                   strokeDasharray="6 4"
-                  ifOverflow="extendDomain"
+                  dot={false}
+                  activeDot={false}
+                  connectNulls
                 />
               )}
               <Bar dataKey={ukuran} name={namaUkuran} radius={[4, 4, 0, 0]} maxBarSize={38}>
