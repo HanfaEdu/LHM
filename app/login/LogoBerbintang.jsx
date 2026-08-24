@@ -40,7 +40,10 @@ const BINTANG = (() => {
     return {
       dx: `${Math.cos(sudut) * jarak}px`,
       dy: `${Math.sin(sudut) * jarak}px`,
-      ukuran: `${2 + acak() * 2.6}px`,
+      // Dinaikkan 75% dari ukuran semula (2-4.6px) atas permintaan
+      // pengguna: pada layar padat piksel, butiran sekecil itu nyaris
+      // tidak terlihat.
+      ukuran: `${3.5 + acak() * 4.55}px`,
       durasi: `${4.5 + acak() * 4}s`,
       // Jeda disebar sepanjang durasi supaya butir tidak berangkat
       // serentak dan terbaca sebagai ledakan berulang.

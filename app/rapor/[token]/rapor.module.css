@@ -474,3 +474,120 @@
 .gulirTabel {
   scrollbar-width: thin;
 }
+
+.tombolCetak {
+  margin-top: 0.55rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--garis);
+  border-radius: 8px;
+  background: var(--kartu);
+  color: var(--tinta);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tombolCetak:hover {
+  border-color: var(--tinta-samar);
+}
+
+/* ================================================================
+   Cetak / Simpan sebagai PDF
+   ================================================================
+   Yang dicetak adalah halaman ini apa adanya, bukan hasil pengubahan
+   menjadi gambar: teksnya tetap bisa dicari dan grafiknya tetap tajam
+   saat diperbesar. Yang perlu diatur di sini hanya membuang kontrol yang
+   tidak berguna di atas kertas, dan mengatur di mana halaman boleh
+   dipenggal. */
+@media print {
+  /* Latar gelap tidak pernah tepat di atas kertas: tintanya boros dan
+     hasilnya sering keluar sebagai kotak kelabu. Seluruh palet dipaksa
+     ke mode terang, apa pun setelan perangkat pembacanya. */
+  .halaman {
+    --surface: #ffffff;
+    --kartu: #ffffff;
+    --garis: #cfcdc7;
+    --tinta: #000000;
+    --tinta-lembut: #333333;
+    --tinta-samar: #666666;
+
+    padding: 0;
+    min-height: auto;
+    background: #ffffff;
+  }
+
+  .kartu,
+  .kepala {
+    border: 1px solid var(--garis);
+    box-shadow: none;
+    /* Kartu tidak boleh terpenggal di tengah grafik; kalau tidak muat,
+       seluruh kartu pindah ke halaman berikutnya. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+    animation: none;
+  }
+
+  /* Kontrol tidak berfungsi di atas kertas dan hanya memakan tempat. */
+  .tombolCetak,
+  .penyaring,
+  .pilih {
+    display: none !important;
+  }
+
+  /* Tabel rincian dibuka paksa: pembaca berkas PDF tidak bisa mengklik
+     lipatan, jadi tabel yang tertutup akan hilang begitu saja dari hasil
+     cetakan tanpa jejak. */
+  .lipatan > summary {
+    list-style: none;
+  }
+
+  .penanda {
+    display: none;
+  }
+
+  .isiLipatan {
+    display: block !important;
+    animation: none;
+  }
+
+  /* Keterangan poin justru berguna di atas kertas -- pembaca tidak bisa
+     membuka lipatannya sendiri, dan tanpa daftar ini angka pada grafik
+     tidak bisa diterjemahkan. */
+  .keterangan > summary {
+    list-style: none;
+    font-size: 0.75rem;
+  }
+
+  .daftarKeterangan {
+    display: grid !important;
+    max-height: none;
+    overflow: visible;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .grafik {
+    height: 300px;
+    overflow: visible;
+  }
+
+  .grafik > :global(.recharts-responsive-container) {
+    min-width: 0;
+  }
+
+  /* Dua grafik Qur'an dibiarkan berdampingan supaya muat satu halaman. */
+  .tumpuk {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pendarTarget {
+    animation: none;
+    opacity: 0.25;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 12mm;
+}

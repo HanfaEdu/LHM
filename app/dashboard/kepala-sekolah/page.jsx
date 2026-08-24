@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Bar,
   CartesianGrid,
@@ -259,6 +260,9 @@ export default function DasborKepalaSekolah() {
                 ))}
               </select>
             </label>
+            <Link href="/dashboard/kepala-sekolah/tautan" className={gaya.tombolAksi}>
+              Tautan Orang Tua
+            </Link>
             </div>
           }
         />

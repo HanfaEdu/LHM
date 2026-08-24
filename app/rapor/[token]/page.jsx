@@ -160,6 +160,20 @@ export default function HalamanRapor({ params }) {
               ) : (
                 <span className={gaya.nilaiTahun}>{data.kelas.tahun_ajaran}</span>
               )}
+              {/* window.print() dipakai apa adanya, bukan pustaka pengubah
+                  halaman menjadi gambar: dialog cetak bawaan browser sudah
+                  menyediakan "Simpan sebagai PDF" di HP maupun komputer,
+                  hasilnya berupa teks yang bisa dicari dan grafik yang tetap
+                  tajam saat diperbesar, dan tidak ada satu byte pun tambahan
+                  yang perlu diunduh orang tua. Kerapiannya diatur seluruhnya
+                  lewat @media print di rapor.module.css. */}
+              <button
+                type="button"
+                className={gaya.tombolCetak}
+                onClick={() => window.print()}
+              >
+                Cetak / Simpan PDF
+              </button>
             </div>
           }
         />

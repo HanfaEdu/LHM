@@ -307,6 +307,52 @@
 }
 
 /* ================================================================
+   Halaman pengelolaan tautan orang tua
+   ================================================================ */
+.tombolAksi {
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--seri-1);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tombolAksi:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tombolSekunder {
+  background: var(--kartu);
+  color: var(--tinta);
+  border: 1px solid var(--garis);
+}
+
+.tautanKembali {
+  align-self: center;
+  font-size: 0.85rem;
+  color: var(--tinta-lembut);
+}
+
+/* Tautan itu 48 karakter heksadesimal ditambah domain -- dibiarkan
+   membungkus, bukan memaksa lebar tabel meledak ke samping. */
+.selTautan code {
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+  color: var(--tinta-lembut);
+}
+
+.tindakan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: center;
+}
+
+/* ================================================================
    Layar sempit (HP)
    ================================================================
    Dasbor ini dibuka guru sambil berdiri di kelas, bukan hanya dari meja.
