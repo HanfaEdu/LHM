@@ -95,9 +95,15 @@ export async function POST(request) {
     .eq('kelas_id', kelas.id);
 
   // --- Nilai seluruh kelas, untuk grafik perbandingan ---
+  // Target ikut diambil: grafik perbandingan perlu menggambar garis target
+  // pada bulan yang sedang dilihat, dan target Tahfidz/Tahsin berbeda tiap
+  // bulan (tidak bisa diambil dari target_akademik yang tetap).
   const { data: nilaiKelas } = await db
     .from('nilai_bulanan')
-    .select('nis, bulan, urutan_bulan, rata_b_indo, rata_mtk, rata_ipa, capaian_tahfidz, capaian_tahsin')
+    .select(
+      'nis, bulan, urutan_bulan, rata_b_indo, rata_mtk, rata_ipa, ' +
+        'target_tahfidz, capaian_tahfidz, target_tahsin, capaian_tahsin'
+    )
     .eq('kelas_id', kelas.id);
 
   const { data: siswaKelas } = await db
@@ -142,7 +148,9 @@ export async function POST(request) {
         rata_b_indo: angka(r.rata_b_indo),
         rata_mtk: angka(r.rata_mtk),
         rata_ipa: angka(r.rata_ipa),
+        target_tahfidz: angka(r.target_tahfidz),
         capaian_tahfidz: angka(r.capaian_tahfidz),
+        target_tahsin: angka(r.target_tahsin),
         capaian_tahsin: angka(r.capaian_tahsin),
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'id'));

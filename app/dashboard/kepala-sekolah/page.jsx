@@ -22,7 +22,15 @@ import {
   siswaDalamKelas,
   susunBulananSiswa,
 } from '@/lib/data-dasbor';
-import { AMBANG_KETUNTASAN, MAPEL, bulat, ketuntasan, rataRata, rekapQuran } from '@/lib/statistik';
+import {
+  AMBANG_KETUNTASAN,
+  MAPEL,
+  bulat,
+  ketuntasan,
+  narasiKelas,
+  rataRata,
+  rekapQuran,
+} from '@/lib/statistik';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
@@ -415,6 +423,9 @@ export default function DasborKepalaSekolah() {
                   />
                 ))}
               </div>
+              <p className={gaya.narasi}>
+                {narasiKelas(kelasFokus.baris, kelasFokus.target, bulan)}
+              </p>
               <GrafikKelasAkademik baris={kelasFokus.baris} target={kelasFokus.target} />
               <CatatanTerbaik baris={kelasFokus.baris} />
             </>

@@ -189,6 +189,7 @@ export default function HalamanRapor({ params }) {
         <PerbandinganKelas
           perbandingan={data.perbandingan}
           namaAnak={data.anak.nama_panggilan}
+          targetAkademik={data.kelas.target_akademik}
         />
 
         <TabelBulanan bulanan={data.bulanan} />
@@ -450,7 +451,11 @@ function TabelBulanan({ bulanan }) {
 
   return (
     <section className={gaya.kartu}>
-      <details className={gaya.lipatan}>
+      {/* Terbuka secara bawaan: tabel ini rekap resmi yang dicari orang tua,
+          bukan lampiran. Tetap dapat dilipat kalau ingin diringkas, dan
+          tetap ditaruh paling bawah supaya baris-baris yang belum terisi di
+          awal tahun tidak mendorong grafik ke luar layar. */}
+      <details className={gaya.lipatan} open>
         <summary>
           <span className={gaya.penanda}>▶</span>
           Rincian Bulanan
@@ -521,7 +526,7 @@ function TabelBulanan({ bulanan }) {
 /* ================================================================
    Perbandingan dengan teman sekelas — nama teman disamarkan di server
    ================================================================ */
-function PerbandinganKelas({ perbandingan, namaAnak }) {
+function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
   const bulanTersedia = useMemo(
     () => BULAN_AJARAN.filter((b) => perbandingan[b]?.length),
     [perbandingan]
@@ -547,12 +552,27 @@ function PerbandinganKelas({ perbandingan, namaAnak }) {
     capaian_tahsin: 'Tahsin',
   }[ukuran];
 
+  // Jenis Qur'an yang sedang dilihat, atau null kalau yang dipilih mapel
+  // akademik. Dipakai untuk memilih sumber target sekaligus memutuskan
+  // apakah panel keterangan poin perlu ditampilkan.
+  const jenisQuran =
+    ukuran === 'capaian_tahfidz' ? 'tahfidz' : ukuran === 'capaian_tahsin' ? 'tahsin' : null;
+
+  // Target akademik tetap sepanjang tahun, sedangkan target Tahfidz/Tahsin
+  // berubah tiap bulan -- karena itu diambil dari baris bulan ini, bukan
+  // dari satu angka di tingkat kelas. Seluruh siswa satu kelas berbagi
+  // target yang sama, jadi baris pertama yang terisi sudah mewakili.
+  const target = jenisQuran
+    ? baris.map((r) => r[`target_${jenisQuran}`]).find((v) => v !== null && v !== undefined) ?? null
+    : targetAkademik ?? null;
+
   return (
     <section className={gaya.kartu}>
       <h2 className={gaya.judulKartu}>Posisi di Kelas</h2>
       <p className={gaya.ketKartu}>
         Nama teman sekelas ditampilkan sebagai inisial demi menjaga privasi mereka.
-        Batang berwarna adalah putra/putri Anda.
+        Batang berwarna adalah putra/putri Anda. Garis merah putus-putus adalah
+        target bulan yang sedang dilihat.
       </p>
 
       <div className={gaya.penyaring}>
@@ -598,7 +618,23 @@ function PerbandinganKelas({ perbandingan, namaAnak }) {
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip contentStyle={kotakTooltip} />
+              <Tooltip
+                contentStyle={kotakTooltip}
+                formatter={(nilai, nama) =>
+                  jenisQuran && nilai !== null && nilai !== undefined
+                    ? [`${nilai} — ${getQuranLevelName(jenisQuran, nilai)}`, nama]
+                    : [nilai, nama]
+                }
+              />
+              {target !== null && (
+                <ReferenceLine
+                  y={target}
+                  stroke={WARNA.target}
+                  strokeWidth={2}
+                  strokeDasharray="6 4"
+                  ifOverflow="extendDomain"
+                />
+              )}
               <Bar dataKey={ukuran} name={namaUkuran} radius={[4, 4, 0, 0]} maxBarSize={38}>
                 {baris.map((r, i) => (
                   <Cell
@@ -618,6 +654,10 @@ function PerbandinganKelas({ perbandingan, namaAnak }) {
       )}
 
       <p className={gaya.narasi}>{narasiPosisi(baris, ukuran, namaUkuran, namaAnak)}</p>
+      {/* Keterangan hanya relevan saat yang dibandingkan Tahfidz/Tahsin --
+          sumbu Y-nya poin, bukan nilai 0-100 yang sudah bisa dibaca apa
+          adanya. */}
+      {jenisQuran && <KeteranganQuran jenis={jenisQuran} />}
     </section>
   );
 }

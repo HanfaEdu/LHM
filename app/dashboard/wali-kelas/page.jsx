@@ -8,12 +8,16 @@ import {
   muatDaftarKelas,
   muatNilaiKelas,
   muatProfil,
+  siswaDalamKelas,
+  susunBulananSiswa,
 } from '@/lib/data-dasbor';
 import { MAPEL, ketuntasan, narasiKelas } from '@/lib/statistik';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
   GrafikKelasQuran,
+  GrafikTahunanAkademik,
+  GrafikTahunanQuran,
   KeteranganQuran,
   MeterKetuntasan,
   PeringatanDini,
@@ -31,6 +35,7 @@ export default function DasborWaliKelas() {
   const [kelasId, setKelasId] = useState('');
   const [perBulan, setPerBulan] = useState({});
   const [bulan, setBulan] = useState('');
+  const [nisSiswa, setNisSiswa] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -77,6 +82,7 @@ export default function DasborWaliKelas() {
         const { perBulan: hasil } = await muatNilaiKelas(kelasId);
         if (batal) return;
         setPerBulan(hasil);
+        setNisSiswa(''); // pilihan siswa milik kelas lama, tidak berlaku lagi
         const terisi = bulanTerisi(hasil);
         setBulan(terisi.length ? terisi[terisi.length - 1] : '');
       } catch (e) {
@@ -95,6 +101,16 @@ export default function DasborWaliKelas() {
   const daftarBulan = useMemo(() => bulanTerisi(perBulan), [perBulan]);
   const baris = perBulan[bulan] || [];
   const target = Number(kelas?.target_akademik ?? 90);
+
+  // Telusur satu siswa sepanjang tahun ajaran. Wali kelas hanya memegang
+  // satu kelas, jadi cukup satu pilihan (nama) -- tidak perlu memilih kelas
+  // lebih dulu seperti di dasbor kepala sekolah.
+  const daftarSiswa = useMemo(() => siswaDalamKelas(perBulan), [perBulan]);
+  const siswaTerpilih = daftarSiswa.find((s) => s.nis === nisSiswa);
+  const bulananSiswa = useMemo(
+    () => (nisSiswa ? susunBulananSiswa(perBulan, nisSiswa) : null),
+    [perBulan, nisSiswa]
+  );
 
   if (galat) {
     return (
@@ -236,6 +252,67 @@ export default function DasborWaliKelas() {
               <PeringatanDini baris={baris} target={target} />
             </section>
           </>
+        )}
+
+        {/* Menelusuri satu siswa sepanjang tahun ajaran -- pelengkap grafik
+            di atas yang semuanya memotret satu bulan sekaligus seluruh
+            kelas. Tampilannya sama persis dengan yang dilihat orang tua
+            siswa tersebut, supaya wali kelas tahu apa yang sedang dibaca
+            orang tua saat mereka bertanya. */}
+        {daftarSiswa.length > 0 && (
+          <section className={gaya.kartu}>
+            <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
+              <div>
+                <h2 className={gaya.judulKartu}>Telusur Satu Siswa</h2>
+                <p className={gaya.ketKartu} style={{ margin: 0 }}>
+                  {siswaTerpilih
+                    ? `${siswaTerpilih.nama_lengkap} · sepanjang tahun ajaran ${kelas?.tahun_ajaran}`
+                    : 'Pilih nama siswa untuk melihat capaiannya sepanjang tahun ajaran.'}
+                </p>
+              </div>
+              <label>
+                Nama Siswa
+                <select value={nisSiswa} onChange={(e) => setNisSiswa(e.target.value)}>
+                  <option value="">— pilih siswa —</option>
+                  {daftarSiswa.map((s) => (
+                    <option key={s.nis} value={s.nis}>
+                      {s.nama_panggilan}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {bulananSiswa && (
+              <>
+                <h3 className={gaya.judulKartu} style={{ marginTop: '1.25rem' }}>
+                  Capaian Akademik
+                </h3>
+                <GrafikTahunanAkademik bulanan={bulananSiswa} target={target} />
+
+                <div className={gaya.tumpuk2} style={{ marginTop: '0.5rem' }}>
+                  <div>
+                    <h3 className={gaya.judulKartu}>Tahfidz</h3>
+                    <GrafikTahunanQuran
+                      jenis="tahfidz"
+                      bulanan={bulananSiswa}
+                      warna="var(--seri-1)"
+                    />
+                    <KeteranganQuran jenis="tahfidz" />
+                  </div>
+                  <div>
+                    <h3 className={gaya.judulKartu}>Tahsin</h3>
+                    <GrafikTahunanQuran
+                      jenis="tahsin"
+                      bulanan={bulananSiswa}
+                      warna="var(--seri-3)"
+                    />
+                    <KeteranganQuran jenis="tahsin" />
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
         )}
       </div>
     </div>
