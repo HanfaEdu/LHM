@@ -374,33 +374,38 @@ export default function DasborKepalaSekolah() {
           </div>
         </section>
 
-        {kelasFokus && kelasFokus.jumlah > 0 && (
-          <>
-            <section className={gaya.kartu}>
-              <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
-                <div>
-                  <h2 className={gaya.judulKartu}>
-                    Rincian Kelas {kelasFokus.kelas.nama_kelas} · {bulan}
-                  </h2>
-                  <p className={gaya.ketKartu} style={{ margin: 0 }}>
-                    {kelasFokus.kelas.wali_kelas} · {kelasFokus.jumlah} siswa · target{' '}
-                    {kelasFokus.target}
-                  </p>
-                </div>
-                {/* Cara lain memilih kelas selain mengklik nama kelas di
-                    tabel Rekap Seluruh Kelas -- berguna begitu panel ini
-                    sudah terbuka dan tabelnya tergulir jauh ke atas. */}
-                <label>
-                  Pilih Kelas
-                  <select value={fokus} onChange={(e) => setFokus(e.target.value)}>
-                    {ringkasan.map((r) => (
-                      <option key={r.kelas.id} value={r.kelas.id}>
-                        {r.kelas.nama_kelas}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
+        {/* Pemilih kelas berada di LUAR blok bersyarat di bawahnya. Kalau
+            ditaruh di dalam, dropdown-nya baru muncul setelah sebuah kelas
+            sudah terpilih -- artinya tidak pernah bisa dipakai untuk memilih
+            kelas yang pertama. */}
+        <section className={gaya.kartu}>
+          <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
+            <div>
+              <h2 className={gaya.judulKartu}>
+                Rincian Per Kelas
+                {kelasFokus ? ` · Kelas ${kelasFokus.kelas.nama_kelas} · ${bulan}` : ''}
+              </h2>
+              <p className={gaya.ketKartu} style={{ margin: 0 }}>
+                {kelasFokus
+                  ? `${kelasFokus.kelas.wali_kelas || '–'} · ${kelasFokus.jumlah} siswa · target ${kelasFokus.target}`
+                  : 'Pilih satu kelas untuk melihat grafik tiga mapel, sebaran nilai, Tahfidz, dan Tahsin kelas itu.'}
+              </p>
+            </div>
+            <label>
+              Pilih Kelas
+              <select value={fokus} onChange={(e) => setFokus(e.target.value)}>
+                <option value="">— pilih kelas —</option>
+                {ringkasan.map((r) => (
+                  <option key={r.kelas.id} value={r.kelas.id}>
+                    {r.kelas.nama_kelas}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {kelasFokus && kelasFokus.jumlah > 0 && (
+            <>
               <div className={gaya.barisMeter}>
                 {MAPEL.map((m, i) => (
                   <MeterKetuntasan
@@ -412,7 +417,18 @@ export default function DasborKepalaSekolah() {
               </div>
               <GrafikKelasAkademik baris={kelasFokus.baris} target={kelasFokus.target} />
               <CatatanTerbaik baris={kelasFokus.baris} />
-            </section>
+            </>
+          )}
+
+          {kelasFokus && kelasFokus.jumlah === 0 && (
+            <p className={gaya.kosong}>
+              Kelas {kelasFokus.kelas.nama_kelas} belum punya nilai untuk bulan {bulan}.
+            </p>
+          )}
+        </section>
+
+        {kelasFokus && kelasFokus.jumlah > 0 && (
+          <>
 
             <section className={gaya.kartu}>
               <h2 className={gaya.judulKartu}>Sebaran Nilai</h2>
