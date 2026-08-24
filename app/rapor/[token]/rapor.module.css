@@ -384,3 +384,93 @@
   font-weight: 600;
   color: var(--tinta);
 }
+
+/* ================================================================
+   Layar sempit (HP)
+   ================================================================
+   Hampir seluruh orang tua membuka tautan ini dari WhatsApp di HP, jadi
+   layar sempit adalah tampilan utamanya -- bukan penyesuaian tambahan.
+   Grafik "Posisi di Kelas" yang memuat 16-24 batang tidak dimampatkan
+   melainkan digulir mendatar: dimampatkan ke 360px, batang anak sendiri
+   yang seharusnya menonjol jadi setipis garis. */
+@media (max-width: 640px) {
+  .halaman {
+    padding: 0.6rem;
+  }
+
+  .kartu {
+    padding: 0.9rem 0.85rem;
+    border-radius: 10px;
+  }
+
+  .judulKartu {
+    font-size: 0.98rem;
+  }
+
+  .ketKartu {
+    font-size: 0.8rem;
+  }
+
+  .grafik {
+    height: 285px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .grafik > :global(.recharts-responsive-container) {
+    min-width: 460px;
+  }
+
+  .penyaring {
+    width: 100%;
+    gap: 0.6rem;
+  }
+
+  .penyaring label {
+    flex: 1 1 9rem;
+  }
+
+  .penyaring select,
+  .pilih {
+    width: 100%;
+    /* 16px mencegah iOS Safari memperbesar halaman saat dropdown
+       disentuh; pembesaran itu tidak kembali sendiri. */
+    font-size: 16px;
+  }
+
+  .tahunAjaran {
+    width: 100%;
+    text-align: left;
+  }
+
+  .tabel {
+    font-size: 0.78rem;
+    min-width: 560px;
+  }
+
+  .tabel th,
+  .tabel td {
+    padding: 0.35rem 0.4rem;
+  }
+
+  .narasi {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .daftarKeterangan {
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    max-height: 180px;
+  }
+
+  .gerbang {
+    margin: 2rem auto;
+    padding: 1.35rem;
+  }
+}
+
+/* Penanda bahwa tabel masih punya kolom di sebelah kanan. */
+.gulirTabel {
+  scrollbar-width: thin;
+}

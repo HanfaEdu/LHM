@@ -16,6 +16,8 @@ import {
   YAxis,
 } from 'recharts';
 import { BULAN_AJARAN, TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
+import { bulanBerdata } from '@/lib/statistik';
+import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import gaya from './rapor.module.css';
 
 const WARNA = {
@@ -130,39 +132,38 @@ export default function HalamanRapor({ params }) {
   return (
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
-        <header className={gaya.kepala}>
-          <div>
-            <h1 className={gaya.namaAnak}>{data.anak.nama_lengkap}</h1>
-            <p className={gaya.subJudul}>
-              Kelas {data.kelas.nama_kelas}
-              {data.kelas.wali_kelas ? ` · Wali Kelas: ${data.kelas.wali_kelas}` : ''}
-            </p>
-          </div>
-          {/* Tahun ajaran selalu ditampilkan, bukan hanya saat sudah ada
-              lebih dari satu. Tanpa ini, orang tua di tahun pertama tidak
-              punya petunjuk data yang dilihatnya itu tahun yang mana --
-              dan begitu tahun kedua berjalan, kolom ini berubah sendiri
-              menjadi pilihan untuk menengok tahun-tahun sebelumnya. */}
-          <div className={gaya.tahunAjaran}>
-            <span className={gaya.labelTahun}>Tahun Ajaran</span>
-            {data.tahunAjaranTersedia.length > 1 ? (
-              <select
-                className={gaya.pilih}
-                value={tahunAjaran}
-                aria-label="Pilih tahun ajaran"
-                onChange={(e) => ambilData(pin || undefined, e.target.value)}
-              >
-                {data.tahunAjaranTersedia.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className={gaya.nilaiTahun}>{data.kelas.tahun_ajaran}</span>
-            )}
-          </div>
-        </header>
+        <KepalaSekolahan
+          judul={data.anak.nama_lengkap}
+          keterangan={`Kelas ${data.kelas.nama_kelas}${
+            data.kelas.wali_kelas ? ` · Wali Kelas: ${data.kelas.wali_kelas}` : ''
+          }`}
+          anak={
+            /* Tahun ajaran selalu ditampilkan, bukan hanya saat sudah ada
+               lebih dari satu. Tanpa ini, orang tua di tahun pertama tidak
+               punya petunjuk data yang dilihatnya itu tahun yang mana --
+               dan begitu tahun kedua berjalan, kolom ini berubah sendiri
+               menjadi pilihan untuk menengok tahun-tahun sebelumnya. */
+            <div className={gaya.tahunAjaran}>
+              <span className={gaya.labelTahun}>Tahun Ajaran</span>
+              {data.tahunAjaranTersedia.length > 1 ? (
+                <select
+                  className={gaya.pilih}
+                  value={tahunAjaran}
+                  aria-label="Pilih tahun ajaran"
+                  onChange={(e) => ambilData(pin || undefined, e.target.value)}
+                >
+                  {data.tahunAjaranTersedia.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className={gaya.nilaiTahun}>{data.kelas.tahun_ajaran}</span>
+              )}
+            </div>
+          }
+        />
 
         <GrafikAkademik bulanan={data.bulanan} target={data.kelas.target_akademik} />
 
@@ -466,53 +467,73 @@ function TabelBulanan({ bulanan }) {
 
         <div className={gaya.isiLipatan}>
       <p className={gaya.ketKartu}>
-        Tanda “–” berarti bulan tersebut belum dinilai.
+        Tanda “–” berarti bulan tersebut belum dinilai. Kolom{' '}
+        <strong>Capaian</strong> adalah hasil yang sudah dicapai,{' '}
+        <strong>Target</strong> adalah patokan yang seharusnya dicapai bulan itu.
       </p>
       <div className={gaya.gulirTabel}>
         <table className={gaya.tabel}>
+          {/* Kepala tabel dua tingkat: tanpa pengelompokan ini, kolom
+              "Tahfidz" dan "Tahsin" tidak menjelaskan apakah isinya capaian
+              atau target -- dan keduanya memang ditampilkan berdampingan. */}
           <thead>
             <tr>
-              <th>No</th>
-              <th>Bulan</th>
+              <th rowSpan={2}>No</th>
+              <th rowSpan={2}>Bulan</th>
+              <th colSpan={4}>Nilai Rata-Rata</th>
+              <th colSpan={2}>Tahfidz</th>
+              <th colSpan={2}>Tahsin</th>
+            </tr>
+            <tr>
               <th>B. Indonesia</th>
               <th>Matematika</th>
               <th>IPA</th>
               <th>Target</th>
-              <th>Tahfidz</th>
-              <th>Tahsin</th>
+              <th>Capaian</th>
+              <th>Target</th>
+              <th>Capaian</th>
+              <th>Target</th>
             </tr>
           </thead>
           <tbody>
-            {bulanan.map((b, i) => (
-              <tr key={b.bulan}>
-                <td>{i + 1}</td>
-                <td>{b.bulan}</td>
-                <td>{tampil(b.rata_b_indo)}</td>
-                <td>{tampil(b.rata_mtk)}</td>
-                <td>{tampil(b.rata_ipa)}</td>
-                <td>{b.target_akademik}</td>
-                <td>
-                  {b.capaian_tahfidz === null ? (
-                    <span className={gaya.kosong}>–</span>
-                  ) : (
-                    `${b.capaian_tahfidz} · ${b.nama_tahfidz}`
-                  )}
-                </td>
-                <td>
-                  {b.capaian_tahsin === null ? (
-                    <span className={gaya.kosong}>–</span>
-                  ) : (
-                    `${b.capaian_tahsin} · ${b.nama_tahsin}`
-                  )}
-                </td>
-              </tr>
-            ))}
+            {bulanan.map((b, i) => {
+              // Target akademik hanya bermakna untuk bulan yang sudah
+              // berjalan. Menampilkan "90" di dua belas baris membuat bulan
+              // yang belum dimulai terlihat seolah sudah punya patokan aktif.
+              const berjalan = bulanBerdata(b);
+              return (
+                <tr key={b.bulan}>
+                  <td>{i + 1}</td>
+                  <td>{b.bulan}</td>
+                  <td>{tampil(b.rata_b_indo)}</td>
+                  <td>{tampil(b.rata_mtk)}</td>
+                  <td>{tampil(b.rata_ipa)}</td>
+                  <td>{berjalan ? b.target_akademik : <span className={gaya.kosong}>–</span>}</td>
+                  <td>
+                    {b.capaian_tahfidz === null ? (
+                      <span className={gaya.kosong}>–</span>
+                    ) : (
+                      `${b.capaian_tahfidz} · ${b.nama_tahfidz}`
+                    )}
+                  </td>
+                  <td>{tampilPoin(b.target_tahfidz, 'tahfidz')}</td>
+                  <td>
+                    {b.capaian_tahsin === null ? (
+                      <span className={gaya.kosong}>–</span>
+                    ) : (
+                      `${b.capaian_tahsin} · ${b.nama_tahsin}`
+                    )}
+                  </td>
+                  <td>{tampilPoin(b.target_tahsin, 'tahsin')}</td>
+                </tr>
+              );
+            })}
             <tr className={gaya.barisRata}>
               <td colSpan={2}>Rata-Rata</td>
               <td>{tampil(rata('rata_b_indo'))}</td>
               <td>{tampil(rata('rata_mtk'))}</td>
               <td>{tampil(rata('rata_ipa'))}</td>
-              <td colSpan={3}></td>
+              <td colSpan={5}></td>
             </tr>
           </tbody>
         </table>
@@ -746,4 +767,10 @@ const kotakTooltip = {
 function tampil(nilai) {
   if (nilai === null || nilai === undefined) return <span className={gaya.kosong}>–</span>;
   return Number(nilai).toFixed(nilai % 1 === 0 ? 0 : 1);
+}
+
+/** Poin Qur'an beserta nama surah/materinya, atau "–" bila belum ada. */
+function tampilPoin(poin, jenis) {
+  if (poin === null || poin === undefined) return <span className={gaya.kosong}>–</span>;
+  return `${poin} · ${getQuranLevelName(jenis, poin)}`;
 }

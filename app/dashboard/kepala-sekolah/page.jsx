@@ -43,6 +43,7 @@ import {
   RekapQuran,
   TabelDistribusi,
 } from '../komponen';
+import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import gaya from '../dasbor.module.css';
 
 export default function DasborKepalaSekolah() {
@@ -208,15 +209,11 @@ export default function DasborKepalaSekolah() {
   return (
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
-        <header className={gaya.kepala}>
-          <div>
-            <h1 className={gaya.judul}>Dasbor Sekolah · {bulan || 'belum ada data'}</h1>
-            <p className={gaya.subJudul}>
-              {profil?.nama} · {kelasTahunIni.length} kelas
-            </p>
-          </div>
-
-          <div className={gaya.penyaring}>
+        <KepalaSekolahan
+          judul={`Dasbor Sekolah · ${bulan || 'belum ada data'}`}
+          keterangan={`${profil?.nama ?? ''} · ${kelasTahunIni.length} kelas`}
+          anak={
+            <div className={gaya.penyaring}>
             {/* Selalu ditampilkan, bukan hanya saat sudah ada lebih dari satu
                 tahun -- sama seperti dasbor orang tua. Begitu tahun kedua
                 berjalan, kolom ini otomatis berubah dari teks menjadi menu
@@ -257,8 +254,9 @@ export default function DasborKepalaSekolah() {
                 ))}
               </select>
             </label>
-          </div>
-        </header>
+            </div>
+          }
+        />
 
         <section className={gaya.kartu}>
           <h2 className={gaya.judulKartu}>Ketuntasan Antar Kelas</h2>

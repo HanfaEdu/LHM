@@ -364,6 +364,11 @@ function bacaMasterRekap() {
  *
  * CAPAIAN sengaja TIDAK diteruskan — itu fakta bulan itu, bukan janji
  * yang berlaku sampai diubah. Bulan tanpa capaian harus tetap kosong.
+ *
+ * Penerusan BERHENTI di bulan terakhir yang benar-benar punya isi. Tanpa
+ * batas ini, target bulan Juli merambat sampai Juni dan grafik menggambar
+ * titik target untuk sebelas bulan yang belum dimulai — terbaca seolah
+ * seluruh target setahun sudah ditetapkan wali kelas, padahal belum.
  */
 function isiTargetKeBulanBerikutnya(nilai) {
   const perSiswaKelas = {};
@@ -377,14 +382,30 @@ function isiTargetKeBulanBerikutnya(nilai) {
     const baris = perSiswaKelas[k].sort(function (a, b) {
       return a.urutan_bulan - b.urutan_bulan;
     });
+    // Batas penerusan: indeks bulan terakhir yang punya isi apa pun selain
+    // target. Bulan sesudahnya belum berjalan, jadi tidak berhak mewarisi
+    // target bulan sebelumnya.
+    let batas = -1;
+    baris.forEach(function (b, i) {
+      if (
+        b.rata_b_indo !== null ||
+        b.rata_mtk !== null ||
+        b.rata_ipa !== null ||
+        b.capaian_tahfidz !== null ||
+        b.capaian_tahsin !== null
+      ) {
+        batas = i;
+      }
+    });
+
     let tahfidzTerakhir = null;
     let tahsinTerakhir = null;
-    baris.forEach(function (b) {
+    baris.forEach(function (b, i) {
       if (b.target_tahfidz !== null) tahfidzTerakhir = b.target_tahfidz;
-      else if (tahfidzTerakhir !== null) b.target_tahfidz = tahfidzTerakhir;
+      else if (tahfidzTerakhir !== null && i <= batas) b.target_tahfidz = tahfidzTerakhir;
 
       if (b.target_tahsin !== null) tahsinTerakhir = b.target_tahsin;
-      else if (tahsinTerakhir !== null) b.target_tahsin = tahsinTerakhir;
+      else if (tahsinTerakhir !== null && i <= batas) b.target_tahsin = tahsinTerakhir;
     });
   });
 }

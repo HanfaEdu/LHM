@@ -146,12 +146,19 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
             strokeWidth={2}
             strokeDasharray="6 4"
           />
-          <Line dataKey="rata_b_indo" name="B. Indonesia" stroke="var(--seri-1)"
-                strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
-          <Line dataKey="rata_mtk" name="Matematika" stroke="var(--seri-2)"
-                strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
-          <Line dataKey="rata_ipa" name="IPA" stroke="var(--seri-3)"
-                strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+          {/* Batang, bukan garis. Sumbu X di sini adalah nama siswa --
+              kategori yang tidak berurutan. Garis akan menyambungkan Aksara
+              ke Alesha seolah nilai satu murid "berubah menjadi" nilai murid
+              berikutnya, padahal tidak ada hubungan apa pun di antara
+              keduanya; kemiringannya lalu terbaca sebagai tren yang tidak
+              ada. Garis tetap dipakai pada grafik per-siswa sepanjang tahun,
+              di mana sumbu X-nya bulan dan tren memang bermakna. */}
+          <Bar dataKey="rata_b_indo" name="B. Indonesia" fill="var(--seri-1)"
+               radius={[3, 3, 0, 0]} maxBarSize={18} />
+          <Bar dataKey="rata_mtk" name="Matematika" fill="var(--seri-2)"
+               radius={[3, 3, 0, 0]} maxBarSize={18} />
+          <Bar dataKey="rata_ipa" name="IPA" fill="var(--seri-3)"
+               radius={[3, 3, 0, 0]} maxBarSize={18} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

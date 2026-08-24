@@ -24,6 +24,7 @@ import {
   RekapQuran,
   TabelDistribusi,
 } from '../komponen';
+import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import gaya from '../dasbor.module.css';
 
 export default function DasborWaliKelas() {
@@ -135,18 +136,13 @@ export default function DasborWaliKelas() {
   return (
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
-        <header className={gaya.kepala}>
-          <div>
-            <h1 className={gaya.judul}>
-              Kelas {kelas?.nama_kelas} · {bulan || 'belum ada data'}
-            </h1>
-            <p className={gaya.subJudul}>
-              {kelas?.wali_kelas || profil?.nama} · Tahun Ajaran {kelas?.tahun_ajaran}
-              {baris.length ? ` · ${baris.length} siswa` : ''}
-            </p>
-          </div>
-
-          <div className={gaya.penyaring}>
+        <KepalaSekolahan
+          judul={`Kelas ${kelas?.nama_kelas ?? ''} · ${bulan || 'belum ada data'}`}
+          keterangan={`${kelas?.wali_kelas || profil?.nama || ''} · Tahun Ajaran ${
+            kelas?.tahun_ajaran ?? ''
+          }${baris.length ? ` · ${baris.length} siswa` : ''}`}
+          anak={
+            <div className={gaya.penyaring}>
             {daftarKelas.length > 1 && (
               <label>
                 Kelas
@@ -173,8 +169,9 @@ export default function DasborWaliKelas() {
                 ))}
               </select>
             </label>
-          </div>
-        </header>
+            </div>
+          }
+        />
 
         {!baris.length ? (
           <div className={gaya.kartu}>

@@ -1,0 +1,96 @@
+/* Kepala halaman dipakai bersama ketiga dasbor. Warnanya sengaja memakai
+   variabel yang sama dengan modul dasbor/rapor (--kartu, --garis, dst),
+   yang didefinisikan di kelas .halaman masing-masing -- jadi komponen ini
+   ikut berubah sendiri saat mode gelap aktif, tanpa palet tersendiri yang
+   harus dijaga terpisah. */
+.kepala {
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.identitas {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0; /* izinkan teks menyusut, bukan mendorong keluar kartu */
+}
+
+.logo {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.teks {
+  min-width: 0;
+}
+
+.namaSekolah {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-samar);
+}
+
+.judul {
+  margin: 0.1rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.25;
+  /* Nama lengkap siswa bisa sangat panjang ("Maryam Shahinaz
+     Qurrotaa'yuna Hidayatullah"); dibiarkan membungkus, bukan dipotong,
+     karena namanya sendiri yang jadi penanda halaman ini milik siapa. */
+  overflow-wrap: anywhere;
+}
+
+.keterangan {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: var(--tinta-lembut);
+  overflow-wrap: anywhere;
+}
+
+.aksi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+@media (max-width: 560px) {
+  .kepala {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .judul {
+    font-size: 1.15rem;
+  }
+
+  /* Di layar sempit, kontrol (tahun ajaran, bulan, kelas) turun ke baris
+     sendiri selebar penuh supaya sasaran sentuhnya tidak terjepit di
+     samping nama yang panjang. */
+  .aksi {
+    width: 100%;
+  }
+
+  .aksi > * {
+    flex: 1 1 8rem;
+  }
+}

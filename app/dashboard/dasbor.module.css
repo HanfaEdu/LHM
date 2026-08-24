@@ -305,3 +305,104 @@
   border-radius: 12px;
   padding: 2rem;
 }
+
+/* ================================================================
+   Layar sempit (HP)
+   ================================================================
+   Dasbor ini dibuka guru sambil berdiri di kelas, bukan hanya dari meja.
+   Yang paling mudah rusak di layar sempit adalah grafik dengan banyak
+   kategori: satu kelas berisi 24 siswa yang dipaksa muat dalam 360px
+   menyisakan sekitar 4px per batang -- terbaca sebagai pagar, bukan data.
+   Karena itu grafik diberi lebar minimum dan digulir mendatar, bukan
+   dimampatkan. */
+@media (max-width: 640px) {
+  .halaman {
+    padding: 0.6rem;
+  }
+
+  .kartu {
+    padding: 0.9rem 0.85rem;
+    border-radius: 10px;
+  }
+
+  .judulKartu {
+    font-size: 0.95rem;
+  }
+
+  .grafik {
+    height: 280px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* -webkit-overflow-scrolling agar gulirannya ikut inersia di iOS. */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Recharts merender pembungkusnya sendiri di dalam .grafik; lebar
+     minimum dipasang di situ supaya ResponsiveContainer mengukur lebar
+     yang sudah dilebarkan, bukan lebar layar. */
+  .grafik > :global(.recharts-responsive-container) {
+    min-width: 460px;
+  }
+
+  /* Kontrol memenuhi lebar layar: dua dropdown berdampingan di 360px
+     menyisakan sasaran sentuh yang terlalu sempit untuk ibu jari. */
+  .penyaring {
+    width: 100%;
+    gap: 0.6rem;
+  }
+
+  .penyaring label {
+    flex: 1 1 9rem;
+  }
+
+  .penyaring select {
+    width: 100%;
+    min-width: 0;
+    /* 16px mencegah iOS Safari otomatis memperbesar halaman saat
+       dropdown disentuh -- pembesaran itu tidak pernah kembali sendiri
+       dan membuat sisa halaman ikut melebar. */
+    font-size: 16px;
+  }
+
+  .barisMeter {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .meterAngka {
+    font-size: 1.35rem;
+  }
+
+  .tabel {
+    font-size: 0.78rem;
+  }
+
+  .tabel th,
+  .tabel td {
+    padding: 0.35rem 0.45rem;
+  }
+
+  .daftarPeringatan li {
+    /* Nama dan alasan ditumpuk, bukan didorong ke dua ujung baris yang
+       sempit -- di 360px keduanya akan saling menabrak. */
+    justify-content: flex-start;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .narasi {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .daftarKeterangan {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    max-height: 180px;
+  }
+}
+
+/* Tabel lebar tetap digulir mendatar di layar apa pun; penanda ini
+   memberi tahu bahwa masih ada kolom di sebelah kanan. */
+.gulir {
+  scrollbar-width: thin;
+}

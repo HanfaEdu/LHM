@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { BULAN_AJARAN, getQuranLevelName } from '@/quran_mapping';
+import { potongTargetBulanKosong } from '@/lib/statistik';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,7 +120,7 @@ export async function POST(request) {
 
   // --- Rangkai 12 bulan tahun ajaran, termasuk yang belum terisi ---
   const perBulan = new Map((nilaiAnak || []).map((b) => [b.bulan, b]));
-  const bulanan = BULAN_AJARAN.map((bulan, i) => {
+  const bulanan = potongTargetBulanKosong(BULAN_AJARAN.map((bulan, i) => {
     const b = perBulan.get(bulan) || {};
     return {
       bulan,
@@ -135,7 +136,7 @@ export async function POST(request) {
       capaian_tahsin: angka(b.capaian_tahsin),
       nama_tahsin: getQuranLevelName('tahsin', b.capaian_tahsin),
     };
-  });
+  }));
 
   // --- Perbandingan kelas per bulan, sudah anonim ---
   const perbandingan = {};
