@@ -124,6 +124,17 @@
   min-width: 140px;
 }
 
+/* Pengganti <select> saat pilihannya cuma satu (mis. baru ada satu tahun
+   ajaran) -- tetap terlihat sebagai bagian dari baris filter yang sama,
+   tanpa memberi kesan bisa diklik. */
+.nilaiStatis {
+  display: block;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--tinta);
+}
+
 .barisMeter {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

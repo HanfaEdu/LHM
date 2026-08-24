@@ -16,7 +16,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { BULAN_AJARAN } from '@/quran_mapping';
 import { muatDaftarKelas, muatNilaiKelas, muatProfil } from '@/lib/data-dasbor';
-import { MAPEL, bulat, ketuntasan, rataRata, rekapQuran } from '@/lib/statistik';
+import { AMBANG_KETUNTASAN, MAPEL, bulat, ketuntasan, rataRata, rekapQuran } from '@/lib/statistik';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
@@ -180,14 +180,18 @@ export default function DasborKepalaSekolah() {
           <div>
             <h1 className={gaya.judul}>Dasbor Sekolah · {bulan || 'belum ada data'}</h1>
             <p className={gaya.subJudul}>
-              {profil?.nama} · {kelasTahunIni.length} kelas · Tahun Ajaran {tahunAjaran}
+              {profil?.nama} · {kelasTahunIni.length} kelas
             </p>
           </div>
 
           <div className={gaya.penyaring}>
-            {tahunTersedia.length > 1 && (
-              <label>
-                Tahun Ajaran
+            {/* Selalu ditampilkan, bukan hanya saat sudah ada lebih dari satu
+                tahun -- sama seperti dasbor orang tua. Begitu tahun kedua
+                berjalan, kolom ini otomatis berubah dari teks menjadi menu
+                pilihan tanpa perlu disentuh lagi. */}
+            <label>
+              Tahun Ajaran
+              {tahunTersedia.length > 1 ? (
                 <select
                   value={tahunAjaran}
                   onChange={(e) => {
@@ -201,8 +205,10 @@ export default function DasborKepalaSekolah() {
                     </option>
                   ))}
                 </select>
-              </label>
-            )}
+              ) : (
+                <span className={gaya.nilaiStatis}>{tahunAjaran}</span>
+              )}
+            </label>
             <label>
               Bulan
               <select
@@ -224,7 +230,9 @@ export default function DasborKepalaSekolah() {
           <h2 className={gaya.judulKartu}>Ketuntasan Antar Kelas</h2>
           <p className={gaya.ketKartu}>
             Persentase siswa yang mencapai target pada bulan {bulan}. Garis merah
-            adalah ambang 80% — di bawah itu perlu perhatian khusus.
+            adalah ambang ketuntasan {AMBANG_KETUNTASAN}% — di bawah itu perlu
+            perhatian khusus. Ambang ini tetap sepanjang tahun, berbeda dari
+            target Tahfidz/Tahsin yang berubah tiap bulan.
           </p>
 
           {grafikKelas.length ? (
@@ -261,7 +269,12 @@ export default function DasborKepalaSekolah() {
                       <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
                     )}
                   />
-                  <ReferenceLine y={80} stroke="var(--target)" strokeWidth={2} strokeDasharray="6 4" />
+                  <ReferenceLine
+                    y={AMBANG_KETUNTASAN}
+                    stroke="var(--target)"
+                    strokeWidth={2}
+                    strokeDasharray="6 4"
+                  />
                   <Bar dataKey="B. Indonesia" fill="var(--seri-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
                   <Bar dataKey="Matematika" fill="var(--seri-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
                   <Bar dataKey="IPA" fill="var(--seri-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
