@@ -665,8 +665,32 @@ function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
                   <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
                 )}
               />
+              {/* fill dipasang di Bar semata-mata agar kotak warna di legenda
+                  ikut berwarna: Recharts mengambil warna legenda dari fill
+                  milik Bar, bukan dari Cell, sehingga tanpa ini kotaknya
+                  digambar hitam dan tidak cocok dengan batang mana pun.
+                  Warna yang dipakai adalah warna batang anak sendiri, karena
+                  itulah satu-satunya batang berwarna di grafik ini. Cell di
+                  bawahnya tetap menimpa warna per siswa. */}
+              <Bar
+                dataKey={ukuran}
+                name={namaUkuran}
+                fill="var(--seri-2)"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={38}
+              >
+                {baris.map((r, i) => (
+                  <Cell
+                    key={i}
+                    fill={r.anak ? 'var(--seri-2)' : 'var(--garis)'}
+                    stroke={r.anak ? 'var(--seri-2)' : 'var(--tinta-samar)'}
+                  />
+                ))}
+              </Bar>
               {/* Target sebagai seri, bukan ReferenceLine: hanya seri yang
-                  ikut muncul di legenda beserta simbol garis putus-putusnya. */}
+                  ikut muncul di legenda beserta simbol garis putus-putusnya.
+                  Ditaruh sesudah Bar supaya garisnya tergambar di atas
+                  batang, bukan tertimbun di belakangnya. */}
               {target !== null && (
                 <Line
                   dataKey="target"
@@ -679,15 +703,6 @@ function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
                   connectNulls
                 />
               )}
-              <Bar dataKey={ukuran} name={namaUkuran} radius={[4, 4, 0, 0]} maxBarSize={38}>
-                {baris.map((r, i) => (
-                  <Cell
-                    key={i}
-                    fill={r.anak ? 'var(--seri-2)' : 'var(--garis)'}
-                    stroke={r.anak ? 'var(--seri-2)' : 'var(--tinta-samar)'}
-                  />
-                ))}
-              </Bar>
             </ComposedChart>
           </ResponsiveContainer>
         </div>
