@@ -72,10 +72,41 @@ async function pastikanKepalaSekolah(request) {
   return { db, profil };
 }
 
-/** Token 24 byte acak (48 karakter heksadesimal), sama seperti di dokumentasi. */
+/**
+ * Token acak 12 karakter.
+ *
+ * Sebelumnya 48 karakter heksadesimal, yang membuat tautan WhatsApp
+ * membungkus sampai tiga baris dan terlihat seperti tautan sampah.
+ * Dipendekkan menjadi 12 karakter atas permintaan pengguna.
+ *
+ * Yang berubah bukan hanya panjangnya: abjadnya ikut diperlebar dari 16
+ * simbol (heksadesimal) menjadi 62. Dengan itu 12 karakter membawa
+ * sekitar 71 bit keacakan -- LEBIH kuat daripada 12 karakter heksadesimal
+ * yang hanya 48 bit, meski panjang tampilannya sama. Untuk 113 token yang
+ * sah di antara 2^71 kemungkinan, menebak satu tautan yang berlaku secara
+ * acak tetap tidak realistis.
+ *
+ * Katup pengamannya tetap sama dan tidak bergantung pada panjang token:
+ * tautan yang terlanjur tersebar dicabut atau diganti lewat halaman ini.
+ */
+const ABJAD = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const PANJANG_TOKEN = 12;
+
 function tokenBaru() {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  // Ditolak-ulang (rejection sampling) alih-alih modulo: 256 tidak habis
+  // dibagi 62, sehingga modulo langsung akan membuat 8 karakter pertama
+  // abjad muncul lebih sering daripada sisanya.
+  const batas = 256 - (256 % ABJAD.length);
+  let hasil = '';
+  while (hasil.length < PANJANG_TOKEN) {
+    const bytes = crypto.getRandomValues(new Uint8Array(PANJANG_TOKEN));
+    for (const b of bytes) {
+      if (b < batas && hasil.length < PANJANG_TOKEN) {
+        hasil += ABJAD[b % ABJAD.length];
+      }
+    }
+  }
+  return hasil;
 }
 
 export async function POST(request) {

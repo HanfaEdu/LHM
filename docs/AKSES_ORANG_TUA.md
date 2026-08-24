@@ -9,15 +9,27 @@ https://<domain-anda>/rapor/<token>
 Tautan dikirim sekali lewat WhatsApp. Orang tua tidak perlu membuat akun,
 tidak perlu Gmail, dan tidak ada kata sandi yang bisa lupa.
 
-**Default: token saja, tanpa PIN.** Token 24-byte acak (48 karakter) sudah
+**Default: token saja, tanpa PIN.** Token acak 12 karakter sudah
 berfungsi sebagai identitas sekaligus kredensial — pola yang sama dengan
-link berbagi Google Docs atau Notion. Menebaknya secara acak tidak
-realistis (2^192 kemungkinan). PIN tetap tersedia sebagai opsi per-siswa
+link berbagi Google Docs atau Notion. Abjadnya 62 simbol (angka, huruf
+besar, huruf kecil), sehingga 12 karakter membawa sekitar 71 bit
+keacakan; menebaknya secara acak tidak realistis. PIN tetap tersedia sebagai opsi per-siswa
 kalau suatu saat dibutuhkan (lihat bagian bawah), tapi tidak wajib.
 
 ## Menerbitkan token
 
-Jalankan di Supabase SQL Editor. Aktifkan `pgcrypto` sekali saja:
+**Cara utama: lewat dasbor.** Masuk sebagai kepala sekolah, buka tombol
+**Tautan Orang Tua** di kepala dasbor. Di sana seluruh siswa terdaftar
+beserta status tautannya, dengan tombol terbitkan (massal maupun
+per-siswa), salin, nonaktifkan, ganti, dan unduh Excel — satu lembar per
+kelas, siap diteruskan ke wali kelas.
+
+Halaman itu hanya bisa dibuka kepala sekolah: siapa pun yang bisa membaca
+daftar tautan dapat membuka rapor siswa mana pun di sekolah.
+
+Cara lewat SQL di bawah ini tetap berlaku sebagai cadangan, misalnya saat
+belum ada akun kepala sekolah yang bisa masuk. Jalankan di Supabase SQL
+Editor; aktifkan `pgcrypto` sekali saja:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -112,9 +124,12 @@ mengandung token.
 
 ## Catatan keamanan
 
-- Token adalah 24 byte acak (48 karakter heksadesimal) — sudah cukup kuat
-  sebagai satu-satunya kredensial untuk data serapor ini (nilai akademik,
-  bukan data finansial/kesehatan).
+- Token adalah 12 karakter acak dari abjad 62 simbol (~71 bit) — sudah
+  cukup kuat sebagai satu-satunya kredensial untuk data serapor ini
+  (nilai akademik, bukan data finansial/kesehatan). Panjangnya dipilih
+  supaya tautan tetap muat satu baris di WhatsApp; tautan yang membungkus
+  sampai tiga baris terbaca seperti tautan sampah dan justru lebih mudah
+  diabaikan orang tua.
 - Respons untuk token tidak dikenal, token nonaktif, dan PIN salah (kalau
   dipasang) dibuat identik, supaya tidak bisa dipakai menebak token yang
   valid.

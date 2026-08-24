@@ -203,6 +203,7 @@ export default function HalamanRapor({ params }) {
         <PerbandinganKelas
           perbandingan={data.perbandingan}
           namaAnak={data.anak.nama_panggilan}
+          namaKelas={data.kelas.nama_kelas}
           targetAkademik={data.kelas.target_akademik}
         />
 
@@ -556,16 +557,26 @@ function TabelBulanan({ bulanan }) {
 }
 
 /* ================================================================
-   Perbandingan dengan teman sekelas — nama teman disamarkan di server
-   ================================================================ */
-function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
+   Capaian seluruh kelas — nama teman disamarkan di server
+   ================================================================
+   Lima grafik ditampilkan sekaligus, bukan satu grafik dengan pemilih
+   ukuran. Alasannya cetakan: orang tua yang menyimpan halaman ini sebagai
+   PDF hanya akan mendapat ukuran yang kebetulan sedang dipilih, sementara
+   yang lain hilang tanpa jejak dari lembar cetakannya.
+
+   Tiap mapel dipisah menjadi grafik sendiri, bukan digabung menjadi satu
+   grafik tiga seri. Dengan satu seri per grafik, batang anak sendiri bisa
+   diberi warna sementara teman sekelasnya diabukan; pada grafik tiga seri
+   cara itu tidak bisa dipakai, karena mengabukan teman sekelas berarti
+   menghapus pembeda antar-mapel bagi mereka.
+*/
+function PerbandinganKelas({ perbandingan, namaAnak, namaKelas, targetAkademik }) {
   const bulanTersedia = useMemo(
     () => BULAN_AJARAN.filter((b) => perbandingan[b]?.length),
     [perbandingan]
   );
 
   const [bulan, setBulan] = useState('');
-  const [ukuran, setUkuran] = useState('rata_b_indo');
 
   useEffect(() => {
     if (bulanTersedia.length && !bulan) {
@@ -575,32 +586,19 @@ function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
 
   if (!bulanTersedia.length) return null;
 
-  const baris = (perbandingan[bulan] || []).filter((r) => r[ukuran] !== null);
-  const namaUkuran = {
-    rata_b_indo: 'B. Indonesia',
-    rata_mtk: 'Matematika',
-    rata_ipa: 'IPA',
-    capaian_tahfidz: 'Tahfidz',
-    capaian_tahsin: 'Tahsin',
-  }[ukuran];
+  const semuaBaris = perbandingan[bulan] || [];
 
-  // Jenis Qur'an yang sedang dilihat, atau null kalau yang dipilih mapel
-  // akademik. Dipakai untuk memilih sumber target sekaligus memutuskan
-  // apakah panel keterangan poin perlu ditampilkan.
-  const jenisQuran =
-    ukuran === 'capaian_tahfidz' ? 'tahfidz' : ukuran === 'capaian_tahsin' ? 'tahsin' : null;
-
-  // Target akademik tetap sepanjang tahun, sedangkan target Tahfidz/Tahsin
-  // berubah tiap bulan -- karena itu diambil dari baris bulan ini, bukan
-  // dari satu angka di tingkat kelas. Seluruh siswa satu kelas berbagi
-  // target yang sama, jadi baris pertama yang terisi sudah mewakili.
-  const target = jenisQuran
-    ? baris.map((r) => r[`target_${jenisQuran}`]).find((v) => v !== null && v !== undefined) ?? null
-    : targetAkademik ?? null;
+  const UKURAN = [
+    { kunci: 'rata_b_indo', nama: 'B. Indonesia', jenisQuran: null },
+    { kunci: 'rata_mtk', nama: 'Matematika', jenisQuran: null },
+    { kunci: 'rata_ipa', nama: 'IPA', jenisQuran: null },
+    { kunci: 'capaian_tahfidz', nama: 'Tahfidz', jenisQuran: 'tahfidz' },
+    { kunci: 'capaian_tahsin', nama: 'Tahsin', jenisQuran: 'tahsin' },
+  ];
 
   return (
     <section className={gaya.kartu}>
-      <h2 className={gaya.judulKartu}>Posisi di Kelas</h2>
+      <h2 className={gaya.judulKartu}>Capaian Kelas {namaKelas}</h2>
       <p className={gaya.ketKartu}>
         Batang berwarna adalah capaian putra/putri Anda.
       </p>
@@ -616,110 +614,141 @@ function PerbandinganKelas({ perbandingan, namaAnak, targetAkademik }) {
             ))}
           </select>
         </label>
-        <label>
-          Yang dibandingkan
-          <select value={ukuran} onChange={(e) => setUkuran(e.target.value)}>
-            <option value="rata_b_indo">B. Indonesia</option>
-            <option value="rata_mtk">Matematika</option>
-            <option value="rata_ipa">IPA</option>
-            <option value="capaian_tahfidz">Tahfidz</option>
-            <option value="capaian_tahsin">Tahsin</option>
-          </select>
-        </label>
       </div>
 
-      {baris.length ? (
-        <div className={gaya.grafik}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              data={baris.map((r) => ({ ...r, target }))}
-              margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
-            >
-              <CartesianGrid stroke="var(--garis)" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
-                tickLine={false}
-                axisLine={{ stroke: 'var(--garis)' }}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={70}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip
-                contentStyle={kotakTooltip}
-                formatter={(nilai, nama) =>
-                  jenisQuran && nilai !== null && nilai !== undefined
-                    ? [`${nilai} — ${getQuranLevelName(jenisQuran, nilai)}`, nama]
-                    : [nilai, nama]
-                }
-              />
-              <Legend
-                wrapperStyle={{ fontSize: 12 }}
-                formatter={(nilai) => (
-                  <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
-                )}
-              />
-              {/* fill dipasang di Bar semata-mata agar kotak warna di legenda
-                  ikut berwarna: Recharts mengambil warna legenda dari fill
-                  milik Bar, bukan dari Cell, sehingga tanpa ini kotaknya
-                  digambar hitam dan tidak cocok dengan batang mana pun.
-                  Warna yang dipakai adalah warna batang anak sendiri, karena
-                  itulah satu-satunya batang berwarna di grafik ini. Cell di
-                  bawahnya tetap menimpa warna per siswa. */}
-              <Bar
-                dataKey={ukuran}
-                name={namaUkuran}
-                fill="var(--seri-2)"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={38}
-              >
-                {baris.map((r, i) => (
-                  <Cell
-                    key={i}
-                    fill={r.anak ? 'var(--seri-2)' : 'var(--garis)'}
-                    stroke={r.anak ? 'var(--seri-2)' : 'var(--tinta-samar)'}
-                  />
-                ))}
-              </Bar>
-              {/* Target sebagai seri, bukan ReferenceLine: hanya seri yang
-                  ikut muncul di legenda beserta simbol garis putus-putusnya.
-                  Ditaruh sesudah Bar supaya garisnya tergambar di atas
-                  batang, bukan tertimbun di belakangnya. */}
-              {target !== null && (
-                <Line
-                  dataKey="target"
-                  name="Target"
-                  stroke={WARNA.target}
-                  strokeWidth={2}
-                  strokeDasharray="6 4"
-                  dot={false}
-                  activeDot={false}
-                  connectNulls
-                />
-              )}
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <p className={gaya.kosong}>
-          Belum ada data {namaUkuran} untuk bulan {bulan}.
-        </p>
-      )}
-
-      <p className={gaya.narasi}>{narasiPosisi(baris, ukuran, namaUkuran, namaAnak)}</p>
-      {/* Keterangan hanya relevan saat yang dibandingkan Tahfidz/Tahsin --
-          sumbu Y-nya poin, bukan nilai 0-100 yang sudah bisa dibaca apa
-          adanya. */}
-      {jenisQuran && <KeteranganQuran jenis={jenisQuran} />}
+      {UKURAN.map((u) => (
+        <GrafikSatuUkuran
+          key={u.kunci}
+          semuaBaris={semuaBaris}
+          bulan={bulan}
+          namaAnak={namaAnak}
+          targetAkademik={targetAkademik}
+          {...u}
+        />
+      ))}
     </section>
   );
 }
+
+/** Satu grafik untuk satu ukuran: seluruh kelas pada bulan terpilih. */
+function GrafikSatuUkuran({
+  semuaBaris,
+  bulan,
+  kunci,
+  nama,
+  jenisQuran,
+  namaAnak,
+  targetAkademik,
+}) {
+  const baris = semuaBaris.filter((r) => r[kunci] !== null && r[kunci] !== undefined);
+
+  // Target akademik tetap sepanjang tahun, sedangkan target Tahfidz/Tahsin
+  // berubah tiap bulan -- karena itu diambil dari baris bulan ini, bukan
+  // dari satu angka di tingkat kelas. Seluruh siswa satu kelas berbagi
+  // target yang sama, jadi baris pertama yang terisi sudah mewakili.
+  const target = jenisQuran
+    ? baris.map((r) => r[`target_${jenisQuran}`]).find((v) => v !== null && v !== undefined) ??
+      null
+    : targetAkademik ?? null;
+
+  if (!baris.length) {
+    return (
+      <div className={gaya.blokUkuran}>
+        <h3 className={gaya.judulUkuran}>{nama}</h3>
+        <p className={gaya.kosong}>
+          Belum ada data {nama} untuk bulan {bulan}.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={gaya.blokUkuran}>
+      <h3 className={gaya.judulUkuran}>{nama}</h3>
+
+      <div className={gaya.grafik}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={baris.map((r) => ({ ...r, target }))}
+            margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
+          >
+            <CartesianGrid stroke="var(--garis)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+              tickLine={false}
+              axisLine={{ stroke: 'var(--garis)' }}
+              interval={0}
+              angle={-45}
+              textAnchor="end"
+              height={70}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+              tickLine={false}
+              axisLine={false}
+              allowDecimals={!jenisQuran}
+            />
+            <Tooltip
+              contentStyle={kotakTooltip}
+              formatter={(nilai, namaSeri) =>
+                jenisQuran && nilai !== null && nilai !== undefined
+                  ? [`${nilai} — ${getQuranLevelName(jenisQuran, nilai)}`, namaSeri]
+                  : [nilai, namaSeri]
+              }
+            />
+            <Legend
+              wrapperStyle={{ fontSize: 12 }}
+              formatter={(nilai) => (
+                <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
+              )}
+            />
+            {/* fill dipasang di Bar semata-mata agar kotak warna di legenda
+                ikut berwarna: Recharts mengambil warna legenda dari fill
+                milik Bar, bukan dari Cell, sehingga tanpa ini kotaknya
+                digambar hitam dan tidak cocok dengan batang mana pun. Cell
+                di bawahnya tetap menimpa warna per siswa. */}
+            <Bar
+              dataKey={kunci}
+              name={nama}
+              fill="var(--seri-2)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={38}
+            >
+              {baris.map((r, i) => (
+                <Cell
+                  key={i}
+                  fill={r.anak ? 'var(--seri-2)' : 'var(--garis)'}
+                  stroke={r.anak ? 'var(--seri-2)' : 'var(--tinta-samar)'}
+                />
+              ))}
+            </Bar>
+            {/* Ditaruh sesudah Bar supaya garisnya tergambar di atas batang,
+                bukan tertimbun di belakangnya. */}
+            {target !== null && (
+              <Line
+                dataKey="target"
+                name="Target"
+                stroke={WARNA.target}
+                strokeWidth={2}
+                strokeDasharray="6 4"
+                dot={false}
+                activeDot={false}
+                connectNulls
+              />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <p className={gaya.narasi}>{narasiPosisi(baris, kunci, nama, namaAnak)}</p>
+      {/* Keterangan hanya relevan untuk Tahfidz/Tahsin -- sumbu Y-nya poin,
+          bukan nilai 0-100 yang sudah bisa dibaca apa adanya. */}
+      {jenisQuran && <KeteranganQuran jenis={jenisQuran} />}
+    </div>
+  );
+}
+
 
 /* ================================================================
    Narasi otomatis
