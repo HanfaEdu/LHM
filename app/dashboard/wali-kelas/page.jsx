@@ -14,6 +14,7 @@ import {
   CatatanTerbaik,
   GrafikKelasAkademik,
   GrafikKelasQuran,
+  KeteranganQuran,
   MeterKetuntasan,
   PeringatanDini,
   RekapQuran,
@@ -212,6 +213,7 @@ export default function DasborWaliKelas() {
                 </p>
                 <GrafikKelasQuran jenis="tahfidz" baris={baris} />
                 <RekapQuran jenis="tahfidz" baris={baris} />
+                <KeteranganQuran jenis="tahfidz" />
               </section>
 
               <section className={gaya.kartu}>
@@ -221,6 +223,7 @@ export default function DasborWaliKelas() {
                 </p>
                 <GrafikKelasQuran jenis="tahsin" baris={baris} />
                 <RekapQuran jenis="tahsin" baris={baris} />
+                <KeteranganQuran jenis="tahsin" />
               </section>
             </div>
 

@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { getQuranLevelName } from '@/quran_mapping';
+import { TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
 import {
   MAPEL,
   bulat,
@@ -366,6 +366,147 @@ export function CatatanTerbaik({ baris }) {
       Capaian terbaik bulan ini:{' '}
       {terbaik.map((t) => `${t.nama} (${t.mapel} ${t.nilai})`).join(', ')}.
     </p>
+  );
+}
+
+/* ================================================================
+   Keterangan poin -> nama surah/materi
+   ================================================================
+   Grafik Tahfidz/Tahsin hanya menampilkan angka pada sumbunya (poin
+   disimpan sebagai angka karena nama materi Tahsin berulang di beberapa
+   bab -- lihat quran_mapping.js). Panel ini menerjemahkan angka itu balik
+   ke nama, seperti kolom keterangan di sebelah grafik pada rapor PDF.
+   Tertutup secara bawaan karena daftarnya bisa sampai 49 baris. */
+export function KeteranganQuran({ jenis }) {
+  const peta = jenis === 'tahfidz' ? TAHFIDZ_MAPPING : TAHSIN_MAPPING;
+  const daftar = Object.entries(peta)
+    .map(([poin, nama]) => ({ poin: Number(poin), nama }))
+    .sort((a, b) => a.poin - b.poin);
+
+  return (
+    <details className={gaya.keterangan}>
+      <summary>
+        Lihat keterangan seluruh poin {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
+      </summary>
+      <ol className={gaya.daftarKeterangan}>
+        {daftar.map((d) => (
+          <li key={d.poin}>
+            <strong>{d.poin}.</strong> {d.nama}
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+}
+
+/* ================================================================
+   Grafik satu siswa sepanjang tahun ajaran
+   ================================================================
+   Berbeda dari GrafikKelasAkademik/GrafikKelasQuran di atas (satu bulan,
+   seluruh siswa di sumbu X) -- dua fungsi ini untuk menelusuri SATU siswa
+   sepanjang 12 bulan, sumbu X-nya bulan. Dipakai dasbor staf saat
+   menelusuri satu murid tertentu; bentuknya sama dengan grafik yang
+   dilihat orang tua di app/rapor/[token].
+   ================================================================ */
+export function GrafikTahunanAkademik({ bulanan, target }) {
+  const adaIsi = bulanan.some(
+    (b) => b.rata_b_indo !== null || b.rata_mtk !== null || b.rata_ipa !== null
+  );
+  if (!adaIsi) {
+    return <p className={gaya.kosong}>Belum ada nilai akademik untuk siswa ini.</p>;
+  }
+
+  return (
+    <div className={gaya.grafik}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
+          <CartesianGrid stroke="var(--garis)" vertical={false} />
+          <XAxis
+            dataKey="bulan"
+            tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--garis)' }}
+            interval={0}
+            angle={-35}
+            textAnchor="end"
+            height={60}
+          />
+          <YAxis
+            domain={[0, 125]}
+            ticks={[0, 25, 50, 75, 100, 125]}
+            tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <Tooltip
+            contentStyle={kotakTooltip}
+            formatter={(v, n) => [v === null || v === undefined ? 'belum dinilai' : v, n]}
+          />
+          <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
+          <ReferenceLine y={target} stroke="var(--target)" strokeWidth={2} strokeDasharray="6 4" />
+          <Line dataKey="rata_b_indo" name="B. Indonesia" stroke="var(--seri-1)"
+                strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
+          <Line dataKey="rata_mtk" name="Matematika" stroke="var(--seri-2)"
+                strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
+          <Line dataKey="rata_ipa" name="IPA" stroke="var(--seri-3)"
+                strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
+  const kCapaian = jenis === 'tahfidz' ? 'capaian_tahfidz' : 'capaian_tahsin';
+  const kTarget = jenis === 'tahfidz' ? 'target_tahfidz' : 'target_tahsin';
+  const adaIsi = bulanan.some((b) => b[kCapaian] !== null && b[kCapaian] !== undefined);
+  if (!adaIsi) {
+    return <p className={gaya.kosong}>Belum ada capaian {jenis} untuk siswa ini.</p>;
+  }
+
+  return (
+    <div className={gaya.grafik}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
+          <CartesianGrid stroke="var(--garis)" vertical={false} />
+          <XAxis
+            dataKey="bulan"
+            tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--garis)' }}
+            interval={0}
+            angle={-35}
+            textAnchor="end"
+            height={60}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+            tickLine={false}
+            axisLine={false}
+            allowDecimals={false}
+          />
+          <Tooltip
+            contentStyle={kotakTooltip}
+            formatter={(v, n) =>
+              v === null || v === undefined
+                ? ['belum dinilai', n]
+                : [`${v} — ${getQuranLevelName(jenis, v)}`, n]
+            }
+          />
+          <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
+          <Bar dataKey={kCapaian} name="Capaian" fill={warna} radius={[4, 4, 0, 0]} maxBarSize={34} />
+          <Line
+            dataKey={kTarget}
+            name="Target"
+            stroke="var(--target)"
+            strokeWidth={2}
+            strokeDasharray="4 4"
+            dot={{ r: 4, fill: 'var(--target)', stroke: 'var(--kartu)', strokeWidth: 2 }}
+            connectNulls={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

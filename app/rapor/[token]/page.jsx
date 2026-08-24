@@ -15,7 +15,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { BULAN_AJARAN, getQuranLevelName } from '@/quran_mapping';
+import { BULAN_AJARAN, TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
 import gaya from './rapor.module.css';
 
 const WARNA = {
@@ -372,7 +372,39 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
       )}
 
       <p className={gaya.narasi}>{narasiQuran(jenis, bulanan)}</p>
+      <KeteranganQuran jenis={jenis} />
     </section>
+  );
+}
+
+/**
+ * Keterangan poin -> nama surah/materi, tertutup secara bawaan.
+ *
+ * Grafik di atas hanya menunjukkan angka pada sumbunya -- poin disimpan
+ * sebagai angka karena nama materi Tahsin berulang di beberapa bab (Mad
+ * Asli ada di bab 7, 8, dan 9), sehingga arahnya tidak bisa dibalik
+ * otomatis. Panel ini menerjemahkan angka itu, seperti kolom keterangan
+ * di sebelah grafik pada rapor cetak.
+ */
+function KeteranganQuran({ jenis }) {
+  const peta = jenis === 'tahfidz' ? TAHFIDZ_MAPPING : TAHSIN_MAPPING;
+  const daftar = Object.entries(peta)
+    .map(([poin, nama]) => ({ poin: Number(poin), nama }))
+    .sort((a, b) => a.poin - b.poin);
+
+  return (
+    <details className={gaya.keterangan}>
+      <summary>
+        Lihat keterangan seluruh poin {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
+      </summary>
+      <ol className={gaya.daftarKeterangan}>
+        {daftar.map((d) => (
+          <li key={d.poin}>
+            <strong>{d.poin}.</strong> {d.nama}
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }
 

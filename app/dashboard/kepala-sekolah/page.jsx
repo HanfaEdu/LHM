@@ -15,12 +15,21 @@ import {
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
 import { BULAN_AJARAN } from '@/quran_mapping';
-import { muatDaftarKelas, muatNilaiKelas, muatProfil } from '@/lib/data-dasbor';
+import {
+  muatDaftarKelas,
+  muatNilaiKelas,
+  muatProfil,
+  siswaDalamKelas,
+  susunBulananSiswa,
+} from '@/lib/data-dasbor';
 import { AMBANG_KETUNTASAN, MAPEL, bulat, ketuntasan, rataRata, rekapQuran } from '@/lib/statistik';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
   GrafikKelasQuran,
+  GrafikTahunanAkademik,
+  GrafikTahunanQuran,
+  KeteranganQuran,
   MeterKetuntasan,
   PeringatanDini,
   RekapQuran,
@@ -38,6 +47,8 @@ export default function DasborKepalaSekolah() {
   const [bulan, setBulan] = useState('');
   const [dataKelas, setDataKelas] = useState({}); // kelasId -> perBulan
   const [fokus, setFokus] = useState(''); // kelasId yang sedang ditelusuri
+  const [kelasSiswa, setKelasSiswa] = useState(''); // kelasId untuk telusur per siswa
+  const [nisSiswa, setNisSiswa] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -153,6 +164,19 @@ export default function DasborKepalaSekolah() {
 
   const kelasFokus = ringkasan.find((r) => String(r.kelas.id) === String(fokus));
 
+  // --- Telusur satu siswa: pilih kelas, lalu pilih nama ---
+  const kelasSiswaObj = kelasTahunIni.find((k) => String(k.id) === String(kelasSiswa));
+  const daftarSiswaKelasSiswa = useMemo(
+    () => (kelasSiswa ? siswaDalamKelas(dataKelas[kelasSiswa] || {}) : []),
+    [dataKelas, kelasSiswa]
+  );
+  const siswaTerpilih = daftarSiswaKelasSiswa.find((s) => s.nis === nisSiswa);
+  const targetSiswa = Number(kelasSiswaObj?.target_akademik ?? 90);
+  const bulananSiswa = useMemo(() => {
+    if (!kelasSiswa || !nisSiswa) return null;
+    return susunBulananSiswa(dataKelas[kelasSiswa] || {}, nisSiswa);
+  }, [dataKelas, kelasSiswa, nisSiswa]);
+
   if (galat) {
     return (
       <div className={gaya.halaman}>
@@ -197,6 +221,8 @@ export default function DasborKepalaSekolah() {
                   onChange={(e) => {
                     setTahunAjaran(e.target.value);
                     setFokus('');
+                    setKelasSiswa('');
+                    setNisSiswa('');
                   }}
                 >
                   {tahunTersedia.map((t) => (
@@ -231,8 +257,7 @@ export default function DasborKepalaSekolah() {
           <p className={gaya.ketKartu}>
             Persentase siswa yang mencapai target pada bulan {bulan}. Garis merah
             adalah ambang ketuntasan {AMBANG_KETUNTASAN}% — di bawah itu perlu
-            perhatian khusus. Ambang ini tetap sepanjang tahun, berbeda dari
-            target Tahfidz/Tahsin yang berubah tiap bulan.
+            perhatian khusus.
           </p>
 
           {grafikKelas.length ? (
@@ -352,13 +377,30 @@ export default function DasborKepalaSekolah() {
         {kelasFokus && kelasFokus.jumlah > 0 && (
           <>
             <section className={gaya.kartu}>
-              <h2 className={gaya.judulKartu}>
-                Rincian Kelas {kelasFokus.kelas.nama_kelas} · {bulan}
-              </h2>
-              <p className={gaya.ketKartu}>
-                {kelasFokus.kelas.wali_kelas} · {kelasFokus.jumlah} siswa · target{' '}
-                {kelasFokus.target}
-              </p>
+              <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
+                <div>
+                  <h2 className={gaya.judulKartu}>
+                    Rincian Kelas {kelasFokus.kelas.nama_kelas} · {bulan}
+                  </h2>
+                  <p className={gaya.ketKartu} style={{ margin: 0 }}>
+                    {kelasFokus.kelas.wali_kelas} · {kelasFokus.jumlah} siswa · target{' '}
+                    {kelasFokus.target}
+                  </p>
+                </div>
+                {/* Cara lain memilih kelas selain mengklik nama kelas di
+                    tabel Rekap Seluruh Kelas -- berguna begitu panel ini
+                    sudah terbuka dan tabelnya tergulir jauh ke atas. */}
+                <label>
+                  Pilih Kelas
+                  <select value={fokus} onChange={(e) => setFokus(e.target.value)}>
+                    {ringkasan.map((r) => (
+                      <option key={r.kelas.id} value={r.kelas.id}>
+                        {r.kelas.nama_kelas}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className={gaya.barisMeter}>
                 {MAPEL.map((m, i) => (
                   <MeterKetuntasan
@@ -382,11 +424,13 @@ export default function DasborKepalaSekolah() {
                 <h2 className={gaya.judulKartu}>Tahfidz</h2>
                 <GrafikKelasQuran jenis="tahfidz" baris={kelasFokus.baris} />
                 <RekapQuran jenis="tahfidz" baris={kelasFokus.baris} />
+                <KeteranganQuran jenis="tahfidz" />
               </section>
               <section className={gaya.kartu}>
                 <h2 className={gaya.judulKartu}>Tahsin</h2>
                 <GrafikKelasQuran jenis="tahsin" baris={kelasFokus.baris} />
                 <RekapQuran jenis="tahsin" baris={kelasFokus.baris} />
+                <KeteranganQuran jenis="tahsin" />
               </section>
             </div>
 
@@ -396,6 +440,76 @@ export default function DasborKepalaSekolah() {
             </section>
           </>
         )}
+
+        {/* Menelusuri satu siswa tertentu, bukan seluruh kelas sekaligus --
+            dua pilihan (kelas, lalu nama) supaya daftar nama tidak perlu
+            memuat seluruh 113 siswa sekaligus. Kosong secara bawaan, sama
+            seperti drill-down kelas di atas. */}
+        <section className={gaya.kartu}>
+          <h2 className={gaya.judulKartu}>Telusur Satu Siswa</h2>
+          <p className={gaya.ketKartu}>
+            Pilih kelas, lalu nama siswa, untuk melihat capaiannya sepanjang
+            tahun ajaran {tahunAjaran} — tampilan yang sama seperti yang
+            dilihat orang tua siswa tersebut.
+          </p>
+
+          <div className={gaya.penyaring}>
+            <label>
+              Kelas
+              <select
+                value={kelasSiswa}
+                onChange={(e) => {
+                  setKelasSiswa(e.target.value);
+                  setNisSiswa('');
+                }}
+              >
+                <option value="">— pilih kelas —</option>
+                {kelasTahunIni.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.nama_kelas}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Nama Siswa
+              <select
+                value={nisSiswa}
+                onChange={(e) => setNisSiswa(e.target.value)}
+                disabled={!daftarSiswaKelasSiswa.length}
+              >
+                <option value="">— pilih siswa —</option>
+                {daftarSiswaKelasSiswa.map((s) => (
+                  <option key={s.nis} value={s.nis}>
+                    {s.nama_panggilan}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {bulananSiswa && (
+            <>
+              <h3 className={gaya.judulKartu} style={{ marginTop: '1.25rem' }}>
+                Capaian Akademik · {siswaTerpilih?.nama_lengkap}
+              </h3>
+              <GrafikTahunanAkademik bulanan={bulananSiswa} target={targetSiswa} />
+
+              <div className={gaya.tumpuk2} style={{ marginTop: '0.5rem' }}>
+                <div>
+                  <h3 className={gaya.judulKartu}>Tahfidz</h3>
+                  <GrafikTahunanQuran jenis="tahfidz" bulanan={bulananSiswa} warna="var(--seri-1)" />
+                  <KeteranganQuran jenis="tahfidz" />
+                </div>
+                <div>
+                  <h3 className={gaya.judulKartu}>Tahsin</h3>
+                  <GrafikTahunanQuran jenis="tahsin" bulanan={bulananSiswa} warna="var(--seri-3)" />
+                  <KeteranganQuran jenis="tahsin" />
+                </div>
+              </div>
+            </>
+          )}
+        </section>
       </div>
     </div>
   );
