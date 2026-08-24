@@ -25,6 +25,7 @@ import {
 import {
   AMBANG_KETUNTASAN,
   MAPEL,
+  adaIsiBulan,
   bulat,
   ketuntasan,
   narasiKelas,
@@ -113,9 +114,12 @@ export default function DasborKepalaSekolah() {
         if (batal) return;
         setDataKelas(hasil);
 
-        // Bulan terbaru yang sudah punya data di kelas mana pun.
+        // Bulan terbaru yang sudah benar-benar dinilai di kelas mana pun.
+        // Diukur dari isi barisnya: sinkronisasi membuat baris untuk kedua
+        // belas bulan sekaligus, jadi menghitung baris saja akan selalu
+        // mendarat di Juni sepanjang tahun ajaran.
         const adaData = BULAN_AJARAN.filter((b) =>
-          Object.values(hasil).some((p) => p[b]?.length)
+          Object.values(hasil).some((p) => adaIsiBulan(p[b]))
         );
         setBulan(adaData.length ? adaData[adaData.length - 1] : '');
       } catch (e) {
@@ -136,7 +140,7 @@ export default function DasborKepalaSekolah() {
   );
 
   const bulanTersedia = useMemo(
-    () => BULAN_AJARAN.filter((b) => Object.values(dataKelas).some((p) => p[b]?.length)),
+    () => BULAN_AJARAN.filter((b) => Object.values(dataKelas).some((p) => adaIsiBulan(p[b]))),
     [dataKelas]
   );
 

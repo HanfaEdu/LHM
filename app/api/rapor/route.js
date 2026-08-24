@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { BULAN_AJARAN, getQuranLevelName } from '@/quran_mapping';
-import { potongTargetBulanKosong } from '@/lib/statistik';
+import { adaIsiBulan, potongTargetBulanKosong } from '@/lib/statistik';
 
 export const dynamic = 'force-dynamic';
 
@@ -156,7 +156,11 @@ export async function POST(request) {
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'id'));
 
-    if (baris.length) perbandingan[bulan] = baris;
+    // Bulan tanpa satu pun nilai terisi sengaja tidak dimasukkan: baris
+    // memang selalu ada untuk kedua belas bulan (sinkronisasi membuatnya
+    // sekaligus), sehingga menyertakan semuanya membuat pemilih bulan
+    // menawarkan Juni dan mendarat di sana sepanjang tahun ajaran.
+    if (adaIsiBulan(baris)) perbandingan[bulan] = baris;
   });
 
   db.from('akses_ortu')
