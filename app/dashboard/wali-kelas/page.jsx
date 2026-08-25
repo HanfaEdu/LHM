@@ -182,8 +182,6 @@ export default function DasborWaliKelas() {
           </div>
         ) : (
           <>
-            <p className={gaya.labelBagian}>Ikhtisar Bulan Ini</p>
-
             <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
               <h2 className={gaya.judulKartu}>Ketuntasan {bulan}</h2>
               <p className={gaya.ketKartu}>
@@ -202,8 +200,6 @@ export default function DasborWaliKelas() {
               <p className={gaya.narasi}>{narasiKelas(baris, target, bulan)}</p>
             </section>
 
-            <p className={gaya.labelBagian}>Akademik</p>
-
             <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
               <h2 className={gaya.judulKartu}>Capaian Hasil Belajar per Siswa</h2>
               <p className={gaya.ketKartu}>
@@ -221,8 +217,6 @@ export default function DasborWaliKelas() {
               </p>
               <TabelDistribusi baris={baris} />
             </section>
-
-            <p className={gaya.labelBagian}>Al-Qur&rsquo;an</p>
 
             <div className={gaya.tumpuk2}>
               <section className={`${gaya.kartu} ${gaya.kartuTahfidz}`}>
@@ -246,8 +240,6 @@ export default function DasborWaliKelas() {
               </section>
             </div>
 
-            <p className={gaya.labelBagian}>Tindak Lanjut</p>
-
             <section className={`${gaya.kartu} ${gaya.kartuTindak}`}>
               <h2 className={gaya.judulKartu}>Perlu Pendampingan</h2>
               <p className={gaya.ketKartu}>
@@ -265,9 +257,6 @@ export default function DasborWaliKelas() {
             siswa tersebut, supaya wali kelas tahu apa yang sedang dibaca
             orang tua saat mereka bertanya. */}
         {daftarSiswa.length > 0 && (
-          <>
-          <p className={gaya.labelBagian}>Penelusuran</p>
-
           <section className={`${gaya.kartu} ${gaya.kartuAlat}`}>
             <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
               <div>
@@ -321,7 +310,6 @@ export default function DasborWaliKelas() {
               </>
             )}
           </section>
-          </>
         )}
       </div>
     </div>

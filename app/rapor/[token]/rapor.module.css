@@ -417,73 +417,23 @@
   list-style: none;
   display: flex;
   align-items: center;
-  /* Dibiarkan membungkus: di layar 390px, "Rincian Bulanan" bersama
-     keterangan "2 dari 12 bulan sudah terisi" dan panahnya tidak muat
-     satu baris, dan tanpa izin membungkus judulnya yang dipatahkan
-     menjadi dua baris sempit. */
-  flex-wrap: wrap;
-  gap: 0.15rem 0.55rem;
-  min-height: 44px;
-  -webkit-tap-highlight-color: transparent;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
 .lipatan > summary::-webkit-details-marker {
   display: none;
 }
 
-/* Bilah aksen yang sama dengan judul kartu lain, supaya baris ini
-   terbaca sebagai kepala bagian yang setara -- bukan sebagai tautan
-   yang tersesat di bawah halaman. */
-.lipatan > summary::before {
-  content: '';
-  flex: none;
-  width: 4px;
-  height: 1.05em;
-  border-radius: 999px;
-  background: var(--aksen);
-}
-
-.judulLipatan {
-  font-size: 1.05rem;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  /* Mendorong panah ke ujung kanan tanpa elemen pengisi tambahan. */
-  margin-right: auto;
-}
-
-.ringkasLipatan {
-  font-size: 0.8rem;
-  color: var(--tinta-samar);
-  /* Turun ke baris sendiri saat sempit, dengan lekukan selebar bilah
-     aksen supaya sejajar dengan judul di atasnya. */
-  flex: 1 0 100%;
-  order: 3;
-  padding-left: calc(4px + 0.55rem);
-}
-
-@media (min-width: 560px) {
-  .ringkasLipatan {
-    flex: 0 1 auto;
-    order: 0;
-    padding-left: 0;
-    margin-right: auto;
-  }
-
-  .judulLipatan {
-    margin-right: 0;
-  }
-}
-
 .penanda {
-  flex: none;
-  color: var(--seri-1);
-  font-size: 1.5rem;
-  line-height: 0.5;
-  transition: rotate 0.25s ease;
+  color: var(--tinta-samar);
+  font-size: 0.8rem;
+  transition: transform 0.2s ease;
 }
 
 .lipatan[open] .penanda {
-  rotate: 180deg;
+  transform: rotate(90deg);
 }
 
 .lipatan[open] > summary {
@@ -884,195 +834,6 @@
    keterangan..."). Di layar, kontrolnya sendiri sudah menjelaskan. */
 .judulCetak {
   display: none;
-}
-
-
-/* ================================================================
-   Tabel bulanan di layar sempit: berubah menjadi kartu per bulan
-   ================================================================
-   Sebelumnya tabel ini digulir ke samping. Di layar HP yang terlihat
-   hanya No, Bulan, dan tiga mata pelajaran -- persis selebar layar,
-   sehingga tabelnya tampak SUDAH selesai. Empat kolom Tahfidz dan
-   Tahsin di sebelah kanan praktis tidak pernah ditemukan: tidak ada
-   tepi yang terpotong, tidak ada bilah gulir (peramban HP
-   menyembunyikannya sampai disentuh), dan tidak ada alasan bagi
-   pembaca untuk menduga masih ada lanjutannya.
-
-   Menambah bayangan atau tulisan "geser ke kanan" hanya menambal
-   gejalanya: pembaca tetap harus menemukan petunjuk itu lebih dulu,
-   lalu percaya, lalu menggeser. Yang dipilih di sini menghapus
-   masalahnya -- di layar sempit tidak ada lagi yang digulir. Tiap
-   baris bulan menjadi satu kartu dengan seluruh sembilan nilainya
-   terlihat sekaligus, dan nama kolomnya ikut ditulis di tiap nilai
-   (diambil dari atribut data-label) karena kepala tabel sudah tidak
-   ada lagi untuk menjelaskannya.
-
-   Diberi batas 820px, bukan 640px: sepuluh kolom tabel ini menuntut
-   sekitar 733px, jadi di bawah angka itu tabelnya memang tidak pernah
-   muat utuh.
-
-   `screen and` WAJIB ada. Tanpa itu, aturan ini ikut berlaku saat
-   mencetak -- bidang isi A4 hanya sekitar 703px, sehingga tabel pada
-   hasil PDF ikut berubah menjadi kartu, padahal di atas kertas
-   tabelnya justru muat penuh dan memang lebih baik sebagai tabel. */
-@media screen and (max-width: 820px) {
-  .gulirTabel {
-    overflow: visible;
-  }
-
-  .tabel {
-    min-width: 0;
-    display: block;
-    border-collapse: separate;
-  }
-
-  /* Kepala tabel tidak dipakai lagi: namanya sudah pindah ke tiap
-     nilai. Disembunyikan dengan cara yang tetap terbaca pembaca layar,
-     bukan display:none, supaya struktur tabelnya tidak hilang bagi
-     pengguna yang memakainya. */
-  .tabel thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .tabel tbody {
-    display: block;
-  }
-
-  .tabel tbody tr {
-    display: block;
-    border: 1px solid var(--garis);
-    border-radius: 10px;
-    padding: 0.7rem 0.85rem;
-    margin-bottom: 0.6rem;
-    background: var(--kartu);
-  }
-
-  .tabel tbody tr:nth-child(even) {
-    background: var(--kartu);
-  }
-
-  .tabel td {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1rem;
-    border: none;
-    border-bottom: 1px dashed var(--garis);
-    padding: 0.4rem 0;
-    text-align: right;
-    font-weight: 600;
-  }
-
-  .tabel td:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-
-  /* Nama kolom ditulis ulang di sebelah kiri tiap nilai. */
-  .tabel td::before {
-    content: attr(data-label);
-    color: var(--tinta-lembut);
-    font-weight: 400;
-    text-align: left;
-  }
-
-  /* Nomor urut tidak berguna lagi begitu tiap bulan berdiri sendiri.
-     Ditulis `.tabel td.selNomor`, bukan `.selNomor` saja: aturan dasar
-     `.tabel td { display: flex }` punya kekhususan lebih tinggi dan akan
-     memenangi pertarungan melawan nama kelas tunggal. */
-  .tabel td.selNomor {
-    display: none;
-  }
-
-  /* Nama bulan menjadi judul kartunya. */
-  .tabel td.selBulan {
-    display: block;
-    text-align: left;
-    font-size: 1rem;
-    font-weight: 700;
-    padding: 0 0 0.5rem;
-    margin-bottom: 0.4rem;
-    border-bottom: 1px solid var(--garis);
-  }
-
-  /* Sel ini tidak punya data-label, jadi elemen semunya kosong -- tetapi
-     kotaknya tetap ada dan, di dalam induk flex, ikut menjadi satu
-     lajur yang mendorong nama bulan ke tengah. Harus benar-benar
-     dihapus, bukan sekadar dikosongkan isinya. */
-  .tabel td.selBulan::before {
-    display: none;
-    content: none;
-  }
-
-  /* Batas antar-kelompok kolom pada mode kartu digambar sebagai jarak,
-     bukan garis tegak -- di susunan menurun, garis tegak tidak punya
-     arti apa-apa. */
-  .batasKelompok {
-    border-right: none !important;
-    padding-bottom: 0.7rem;
-  }
-
-  .batasKelompok + td {
-    padding-top: 0.7rem;
-  }
-
-  /* Bulan yang belum ada nilainya diringkas menjadi satu baris.
-     Dua belas kartu yang isinya "–" sembilan kali akan mengubur dua
-     bulan yang benar-benar berisi. */
-  /* Sepuluh bulan yang belum berjalan tidak boleh menenggelamkan dua
-     bulan yang sudah berisi: kartunya diringkas menjadi satu baris
-     rendah tanpa bingkai penuh. */
-  .tabel tbody tr.barisKosong {
-    padding: 0.5rem 0.85rem;
-    margin-bottom: 0.35rem;
-    border-style: dashed;
-    background: transparent;
-  }
-
-  .tabel .barisKosong td:not(.selBulan) {
-    display: none;
-  }
-
-  .tabel .barisKosong td.selBulan {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--tinta-lembut);
-  }
-
-  .barisKosong .selBulan::after {
-    content: 'Belum ada nilai';
-    font-size: 0.78rem;
-    font-weight: 400;
-    color: var(--tinta-samar);
-  }
-
-  /* Baris rata-rata dibedakan tegas: ini ringkasan, bukan bulan. */
-  .tabel tbody tr.barisRata {
-    border-width: 2px;
-    border-color: var(--tinta-samar);
-    background: var(--surface);
-  }
-
-  /* Lima sel terakhir baris rata-rata sengaja tidak dirata-ratakan dan
-     berisi tanda hubung saja. Di dalam tabel, kolomnya masih menjelaskan
-     maksudnya; pada mode kartu kolom itu tidak ada, sehingga yang
-     tertinggal hanya lima baris berisi "–" tanpa keterangan apa pun.
-     Lebih jujur dihilangkan. */
-  .tabel td.selKosongRata {
-    display: none;
-  }
 }
 
 /* Jumlah poin di label lipatan keterangan: penanda kecil bergaya lencana

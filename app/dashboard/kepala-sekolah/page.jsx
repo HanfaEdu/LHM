@@ -268,8 +268,6 @@ export default function DasborKepalaSekolah() {
           }
         />
 
-        <p className={gaya.labelBagian}>Ikhtisar Sekolah</p>
-
         <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
           <h2 className={gaya.judulKartu}>Ketuntasan Antar Kelas</h2>
           <p className={gaya.ketKartu}>
@@ -336,11 +334,7 @@ export default function DasborKepalaSekolah() {
             Klik nama kelas untuk menelusuri rinciannya.
           </p>
           <div className={gaya.gulir}>
-            {/* tabelKartu: delapan kolom tidak pernah muat di layar HP,
-                dan yang terpotong justru dua kolom Tuntas Tahfidz/Tahsin
-                di ujung kanan. Di layar sempit tabel ini berubah menjadi
-                kartu per kelas -- lihat dasbor.module.css. */}
-            <table className={`${gaya.tabel} ${gaya.tabelKartu}`}>
+            <table className={gaya.tabel}>
               <thead>
                 <tr>
                   <th className={gaya.kiri}>Kelas</th>
@@ -356,7 +350,7 @@ export default function DasborKepalaSekolah() {
               <tbody>
                 {ringkasan.map((r) => (
                   <tr key={r.kelas.id}>
-                    <td className={`${gaya.kiri} ${gaya.selJudulBaris}`}>
+                    <td className={gaya.kiri}>
                       <button
                         type="button"
                         className={`${gaya.tombolKecil} ${
@@ -369,25 +363,21 @@ export default function DasborKepalaSekolah() {
                         {r.kelas.nama_kelas}
                       </button>
                     </td>
-                    <td className={gaya.kiri} data-label="Wali Kelas">
-                      {r.kelas.wali_kelas || '–'}
-                    </td>
-                    <td data-label="Jumlah Siswa">
-                      {r.jumlah || <span className={gaya.kosong}>–</span>}
-                    </td>
+                    <td className={gaya.kiri}>{r.kelas.wali_kelas || '–'}</td>
+                    <td>{r.jumlah || <span className={gaya.kosong}>–</span>}</td>
                     {r.perMapel.map((k, i) => (
-                      <td key={i} data-label={`Tuntas ${MAPEL[i].pendek}`}>
+                      <td key={i}>
                         {k ? `${bulat(k.persen)}%` : <span className={gaya.kosong}>–</span>}
                       </td>
                     ))}
-                    <td data-label="Tuntas Tahfidz">
+                    <td>
                       {r.tahfidz.persenTuntas === null ? (
                         <span className={gaya.kosong}>–</span>
                       ) : (
                         `${bulat(r.tahfidz.persenTuntas)}%`
                       )}
                     </td>
-                    <td data-label="Tuntas Tahsin">
+                    <td>
                       {r.tahsin.persenTuntas === null ? (
                         <span className={gaya.kosong}>–</span>
                       ) : (
@@ -405,8 +395,6 @@ export default function DasborKepalaSekolah() {
             ditaruh di dalam, dropdown-nya baru muncul setelah sebuah kelas
             sudah terpilih -- artinya tidak pernah bisa dipakai untuk memilih
             kelas yang pertama. */}
-        <p className={gaya.labelBagian}>Rincian Per Kelas</p>
-
         <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
           <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
             <div>
@@ -493,8 +481,6 @@ export default function DasborKepalaSekolah() {
             dua pilihan (kelas, lalu nama) supaya daftar nama tidak perlu
             memuat seluruh 113 siswa sekaligus. Kosong secara bawaan, sama
             seperti drill-down kelas di atas. */}
-        <p className={gaya.labelBagian}>Penelusuran</p>
-
         <section className={`${gaya.kartu} ${gaya.kartuAlat}`}>
           <h2 className={gaya.judulKartu}>Telusur Satu Siswa</h2>
           <p className={gaya.ketKartu}>

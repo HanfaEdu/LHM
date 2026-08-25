@@ -168,38 +168,6 @@
   color: var(--tinta-lembut);
 }
 
-/* ================================================================
-   Label bagian
-   ================================================================
-   Dasbor kepala sekolah memuat tujuh kartu dan dasbor wali kelas enam.
-   Tanpa pengelompokan, ketujuhnya terbaca sebagai satu daftar panjang
-   yang setara -- padahal "Ketuntasan Antar Kelas" adalah ikhtisar yang
-   dibaca tiap bulan, sementara "Telusur Satu Siswa" adalah alat yang
-   dipakai sesekali. Label ini memberi tahu pembaca ia sedang masuk ke
-   kelompok yang berbeda. */
-.labelBagian {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin: 1.9rem 0 0.85rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--tinta-samar);
-}
-
-.labelBagian::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--garis);
-}
-
-.labelBagian:first-child {
-  margin-top: 0;
-}
-
 .grafik {
   width: 100%;
   height: 320px;
@@ -341,27 +309,13 @@
 }
 
 .daftarPeringatan li {
-  padding: 0.6rem 0;
+  padding: 0.55rem 0;
   border-bottom: 1px solid var(--garis);
   font-size: 0.88rem;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
   gap: 0.5rem;
   justify-content: space-between;
-}
-
-/* Di layar sempit nama pindah ke barisnya sendiri: dipaksa 11rem di
-   samping deretan lencana, yang tersisa untuk lencananya tinggal
-   sepertiga layar dan tiap lencana turun sendiri-sendiri. */
-@media (max-width: 640px) {
-  .namaSiswa {
-    flex: 1 0 100%;
-  }
-
-  .alasan {
-    justify-content: flex-start;
-  }
 }
 
 .daftarPeringatan li:last-child {
@@ -369,61 +323,12 @@
 }
 
 .namaSiswa {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-weight: 650;
-  /* Lebar tetap supaya seluruh nama berbaris lurus dan deretan lencana di
-     kanannya mulai dari titik yang sama -- daftar ini dibaca menurun
-     untuk mencari nama, bukan menyamping. */
-  flex: 0 0 11rem;
-}
-
-.jumlahAspek {
-  padding: 0.05rem 0.4rem;
-  border-radius: 999px;
-  background: var(--zebra);
-  border: 1px solid var(--garis);
-  font-size: 0.68rem;
   font-weight: 600;
-  color: var(--tinta-samar);
-  white-space: nowrap;
 }
 
 .alasan {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  justify-content: flex-end;
   color: var(--tinta-lembut);
   font-size: 0.82rem;
-}
-
-/* Lencana satu aspek yang di bawah target. Merahnya sangat encer: yang
-   perlu menonjol adalah banyaknya lencana pada satu nama, bukan tiap
-   lencana satu per satu -- lima kotak merah pekat berjajar akan terbaca
-   sebagai peringatan darurat untuk hal yang sifatnya rutin. */
-.lencanaAspek {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--garis);
-  background: var(--surface);
-  font-size: 0.78rem;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.lencanaAspek strong {
-  font-weight: 700;
-  color: var(--kritis);
-}
-
-.targetAspek {
-  color: var(--tinta-samar);
-  font-size: 0.72rem;
 }
 
 .tumpuk2 {
@@ -895,117 +800,6 @@
   .pilih {
     animation: none;
     box-shadow: none;
-  }
-}
-
-
-/* ================================================================
-   Tabel lebar di layar sempit: berubah menjadi kartu per baris
-   ================================================================
-   Ditandai kelas .tabelKartu, bukan berlaku untuk semua tabel: tabel
-   rekap Tahfidz/Tahsin hanya tiga kolom dan sudah muat apa adanya --
-   mengubahnya menjadi kartu justru memanjangkan halaman tanpa guna.
-
-   Yang butuh perlakuan ini tabel tujuh dan delapan kolom (Sebaran Nilai
-   dan Rekap Seluruh Kelas). Di layar HP keduanya digulir ke samping,
-   dan yang tersembunyi selalu kolom paling kanan -- Persentase pada
-   Sebaran Nilai, Tuntas Tahfidz/Tahsin pada Rekap Kelas. Tidak ada tepi
-   yang terpotong dan peramban HP menyembunyikan bilah gulirnya sampai
-   disentuh, jadi tabelnya tampak sudah selesai. Pembaca tidak punya
-   alasan menduga masih ada lanjutannya.
-
-   `screen and` dipertahankan supaya aturan ini tidak ikut berlaku pada
-   hasil cetak, yang bidangnya juga di bawah 820px. */
-@media screen and (max-width: 820px) {
-  .gulir:has(.tabelKartu) {
-    overflow: visible;
-  }
-
-  .tabelKartu {
-    min-width: 0;
-    display: block;
-    border-collapse: separate;
-  }
-
-  /* Kepala tabel tidak dipakai lagi -- namanya sudah pindah ke tiap
-     nilai. Disembunyikan dengan cara yang tetap terbaca pembaca layar,
-     bukan display:none, supaya strukturnya tidak hilang bagi pengguna
-     yang memakainya. */
-  .tabelKartu thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .tabelKartu tbody {
-    display: block;
-  }
-
-  .tabelKartu tbody tr {
-    display: block;
-    border: 1px solid var(--garis);
-    border-radius: 10px;
-    padding: 0.7rem 0.85rem;
-    margin-bottom: 0.6rem;
-    background: var(--kartu);
-  }
-
-  .tabelKartu tbody tr:nth-child(even) {
-    background: var(--kartu);
-  }
-
-  .tabelKartu td {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1rem;
-    border: none;
-    border-bottom: 1px dashed var(--garis);
-    padding: 0.4rem 0;
-    text-align: right;
-    font-weight: 600;
-  }
-
-  .tabelKartu td:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-
-  .tabelKartu td::before {
-    content: attr(data-label);
-    color: var(--tinta-lembut);
-    font-weight: 400;
-    text-align: left;
-  }
-
-  /* Sel pertama menjadi judul kartunya. Ditulis dengan kekhususan
-     .tabelKartu td.selJudulBaris, bukan nama kelas tunggal: aturan
-     `.tabelKartu td { display: flex }` di atas lebih khusus dan akan
-     menang kalau tidak diimbangi. */
-  .tabelKartu td.selJudulBaris {
-    display: block;
-    text-align: left !important;
-    font-size: 1rem;
-    font-weight: 700;
-    padding: 0 0 0.5rem;
-    margin-bottom: 0.4rem;
-    border-bottom: 1px solid var(--garis);
-  }
-
-  /* Sel ini tidak punya data-label, jadi elemen semunya kosong -- tetapi
-     kotaknya tetap ada dan ikut menjadi lajur yang menggeser isinya.
-     Harus benar-benar dihapus, bukan sekadar dikosongkan isinya. */
-  .tabelKartu td.selJudulBaris::before {
-    display: none;
-    content: none;
-  }
-
-  .tabelKartu td.selKosongRingkas {
-    display: none;
   }
 }
 

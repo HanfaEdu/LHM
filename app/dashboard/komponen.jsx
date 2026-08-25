@@ -262,12 +262,7 @@ export function TabelDistribusi({ baris }) {
 
   return (
     <div className={gaya.gulir}>
-      {/* tabelKartu: di layar sempit tabel ini berubah menjadi kartu per
-          baris. Tujuh kolomnya tidak pernah muat di layar HP, dan yang
-          terpotong justru kelompok "Persentase" di sebelah kanan --
-          tanpa tepi terpotong atau bilah gulir yang terlihat, tabelnya
-          tampak sudah selesai di kolom IPA. Lihat dasbor.module.css. */}
-      <table className={`${gaya.tabel} ${gaya.tabelKartu}`}>
+      <table className={gaya.tabel}>
         <thead>
           <tr>
             <th rowSpan={2} className={gaya.kiri}>Rentang Nilai</th>
@@ -282,33 +277,21 @@ export function TabelDistribusi({ baris }) {
         <tbody>
           {sebaran[0].data.map((_, i) => (
             <tr key={i}>
-              <td className={`${gaya.kiri} ${gaya.selJudulBaris}`}>
-                {sebaran[0].data[i].label}
-              </td>
+              <td className={gaya.kiri}>{sebaran[0].data[i].label}</td>
               {sebaran.map((s) => (
-                <td key={`j-${s.mapel.kunci}`} data-label={`Jumlah · ${s.mapel.pendek}`}>
-                  {s.data[i].jumlah}
-                </td>
+                <td key={`j-${s.mapel.kunci}`}>{s.data[i].jumlah}</td>
               ))}
               {sebaran.map((s) => (
-                <td key={`p-${s.mapel.kunci}`} data-label={`Persentase · ${s.mapel.pendek}`}>
-                  {bulat(s.data[i].persen, 1)}%
-                </td>
+                <td key={`p-${s.mapel.kunci}`}>{bulat(s.data[i].persen, 1)}%</td>
               ))}
             </tr>
           ))}
           <tr style={{ fontWeight: 700 }}>
-            <td className={`${gaya.kiri} ${gaya.selJudulBaris}`}>Rata-Rata Kelas</td>
+            <td className={gaya.kiri}>Rata-Rata Kelas</td>
             {MAPEL.map((m) => (
-              <td key={m.kunci} data-label={m.pendek}>
-                {bulat(rataRata(baris.map((b) => b[m.kunci])), 1)}
-              </td>
+              <td key={m.kunci}>{bulat(rataRata(baris.map((b) => b[m.kunci])), 1)}</td>
             ))}
-            {/* Tiga kolom persentase tidak dirata-ratakan: rata-rata dari
-                persentase sebaran tidak punya arti. Disembunyikan saat
-                tabelnya menjadi kartu, karena di sana tidak ada kolom
-                yang menjelaskan kekosongannya. */}
-            <td colSpan={3} className={gaya.selKosongRingkas}></td>
+            <td colSpan={3}></td>
           </tr>
         </tbody>
       </table>
@@ -372,28 +355,8 @@ export function PeringatanDini({ baris, target }) {
       <ul className={gaya.daftarPeringatan}>
         {perlu.map((b) => (
           <li key={b.nis || b.nama_panggilan}>
-            <span className={gaya.namaSiswa}>
-              {b.nama_panggilan}
-              {/* Jumlah aspek ditulis sebagai angka tersendiri. Daftar ini
-                  memang diurutkan menurut jumlah itu, tetapi sebelumnya
-                  pembaca hanya bisa mengetahuinya dengan menghitung
-                  sendiri potongan kalimat yang dipisah titik tengah. */}
-              <span className={gaya.jumlahAspek}>{b.alasan.length} aspek</span>
-            </span>
-            {/* Tiap aspek menjadi lencana sendiri, bukan disambung menjadi
-                satu kalimat panjang. Sebagai kalimat, lima aspek terbaca
-                sebagai satu blok teks kelabu yang harus dieja dari ujung
-                ke ujung; sebagai lencana, banyaknya langsung terlihat dan
-                tiap angka bisa dibaca terpisah. */}
-            <span className={gaya.alasan}>
-              {b.alasan.map((a) => (
-                <span key={a.aspek} className={gaya.lencanaAspek}>
-                  {a.aspek}
-                  <strong>{a.nilai}</strong>
-                  <span className={gaya.targetAspek}>/ {a.target}</span>
-                </span>
-              ))}
-            </span>
+            <span className={gaya.namaSiswa}>{b.nama_panggilan}</span>
+            <span className={gaya.alasan}>{b.alasan.join(' · ')}</span>
           </li>
         ))}
       </ul>
