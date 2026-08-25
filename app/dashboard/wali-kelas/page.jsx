@@ -182,7 +182,9 @@ export default function DasborWaliKelas() {
           </div>
         ) : (
           <>
-            <section className={gaya.kartu}>
+            <p className={gaya.labelBagian}>Ikhtisar Bulan Ini</p>
+
+            <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
               <h2 className={gaya.judulKartu}>Ketuntasan {bulan}</h2>
               <p className={gaya.ketKartu}>
                 Persentase siswa yang mencapai target {target}. Siswa yang belum
@@ -200,7 +202,9 @@ export default function DasborWaliKelas() {
               <p className={gaya.narasi}>{narasiKelas(baris, target, bulan)}</p>
             </section>
 
-            <section className={gaya.kartu}>
+            <p className={gaya.labelBagian}>Akademik</p>
+
+            <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
               <h2 className={gaya.judulKartu}>Capaian Hasil Belajar per Siswa</h2>
               <p className={gaya.ketKartu}>
                 Garis merah putus-putus adalah target kelas ({target}).
@@ -209,7 +213,7 @@ export default function DasborWaliKelas() {
               <CatatanTerbaik baris={baris} />
             </section>
 
-            <section className={gaya.kartu}>
+            <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
               <h2 className={gaya.judulKartu}>Sebaran Nilai</h2>
               <p className={gaya.ketKartu}>
                 Setiap nilai masuk tepat satu rentang; nilai 70 dihitung di
@@ -218,8 +222,10 @@ export default function DasborWaliKelas() {
               <TabelDistribusi baris={baris} />
             </section>
 
+            <p className={gaya.labelBagian}>Al-Qur&rsquo;an</p>
+
             <div className={gaya.tumpuk2}>
-              <section className={gaya.kartu}>
+              <section className={`${gaya.kartu} ${gaya.kartuTahfidz}`}>
                 <h2 className={gaya.judulKartu}>Capaian Tahfidz</h2>
                 <p className={gaya.ketKartu}>
                   Batang merah menandai siswa yang masih di bawah target.
@@ -229,7 +235,7 @@ export default function DasborWaliKelas() {
                 <KeteranganQuran jenis="tahfidz" />
               </section>
 
-              <section className={gaya.kartu}>
+              <section className={`${gaya.kartu} ${gaya.kartuTahsin}`}>
                 <h2 className={gaya.judulKartu}>Capaian Tahsin</h2>
                 <p className={gaya.ketKartu}>
                   Batang merah menandai siswa yang masih di bawah target.
@@ -240,7 +246,9 @@ export default function DasborWaliKelas() {
               </section>
             </div>
 
-            <section className={gaya.kartu}>
+            <p className={gaya.labelBagian}>Tindak Lanjut</p>
+
+            <section className={`${gaya.kartu} ${gaya.kartuTindak}`}>
               <h2 className={gaya.judulKartu}>Perlu Pendampingan</h2>
               <p className={gaya.ketKartu}>
                 Siswa yang berada di bawah target pada bulan {bulan}, beserta
@@ -257,7 +265,10 @@ export default function DasborWaliKelas() {
             siswa tersebut, supaya wali kelas tahu apa yang sedang dibaca
             orang tua saat mereka bertanya. */}
         {daftarSiswa.length > 0 && (
-          <section className={gaya.kartu}>
+          <>
+          <p className={gaya.labelBagian}>Penelusuran</p>
+
+          <section className={`${gaya.kartu} ${gaya.kartuAlat}`}>
             <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
               <div>
                 <h2 className={gaya.judulKartu}>Telusur Satu Siswa</h2>
@@ -282,14 +293,14 @@ export default function DasborWaliKelas() {
 
             {bulananSiswa && (
               <>
-                <h3 className={gaya.judulKartu} style={{ marginTop: '1.25rem' }}>
+                <h3 className={gaya.subJudulKartu} style={{ marginTop: '1.25rem' }}>
                   Capaian Akademik
                 </h3>
                 <GrafikTahunanAkademik bulanan={bulananSiswa} target={target} />
 
                 <div className={gaya.tumpuk2} style={{ marginTop: '0.5rem' }}>
                   <div>
-                    <h3 className={gaya.judulKartu}>Tahfidz</h3>
+                    <h3 className={gaya.subJudulKartu}>Tahfidz</h3>
                     <GrafikTahunanQuran
                       jenis="tahfidz"
                       bulanan={bulananSiswa}
@@ -298,7 +309,7 @@ export default function DasborWaliKelas() {
                     <KeteranganQuran jenis="tahfidz" />
                   </div>
                   <div>
-                    <h3 className={gaya.judulKartu}>Tahsin</h3>
+                    <h3 className={gaya.subJudulKartu}>Tahsin</h3>
                     <GrafikTahunanQuran
                       jenis="tahsin"
                       bulanan={bulananSiswa}
@@ -310,6 +321,7 @@ export default function DasborWaliKelas() {
               </>
             )}
           </section>
+          </>
         )}
       </div>
     </div>

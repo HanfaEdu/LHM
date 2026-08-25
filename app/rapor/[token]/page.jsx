@@ -422,7 +422,7 @@ function GrafikAkademik({ bulanan, target }) {
   );
 
   return (
-    <section className={gaya.kartu}>
+    <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
       <h2 className={gaya.judulKartu}>Capaian Akademik</h2>
 
       {adaIsi ? (
@@ -518,7 +518,11 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
   const adaIsi = bulanan.some((b) => b[kolomCapaian] !== null);
 
   return (
-    <section className={gaya.kartu}>
+    <section
+      className={`${gaya.kartu} ${
+        jenis === 'tahfidz' ? gaya.kartuTahfidz : gaya.kartuTahsin
+      }`}
+    >
       <h2 className={gaya.judulKartu}>{judul}</h2>
       <p className={gaya.ketKartu}>
         Batang menunjukkan capaian, titik merah menunjukkan target bulan itu.
@@ -602,6 +606,11 @@ function KeteranganQuran({ jenis }) {
     <details className={gaya.keterangan}>
       <summary>
         Lihat keterangan seluruh capaian {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
+        {/* Jumlah poin disebutkan di label, bukan disembunyikan di balik
+            lipatan. Tanpa angka ini, "Lihat keterangan" tidak memberi
+            petunjuk apa pun tentang ada berapa isinya -- dan tombol yang
+            tidak menjanjikan apa-apa jarang ditekan. */}
+        <span className={gaya.jumlahPoin}>{daftar.length} poin</span>
       </summary>
       {/* Di atas kertas, kalimat "Lihat keterangan..." tidak masuk akal --
           daftarnya sudah tercetak, tidak ada yang perlu diklik. Judul ini
@@ -662,18 +671,22 @@ function TabelBulanan({ bulanan }) {
   ).length;
 
   return (
-    <section className={gaya.kartu}>
+    <section className={`${gaya.kartu} ${gaya.kartuRincian}`}>
       {/* Terbuka secara bawaan: tabel ini rekap resmi yang dicari orang tua,
           bukan lampiran. Tetap dapat dilipat kalau ingin diringkas, dan
           tetap ditaruh paling bawah supaya baris-baris yang belum terisi di
           awal tahun tidak mendorong grafik ke luar layar. */}
       <details className={gaya.lipatan} open>
+        {/* Panah dipindah ke ujung kanan, bukan di depan judul. Di depan,
+            ia berebut tempat dengan bilah aksen kartu dan keduanya
+            terbaca sebagai dua penanda yang berbeda artinya; di ujung
+            kanan ia jelas menjadi tombol buka-tutup baris ini. */}
         <summary>
-          <span className={gaya.penanda}>▶</span>
-          Rincian Bulanan
-          <span className={gaya.ketKartu} style={{ margin: 0, fontWeight: 400 }}>
-            ({bulanTerisi} dari 12 bulan sudah terisi)
+          <span className={gaya.judulLipatan}>Rincian Bulanan</span>
+          <span className={gaya.ringkasLipatan}>
+            {bulanTerisi} dari 12 bulan sudah terisi
           </span>
+          <span className={gaya.penanda} aria-hidden="true">▾</span>
         </summary>
 
         <div className={gaya.isiLipatan}>
@@ -708,37 +721,44 @@ function TabelBulanan({ bulanan }) {
               // yang belum dimulai terlihat seolah sudah punya patokan aktif.
               const berjalan = bulanBerdata(b);
               return (
-                <tr key={b.bulan}>
-                  <td>{i + 1}</td>
-                  <td>{b.bulan}</td>
-                  <td>{tampil(b.rata_b_indo)}</td>
-                  <td>{tampil(b.rata_mtk)}</td>
-                  <td>{tampil(b.rata_ipa)}</td>
-                  <td>{berjalan ? b.target_akademik : <span className={gaya.kosong}>–</span>}</td>
-                  <td>
+                <tr
+                  key={b.bulan}
+                  className={berjalan ? gaya.barisTerisi : gaya.barisKosong}
+                >
+                  <td className={gaya.selNomor}>{i + 1}</td>
+                  <td className={gaya.selBulan}>{b.bulan}</td>
+                  <td data-label="B. Indonesia">{tampil(b.rata_b_indo)}</td>
+                  <td data-label="Matematika">{tampil(b.rata_mtk)}</td>
+                  <td data-label="IPA">{tampil(b.rata_ipa)}</td>
+                  <td data-label="Target nilai" className={gaya.batasKelompok}>
+                    {berjalan ? b.target_akademik : <span className={gaya.kosong}>–</span>}
+                  </td>
+                  <td data-label="Tahfidz · capaian">
                     {b.capaian_tahfidz === null ? (
                       <span className={gaya.kosong}>–</span>
                     ) : (
                       `${b.capaian_tahfidz} · ${b.nama_tahfidz}`
                     )}
                   </td>
-                  <td>{tampilPoin(b.target_tahfidz, 'tahfidz')}</td>
-                  <td>
+                  <td data-label="Tahfidz · target" className={gaya.batasKelompok}>
+                    {tampilPoin(b.target_tahfidz, 'tahfidz')}
+                  </td>
+                  <td data-label="Tahsin · capaian">
                     {b.capaian_tahsin === null ? (
                       <span className={gaya.kosong}>–</span>
                     ) : (
                       `${b.capaian_tahsin} · ${b.nama_tahsin}`
                     )}
                   </td>
-                  <td>{tampilPoin(b.target_tahsin, 'tahsin')}</td>
+                  <td data-label="Tahsin · target">{tampilPoin(b.target_tahsin, 'tahsin')}</td>
                 </tr>
               );
             })}
             <tr className={gaya.barisRata}>
-              <td colSpan={2}>Rata-Rata</td>
-              <td>{tampil(rata('rata_b_indo'))}</td>
-              <td>{tampil(rata('rata_mtk'))}</td>
-              <td>{tampil(rata('rata_ipa'))}</td>
+              <td colSpan={2} className={gaya.selBulan}>Rata-Rata</td>
+              <td data-label="B. Indonesia">{tampil(rata('rata_b_indo'))}</td>
+              <td data-label="Matematika">{tampil(rata('rata_mtk'))}</td>
+              <td data-label="IPA">{tampil(rata('rata_ipa'))}</td>
               {/* Lima kolom sisanya sengaja tidak dirata-ratakan: target
                   akademik sama sepanjang tahun, sedangkan Tahfidz dan
                   Tahsin bersifat kumulatif -- rata-rata poinnya tidak
@@ -746,7 +766,7 @@ function TabelBulanan({ bulanan }) {
                   kosong, supaya barisnya tidak terlihat seperti tabel
                   yang gagal termuat. */}
               {[0, 1, 2, 3, 4].map((i) => (
-                <td key={i}>
+                <td key={i} className={gaya.selKosongRata}>
                   <span className={gaya.kosong}>–</span>
                 </td>
               ))}
@@ -801,7 +821,7 @@ function PerbandinganKelas({ perbandingan, namaAnak, namaKelas, targetAkademik }
   ];
 
   return (
-    <section className={gaya.kartu}>
+    <section className={`${gaya.kartu} ${gaya.kartuKelas}`}>
       <h2 className={gaya.judulKartu}>Capaian Kelas {namaKelas}</h2>
       <p className={gaya.ketKartu}>
         Batang berwarna adalah capaian putra/putri Anda.
