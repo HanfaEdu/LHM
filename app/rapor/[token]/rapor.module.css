@@ -754,9 +754,12 @@
   display: none;
 }
 
+/* Ukuran panah tidak diikatkan ke em: pada 0.85em dari teks yang sudah
+   kecil, segitiganya menyusut sampai terbaca sebagai titik saja. Dipatok
+   dalam rem supaya tetap seukuran ini walau teks tombolnya berubah. */
 .keterangan summary::after {
   content: '\25be';
-  font-size: 0.85em;
+  font-size: 1.05rem;
   line-height: 1;
   color: var(--seri-1);
   animation: denyutPanah 3.4s ease-in-out infinite;
