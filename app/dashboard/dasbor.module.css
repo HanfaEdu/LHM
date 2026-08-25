@@ -16,6 +16,9 @@
   --baik: #0ca30c;
   --waspada: #fab219;
   --kritis: #d03b3b;
+  --pendar-diam: rgb(42 120 214 / 0%);
+  --pendar-nyala: rgb(42 120 214 / 13%);
+  --pendar-fokus: rgb(42 120 214 / 35%);
 
   min-height: 100vh;
   background: var(--surface);
@@ -41,6 +44,9 @@
     --baik: #2fbb2f;
     --waspada: #fab219;
     --kritis: #e66767;
+    --pendar-diam: rgb(57 135 229 / 0%);
+    --pendar-nyala: rgb(57 135 229 / 20%);
+    --pendar-fokus: rgb(57 135 229 / 45%);
   }
 }
 
@@ -451,4 +457,76 @@
    memberi tahu bahwa masih ada kolom di sebelah kanan. */
 .gulir {
   scrollbar-width: thin;
+}
+
+
+/* ================================================================
+   Pilihan yang bernapas
+   ================================================================
+   Dropdown di sini mudah terlewat: bentuknya mirip label di sekitarnya,
+   dan beberapa pengguna tidak menyadari bahwa bulan, kelas, atau tahun
+   ajaran bisa diganti sama sekali. Denyut halus pada garis tepinya
+   memberi tahu bahwa benda itu hidup, tanpa perlu tulisan tambahan.
+
+   Warnanya sengaja satu nada -- biru aksen aplikasi -- bukan pelangi.
+   Tiga warna seri (biru, oranye, hijau) di halaman ini sudah memikul
+   arti tetap sebagai B. Indonesia, Matematika, dan IPA; garis tepi
+   berwarna-warni yang berputar akan menambah warna yang tampak
+   bermakna padahal tidak, dan pada halaman rapor yang dibaca orang tua
+   hal itu lebih membingungkan daripada membantu. Satu nada tetap
+   terbaca sebagai "ini bisa diklik" tanpa ikut berebut perhatian
+   dengan datanya.
+
+   Denyutnya lambat (4 detik) dan sangat samar saat diam; begitu
+   disentuh atau difokuskan lewat papan ketik, denyutnya berhenti dan
+   berganti menjadi sorot tegas -- gerak berhenti tepat saat pengguna
+   sudah menemukan yang dicarinya. */
+.penyaring select,
+.pilih {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  animation: bernapasPilihan 4s ease-in-out infinite;
+}
+
+@keyframes bernapasPilihan {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--pendar-diam);
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--pendar-nyala);
+  }
+}
+
+.penyaring select:hover,
+.pilih:hover {
+  border-color: var(--seri-1);
+  animation: none;
+  box-shadow: 0 0 0 3px var(--pendar-nyala);
+}
+
+/* Sorot fokus dibuat lebih tegas daripada sorot hover: inilah satu-
+   satunya penanda posisi bagi pengguna papan ketik. */
+.penyaring select:focus-visible,
+.pilih:focus-visible {
+  outline: none;
+  border-color: var(--seri-1);
+  animation: none;
+  box-shadow: 0 0 0 3px var(--pendar-fokus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .penyaring select,
+  .pilih {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Di atas kertas tidak ada yang bisa diklik. */
+@media print {
+  .penyaring select,
+  .pilih {
+    animation: none;
+    box-shadow: none;
+  }
 }

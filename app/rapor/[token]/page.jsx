@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { BULAN_AJARAN, TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
 import { bulanBerdata } from '@/lib/statistik';
+import { Printer } from 'lucide-react';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import gaya from './rapor.module.css';
 
@@ -137,12 +138,13 @@ export default function HalamanRapor({ params }) {
             data.kelas.wali_kelas ? ` · Wali Kelas: ${data.kelas.wali_kelas}` : ''
           }`}
           anak={
-            /* Tahun ajaran selalu ditampilkan, bukan hanya saat sudah ada
-               lebih dari satu. Tanpa ini, orang tua di tahun pertama tidak
-               punya petunjuk data yang dilihatnya itu tahun yang mana --
-               dan begitu tahun kedua berjalan, kolom ini berubah sendiri
-               menjadi pilihan untuk menengok tahun-tahun sebelumnya. */
-            <div className={gaya.tahunAjaran}>
+            <>
+              {/* Tahun ajaran selalu ditampilkan, bukan hanya saat sudah ada
+                  lebih dari satu. Tanpa ini, orang tua di tahun pertama tidak
+                  punya petunjuk data yang dilihatnya itu tahun yang mana --
+                  dan begitu tahun kedua berjalan, kolom ini berubah sendiri
+                  menjadi pilihan untuk menengok tahun-tahun sebelumnya. */}
+              <div className={gaya.tahunAjaran}>
               <span className={gaya.labelTahun}>Tahun Ajaran</span>
               {data.tahunAjaranTersedia.length > 1 ? (
                 <select
@@ -160,7 +162,14 @@ export default function HalamanRapor({ params }) {
               ) : (
                 <span className={gaya.nilaiTahun}>{data.kelas.tahun_ajaran}</span>
               )}
-              {/* window.print() dipakai apa adanya, bukan pustaka pengubah
+              </div>
+
+              {/* Tombol cetak dijadikan saudara sejajar tahun ajaran, bukan
+                  ditumpuk di bawahnya. Ditumpuk, keduanya terbaca sebagai
+                  satu kelompok -- seolah tombolnya bagian dari pemilih tahun
+                  -- padahal fungsinya tidak berhubungan sama sekali.
+
+                  window.print() dipakai apa adanya, bukan pustaka pengubah
                   halaman menjadi gambar: dialog cetak bawaan browser sudah
                   menyediakan "Simpan sebagai PDF" di HP maupun komputer,
                   hasilnya berupa teks yang bisa dicari dan grafik yang tetap
@@ -172,9 +181,10 @@ export default function HalamanRapor({ params }) {
                 className={gaya.tombolCetak}
                 onClick={() => window.print()}
               >
-                Cetak / Simpan PDF
+                <Printer size={16} aria-hidden="true" />
+                Simpan PDF
               </button>
-            </div>
+            </>
           }
         />
 
