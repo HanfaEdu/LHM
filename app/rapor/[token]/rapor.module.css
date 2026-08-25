@@ -545,6 +545,21 @@
     display: none !important;
   }
 
+  /* Tooltip Recharts tetap menempel di grafik setelah disentuh, dan ikut
+     tercetak sebagai kotak melayang menutupi batang di bawahnya --
+     terbawa ke PDF sebagai kotoran yang tidak bisa dihapus pembacanya. */
+  .grafik :global(.recharts-tooltip-wrapper) {
+    display: none !important;
+  }
+
+  .judulCetak {
+    display: block;
+    margin: 0 0 0.6rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--tinta-lembut);
+  }
+
   /* Tabel rincian dibuka paksa: pembaca berkas PDF tidak bisa mengklik
      lipatan, jadi tabel yang tertutup akan hilang begitu saja dari hasil
      cetakan tanpa jejak. */
@@ -563,10 +578,14 @@
 
   /* Keterangan poin justru berguna di atas kertas -- pembaca tidak bisa
      membuka lipatannya sendiri, dan tanpa daftar ini angka pada grafik
-     tidak bisa diterjemahkan. */
+     tidak bisa diterjemahkan. Lipatannya dibuka lewat JavaScript sebelum
+     mencetak; di sini tinggal merapikan tampilannya.
+
+     Baris "Lihat keterangan..." beserta tanda panahnya dihapus: daftarnya
+     sudah tercetak, tidak ada yang perlu diklik. Penggantinya judulCetak
+     yang hanya muncul di kertas. */
   .keterangan > summary {
-    list-style: none;
-    font-size: 0.75rem;
+    display: none;
   }
 
   .daftarKeterangan {
@@ -831,4 +850,12 @@
     animation: none;
     box-shadow: none;
   }
+}
+
+
+/* Baris keterangan yang hanya muncul di atas kertas: pengganti kontrol
+   yang disembunyikan saat dicetak (pemilih bulan, teks "Lihat
+   keterangan..."). Di layar, kontrolnya sendiri sudah menjelaskan. */
+.judulCetak {
+  display: none;
 }

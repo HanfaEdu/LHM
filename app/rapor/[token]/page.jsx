@@ -75,6 +75,59 @@ export default function HalamanRapor({ params }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  /**
+   * Membuka seluruh lipatan sebelum dicetak, lalu menutupnya kembali.
+   *
+   * CSS saja tidak cukup: isi <details> yang tertutup disembunyikan
+   * peramban lewat mekanisme internalnya sendiri, bukan sekadar
+   * display:none yang bisa ditimpa aturan @media print. Akibatnya
+   * keterangan poin Tahfidz/Tahsin tidak ikut tercetak sama sekali --
+   * padahal justru di atas kertas pembacanya tidak bisa membukanya
+   * sendiri, dan tanpa daftar itu angka pada grafik tidak bisa
+   * diterjemahkan.
+   */
+  useEffect(() => {
+    const bukaSemua = () => {
+      document.querySelectorAll('details:not([open])').forEach((d) => {
+        d.dataset.dibukaUntukCetak = 'ya';
+        d.open = true;
+      });
+    };
+    const kembalikan = () => {
+      document.querySelectorAll('details[data-dibuka-untuk-cetak]').forEach((d) => {
+        d.open = false;
+        delete d.dataset.dibukaUntukCetak;
+      });
+    };
+
+    window.addEventListener('beforeprint', bukaSemua);
+    window.addEventListener('afterprint', kembalikan);
+    return () => {
+      window.removeEventListener('beforeprint', bukaSemua);
+      window.removeEventListener('afterprint', kembalikan);
+    };
+  }, []);
+
+  /**
+   * Sebagian peramban HP tidak memicu beforeprint saat mencetak lewat
+   * menu bagikan, jadi lipatannya dibuka langsung di sini. Pengembaliannya
+   * bersandar pada afterprint, dengan pewaktu cadangan untuk peramban yang
+   * juga tidak memicu itu.
+   */
+  function cetak() {
+    document.querySelectorAll('details:not([open])').forEach((d) => {
+      d.dataset.dibukaUntukCetak = 'ya';
+      d.open = true;
+    });
+    window.print();
+    setTimeout(() => {
+      document.querySelectorAll('details[data-dibuka-untuk-cetak]').forEach((d) => {
+        d.open = false;
+        delete d.dataset.dibukaUntukCetak;
+      });
+    }, 1500);
+  }
+
   if (butuhPin && !data) {
     return (
       <div className={gaya.halaman}>
@@ -180,7 +233,7 @@ export default function HalamanRapor({ params }) {
               <button
                 type="button"
                 className={gaya.tombolCetak}
-                onClick={() => window.print()}
+                onClick={cetak}
               >
                 <Printer size={16} aria-hidden="true" />
                 Simpan PDF
@@ -413,6 +466,13 @@ function KeteranganQuran({ jenis }) {
       <summary>
         Lihat keterangan seluruh capaian {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
       </summary>
+      {/* Di atas kertas, kalimat "Lihat keterangan..." tidak masuk akal --
+          daftarnya sudah tercetak, tidak ada yang perlu diklik. Judul ini
+          menggantikannya saat dicetak; summary-nya sendiri disembunyikan
+          lewat @media print. */}
+      <p className={gaya.judulCetak}>
+        Keterangan capaian {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
+      </p>
       <ol className={gaya.daftarKeterangan}>
         {daftar.map((d) => (
           <li key={d.poin}>
@@ -612,6 +672,11 @@ function PerbandinganKelas({ perbandingan, namaAnak, namaKelas, targetAkademik }
           </select>
         </label>
       </div>
+
+      {/* Pemilih bulan di atas disembunyikan saat dicetak karena tidak bisa
+          diklik di atas kertas -- tanpa baris ini, kelima grafik tercetak
+          tanpa satu pun keterangan bulan mana yang sedang ditampilkan. */}
+      <p className={gaya.judulCetak}>Bulan {bulan}</p>
 
       {UKURAN.map((u) => (
         <GrafikSatuUkuran
