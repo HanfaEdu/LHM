@@ -362,7 +362,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
                   return [`${nilai} — ${getQuranLevelName(jenis, nilai)}`, nama];
                 }}
               />
-              <Legend content={<LegendaGrafik />} />
+              <Legend content={<LegendaGrafik bulatanTarget />} />
               <Bar
                 dataKey={kolomCapaian}
                 name="Capaian"
@@ -694,7 +694,7 @@ function GrafikSatuUkuran({
                   : [nilai, namaSeri]
               }
             />
-            <Legend content={<LegendaGrafik />} />
+            <Legend content={<LegendaGrafik bulatanTarget={Boolean(jenisQuran)} />} />
             {/* fill dipasang di Bar semata-mata agar kotak warna di legenda
                 ikut berwarna: Recharts mengambil warna legenda dari fill
                 milik Bar, bukan dari Cell, sehingga tanpa ini kotaknya

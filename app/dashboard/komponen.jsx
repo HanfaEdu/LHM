@@ -216,7 +216,7 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
                 : [`${v} — ${getQuranLevelName(jenis, v)}`, n]
             }
           />
-          <Legend content={<LegendaGrafik />} />
+          <Legend content={<LegendaGrafik bulatanTarget />} />
           {/* Siswa di bawah target diberi warna status agar terlihat tanpa
               harus membandingkan tinggi batang dengan garis target. */}
           {/* fill dipasang di Bar agar kotak legenda ikut berwarna; Cell di
@@ -518,7 +518,7 @@ export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
                 : [`${v} — ${getQuranLevelName(jenis, v)}`, n]
             }
           />
-          <Legend content={<LegendaGrafik />} />
+          <Legend content={<LegendaGrafik bulatanTarget />} />
           <Bar dataKey={kCapaian} name="Capaian" fill={warna} radius={[4, 4, 0, 0]} maxBarSize={34} />
           <Line
             dataKey={kTarget}

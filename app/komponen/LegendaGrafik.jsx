@@ -14,17 +14,19 @@
  * Yang dibutuhkan adalah gabungan keduanya: garis putus-putus dengan
  * bulatan terisi. Karena itu ikonnya digambar sendiri di sini.
  *
- * Bulatan target sengaja TERISI sementara bulatan seri nilai dibiarkan
- * BERLUBANG. Perbedaan itu bukan hiasan: pada grafik akademik, target dan
- * ketiga mata pelajaran sama-sama berupa garis bertitik, sehingga bentuk
- * bulatannya menjadi pembeda kedua setelah warna -- berguna bagi pembaca
- * yang kesulitan membedakan warna.
+ * Bulatan pada ikon target hanya dipakai di grafik Tahfidz dan Tahsin,
+ * lewat prop bulatanTarget. Grafik lain kembali memakai garis putus-putus
+ * polos: di grafik akademik, target berdampingan dengan tiga seri mata
+ * pelajaran yang semuanya bergaris-berbulatan, sehingga menambahkan
+ * bulatan pada target justru membuatnya melebur ke dalam kelompok itu.
+ * Di grafik Tahfidz/Tahsin tidak ada seri garis lain, jadi bulatan penuh
+ * di sana menegaskan bahwa target memang bertitik per bulan.
  */
 
 const UKURAN = 14;
 const TENGAH = UKURAN / 2;
 
-function Ikon({ warna, putusPutus, jenis }) {
+function Ikon({ warna, putusPutus, jenis, bulatanTarget }) {
   // Batang digambar sebagai kotak, sesuai bentuk datanya di grafik.
   if (jenis === 'rect' || jenis === 'square') {
     return (
@@ -45,19 +47,21 @@ function Ikon({ warna, putusPutus, jenis }) {
         strokeWidth="2"
         strokeDasharray={putusPutus ? '3 2' : undefined}
       />
-      <circle
-        cx={TENGAH}
-        cy={TENGAH}
-        r="3"
-        fill={putusPutus ? warna : 'var(--kartu)'}
-        stroke={warna}
-        strokeWidth="2"
-      />
+      {(!putusPutus || bulatanTarget) && (
+        <circle
+          cx={TENGAH}
+          cy={TENGAH}
+          r="3"
+          fill={putusPutus ? warna : 'var(--kartu)'}
+          stroke={warna}
+          strokeWidth="2"
+        />
+      )}
     </svg>
   );
 }
 
-export default function LegendaGrafik({ payload }) {
+export default function LegendaGrafik({ payload, bulatanTarget = false }) {
   if (!payload?.length) return null;
 
   return (
@@ -85,6 +89,7 @@ export default function LegendaGrafik({ payload }) {
             // otomatis mendapat ikon yang benar tanpa perlu didaftarkan.
             putusPutus={Boolean(seri.payload?.strokeDasharray)}
             jenis={seri.type}
+            bulatanTarget={bulatanTarget}
           />
           <span style={{ color: 'var(--tinta-lembut)' }}>{seri.value}</span>
         </li>
