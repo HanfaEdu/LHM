@@ -23,6 +23,7 @@ import {
   rataRata,
   rekapQuran,
 } from '@/lib/statistik';
+import LegendaGrafik from '@/app/komponen/LegendaGrafik';
 import gaya from './dasbor.module.css';
 
 const kotakTooltip = {
@@ -32,10 +33,6 @@ const kotakTooltip = {
   fontSize: 12,
   color: 'var(--tinta)',
 };
-
-const tulisLegenda = (nilai) => (
-  <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
-);
 
 /* ================================================================
    Meter ketuntasan — pengganti gauge di rapor PDF
@@ -139,20 +136,15 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
             contentStyle={kotakTooltip}
             formatter={(v, n) => [v === null ? 'belum dinilai' : bulat(v, 1), n]}
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
+          <Legend content={<LegendaGrafik />} />
           {/* Target digambar sebagai seri, bukan ReferenceLine: hanya seri
               yang ikut muncul di legenda, dan legenda itulah tempat pembaca
-              mengetahui arti garis merah putus-putus ini.
-
-              legendType="plainline" wajib: ikon legenda bawaan untuk seri
-              garis selalu digambar utuh dan mengabaikan strokeDasharray,
-              sehingga legendanya menjanjikan garis penuh sementara grafiknya
-              menggambar garis putus-putus. Hanya tipe ikon ini yang membaca
-              strokeDasharray dari seri yang bersangkutan. */}
+              mengetahui arti garis merah putus-putus ini. Bentuk ikonnya
+              ditentukan LegendaGrafik dari strokeDasharray di bawah, jadi
+              tidak ada tipe ikon yang perlu didaftarkan di sini. */}
           <Line
             dataKey="target"
             name="Target"
-            legendType="plainline"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
@@ -224,7 +216,7 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
                 : [`${v} — ${getQuranLevelName(jenis, v)}`, n]
             }
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
+          <Legend content={<LegendaGrafik />} />
           {/* Siswa di bawah target diberi warna status agar terlihat tanpa
               harus membandingkan tinggi batang dengan garis target. */}
           {/* fill dipasang di Bar agar kotak legenda ikut berwarna; Cell di
@@ -250,7 +242,6 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
           <Line
             dataKey={kTarget}
             name="Target"
-            legendType="plainline"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="4 4"
@@ -467,11 +458,10 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
             contentStyle={kotakTooltip}
             formatter={(v, n) => [v === null || v === undefined ? 'belum dinilai' : v, n]}
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
+          <Legend content={<LegendaGrafik />} />
           <Line
             dataKey="target"
             name="Target"
-            legendType="plainline"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
@@ -528,12 +518,11 @@ export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
                 : [`${v} — ${getQuranLevelName(jenis, v)}`, n]
             }
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} formatter={tulisLegenda} />
+          <Legend content={<LegendaGrafik />} />
           <Bar dataKey={kCapaian} name="Capaian" fill={warna} radius={[4, 4, 0, 0]} maxBarSize={34} />
           <Line
             dataKey={kTarget}
             name="Target"
-            legendType="plainline"
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="4 4"

@@ -46,6 +46,7 @@ import {
   TabelDistribusi,
 } from '../komponen';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
+import LegendaGrafik from '@/app/komponen/LegendaGrafik';
 import gaya from '../dasbor.module.css';
 
 export default function DasborKepalaSekolah() {
@@ -303,18 +304,12 @@ export default function DasborKepalaSekolah() {
                     }}
                     formatter={(v, n) => [v === null ? 'belum dinilai' : `${bulat(v, 1)}%`, n]}
                   />
-                  <Legend
-                    wrapperStyle={{ fontSize: 12 }}
-                    formatter={(nilai) => (
-                      <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
-                    )}
-                  />
+                  <Legend content={<LegendaGrafik />} />
                   {/* Sebagai seri, bukan ReferenceLine, supaya simbol garis
                       merah putus-putusnya ikut muncul di legenda. */}
                   <Line
                     dataKey="ambang"
                     name={`Ambang ${AMBANG_KETUNTASAN}%`}
-                    legendType="plainline"
                     stroke="var(--target)"
                     strokeWidth={2}
                     strokeDasharray="6 4"

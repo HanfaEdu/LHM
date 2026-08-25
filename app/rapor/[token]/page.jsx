@@ -18,6 +18,7 @@ import { BULAN_AJARAN, TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from
 import { bulanBerdata } from '@/lib/statistik';
 import { Printer } from 'lucide-react';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
+import LegendaGrafik from '@/app/komponen/LegendaGrafik';
 import gaya from './rapor.module.css';
 
 const WARNA = {
@@ -261,14 +262,7 @@ function GrafikAkademik({ bulanan, target }) {
                 contentStyle={kotakTooltip}
                 formatter={(nilai, nama) => [nilai === null ? 'belum dinilai' : nilai, nama]}
               />
-              <Legend
-                wrapperStyle={{ fontSize: 12 }}
-                /* Teks legenda memakai warna tinta, bukan warna seri: identitas
-                   sudah dibawa kotak warna di sebelahnya. */
-                formatter={(nilai) => (
-                  <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
-                )}
-              />
+              <Legend content={<LegendaGrafik />} />
               {/* Target digambar sebagai seri, bukan ReferenceLine: hanya
                   seri yang muncul di legenda, dan legenda itulah satu-satunya
                   tempat pembaca bisa tahu garis merah putus-putus ini artinya
@@ -276,7 +270,6 @@ function GrafikAkademik({ bulanan, target }) {
               <Line
                 dataKey="target_akademik"
                 name="Target"
-                legendType="plainline"
                 stroke={WARNA.target}
                 strokeWidth={2}
                 strokeDasharray="6 4"
@@ -369,14 +362,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
                   return [`${nilai} — ${getQuranLevelName(jenis, nilai)}`, nama];
                 }}
               />
-              <Legend
-                wrapperStyle={{ fontSize: 12 }}
-                /* Teks legenda memakai warna tinta, bukan warna seri: identitas
-                   sudah dibawa kotak warna di sebelahnya. */
-                formatter={(nilai) => (
-                  <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
-                )}
-              />
+              <Legend content={<LegendaGrafik />} />
               <Bar
                 dataKey={kolomCapaian}
                 name="Capaian"
@@ -387,7 +373,6 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
               <Line
                 dataKey={kolomTarget}
                 name="Target"
-                legendType="plainline"
                 stroke={WARNA.target}
                 strokeWidth={2}
                 strokeDasharray="4 4"
@@ -709,12 +694,7 @@ function GrafikSatuUkuran({
                   : [nilai, namaSeri]
               }
             />
-            <Legend
-              wrapperStyle={{ fontSize: 12 }}
-              formatter={(nilai) => (
-                <span style={{ color: 'var(--tinta-lembut)' }}>{nilai}</span>
-              )}
-            />
+            <Legend content={<LegendaGrafik />} />
             {/* fill dipasang di Bar semata-mata agar kotak warna di legenda
                 ikut berwarna: Recharts mengambil warna legenda dari fill
                 milik Bar, bukan dari Cell, sehingga tanpa ini kotaknya
@@ -741,7 +721,6 @@ function GrafikSatuUkuran({
               <Line
                 dataKey="target"
                 name="Target"
-                legendType="plainline"
                 stroke={WARNA.target}
                 strokeWidth={2}
                 strokeDasharray="6 4"
