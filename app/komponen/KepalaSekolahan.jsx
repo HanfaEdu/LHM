@@ -11,35 +11,47 @@ import gaya from './kepala-sekolahan.module.css';
  * asing -- satu-satunya penanda yang mereka punya sebelum melihat nama
  * anaknya.
  *
- * `judul` dan `anak` mengisi baris di bawah nama sekolah; keduanya
- * opsional supaya komponen ini tetap bisa dipakai di halaman yang belum
- * punya konteks (mis. layar login).
+ * Susunannya dua tingkat, bukan satu blok teks di samping logo:
+ *
+ *     [logo]  SD YAUMI FATIMAH KUDUS
+ *             Personalized Education
+ *     Naira Faida Hanifa
+ *     Kelas 3 · Wali Kelas: ...
+ *
+ * Logo hanya menyandingi dua baris identitas sekolah, sementara nama anak
+ * dan keterangannya turun ke tepi kiri kartu. Sebelumnya keempat baris
+ * dijejerkan di samping logo, sehingga di layar HP nama anak terdorong ke
+ * lajur sempit dan patah menjadi beberapa baris -- padahal nama itulah
+ * yang paling dulu perlu terbaca.
+ *
+ * `judul`, `keterangan`, dan `anak` semuanya opsional supaya komponen ini
+ * tetap bisa dipakai di halaman yang belum punya konteks.
  */
 export default function KepalaSekolahan({ judul, keterangan, anak }) {
   return (
     <header className={gaya.kepala}>
       <div className={gaya.identitas}>
-        <Image
-          src="/logo.png"
-          alt=""
-          width={48}
-          height={48}
-          className={gaya.logo}
-          priority
-        />
-        <div className={gaya.teks}>
-          <p className={gaya.namaSekolah}>
-            SD Yaumi Fatimah Kudus
+        <div className={gaya.merek}>
+          <Image
+            src="/logo.png"
+            alt=""
+            width={44}
+            height={44}
+            className={gaya.logo}
+            priority
+          />
+          <div>
+            <p className={gaya.namaSekolah}>SD Yaumi Fatimah Kudus</p>
             {/* Tagline sekolah. Ditulis miring dengan warna emas tua supaya
                 terbaca sebagai kalimat identitas, bukan sebagai label data --
                 sekaligus tetap tunduk pada hierarki: nama anak di bawahnya
                 yang harus lebih dulu tertangkap mata. */}
-            <span className={gaya.pemisahTagline} aria-hidden="true" />
-            <span className={gaya.tagline}>Personalized Education</span>
-          </p>
-          {judul && <h1 className={gaya.judul}>{judul}</h1>}
-          {keterangan && <p className={gaya.keterangan}>{keterangan}</p>}
+            <p className={gaya.tagline}>Personalized Education</p>
+          </div>
         </div>
+
+        {judul && <h1 className={gaya.judul}>{judul}</h1>}
+        {keterangan && <p className={gaya.keterangan}>{keterangan}</p>}
       </div>
       {anak && <div className={gaya.aksi}>{anak}</div>}
     </header>
