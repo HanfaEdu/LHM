@@ -671,20 +671,46 @@
   }
 }
 
-.penyaring select:hover,
-.pilih:hover {
+/* Hover dikurung di balik (hover: hover): pada perangkat sentuh, aturan
+   :hover justru "nyangkut" setelah jari diangkat -- kontrol yang terakhir
+   disentuh terus tampak menyala sampai ada yang lain disentuh, dan
+   pengguna membacanya sebagai "masih terpilih". Sebagian besar pengguna
+   di sini membuka lewat HP, jadi jalur sentuh yang harus benar lebih
+   dulu, bukan jalur tetikus. */
+@media (hover: hover) and (pointer: fine) {
+  .penyaring select:hover,
+  .pilih:hover {
+    border-color: var(--seri-1);
+    animation: none;
+    box-shadow: 0 0 0 3px var(--pendar-nyala);
+  }
+}
+
+/* Umpan balik seketika saat jari menekan -- di HP inilah satu-satunya
+   tanda bahwa sentuhannya benar-benar mengenai sasaran. */
+.penyaring select:active,
+.pilih:active {
+  border-color: var(--seri-1);
+  animation: none;
+  box-shadow: 0 0 0 4px var(--pendar-fokus);
+}
+
+/* :focus (bukan hanya :focus-visible) supaya denyutnya berhenti setelah
+   dropdown dipakai lewat sentuhan: peramban HP tidak menganggap sentuhan
+   sebagai fokus "terlihat", sehingga dengan :focus-visible saja kontrol
+   yang sudah dipakai akan terus berdenyut seolah belum tersentuh. */
+.penyaring select:focus,
+.pilih:focus {
+  outline: none;
   border-color: var(--seri-1);
   animation: none;
   box-shadow: 0 0 0 3px var(--pendar-nyala);
 }
 
-/* Sorot fokus dibuat lebih tegas daripada sorot hover: inilah satu-
-   satunya penanda posisi bagi pengguna papan ketik. */
+/* Sorot papan ketik dibuat paling tegas: inilah satu-satunya penanda
+   posisi bagi pengguna yang tidak memakai tetikus maupun sentuhan. */
 .penyaring select:focus-visible,
 .pilih:focus-visible {
-  outline: none;
-  border-color: var(--seri-1);
-  animation: none;
   box-shadow: 0 0 0 3px var(--pendar-fokus);
 }
 
@@ -693,6 +719,99 @@
   .pilih {
     animation: none;
     transition: none;
+  }
+}
+
+/* ================================================================
+   Lipatan keterangan Tahfidz/Tahsin
+   ================================================================
+   Sebelumnya hanya teks tebal dengan segitiga bawaan peramban, yang di
+   HP nyaris tidak terbaca sebagai tombol. Diberi bentuk pil bergaris
+   supaya bentuknya sendiri sudah mengatakan "ini bisa ditekan" -- itu
+   penanda yang paling kuat, dan tidak bergantung pada gerak sama sekali.
+
+   Geraknya sengaja hanya pada tanda panah, bukan pada seluruh tombol:
+   panah turun-naik dua piksel di tepi bawah kartu tidak menarik mata
+   dari angka di grafik, sementara tombol yang ikut berdenyut akan
+   mengganggu. Begitu lipatannya dibuka, geraknya berhenti sepenuhnya --
+   tidak ada lagi yang perlu ditemukan. */
+.keterangan summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--garis);
+  border-radius: 999px;
+  background: var(--kartu);
+  list-style: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.keterangan summary::-webkit-details-marker {
+  display: none;
+}
+
+.keterangan summary::after {
+  content: '\25be';
+  font-size: 0.85em;
+  line-height: 1;
+  color: var(--seri-1);
+  animation: denyutPanah 3.4s ease-in-out infinite;
+}
+
+.keterangan[open] summary::after {
+  content: '\25b4';
+  animation: none;
+}
+
+@keyframes denyutPanah {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(2px);
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .keterangan summary:hover {
+    border-color: var(--seri-1);
+  }
+}
+
+.keterangan summary:active {
+  border-color: var(--seri-1);
+  box-shadow: 0 0 0 4px var(--pendar-fokus);
+}
+
+.keterangan summary:focus-visible {
+  outline: none;
+  border-color: var(--seri-1);
+  box-shadow: 0 0 0 3px var(--pendar-fokus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .keterangan summary::after {
+    animation: none;
+  }
+}
+
+/* Sasaran sentuh diperbesar di layar sempit: 40px masih di bawah ukuran
+   nyaman untuk ibu jari. */
+@media (max-width: 640px) {
+  .penyaring select,
+  .pilih {
+    min-height: 44px;
+  }
+
+  .keterangan summary {
+    min-height: 44px;
   }
 }
 
