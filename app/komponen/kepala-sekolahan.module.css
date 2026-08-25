@@ -98,3 +98,57 @@
     flex: 1 1 8rem;
   }
 }
+
+/* ================================================================
+   Tagline sekolah
+   ================================================================
+   Emas dipilih sesuai permintaan, tetapi bukan emas terang (#d4af37):
+   di atas kartu putih, emas terang hanya mencapai rasio kontras sekitar
+   2,3:1 -- jauh di bawah 4,5:1 yang dibutuhkan teks sekecil ini, dan di
+   layar HP di bawah sinar matahari praktis lenyap. Yang dipakai emas tua
+   yang tetap terbaca sebagai emas namun lolos ambang keterbacaan, dengan
+   versi lebih cerah untuk mode gelap.
+
+   Ditulis miring dan tanpa huruf kapital semua: kalimat identitas yang
+   dibaca sebagai kalimat, bukan label sistem seperti nama sekolah di
+   sebelahnya. */
+.tagline {
+  font-style: italic;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--emas, #8a6a12);
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tagline {
+    color: var(--emas-gelap, #e0c070);
+  }
+}
+
+/* Pemisah setipis rambut, bukan tanda titik tengah: tanda baca akan
+   terbaca sebagai bagian dari kalimat, sedangkan garis ini murni
+   pemisah visual. Disembunyikan dari pembaca layar. */
+.pemisahTagline {
+  display: inline-block;
+  width: 1px;
+  height: 0.72em;
+  margin: 0 0.5rem;
+  vertical-align: -0.06em;
+  background: var(--garis);
+}
+
+@media (max-width: 560px) {
+  /* Di layar sempit, tagline turun ke barisnya sendiri supaya nama
+     sekolah tidak terpotong di tengah. */
+  .pemisahTagline {
+    display: none;
+  }
+
+  .tagline {
+    display: block;
+    margin-top: 0.15rem;
+  }
+}

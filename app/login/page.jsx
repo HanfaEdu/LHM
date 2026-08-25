@@ -82,8 +82,22 @@ export default function LoginPage() {
         }}>
           SiPaDi
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '32px' }}>
+        <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '10px' }}>
           Sistem Perkembangan Akademik Digital Terintegrasi SD Yaumi Fatimah Kudus
+        </p>
+        {/* Tagline sekolah. Di halaman gelap ini emas cerah justru yang
+            terbaca; emas tua yang dipakai di dasbor akan tenggelam. */}
+        <p
+          style={{
+            color: '#e0c070',
+            fontStyle: 'italic',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            letterSpacing: '0.03em',
+            marginBottom: '30px',
+          }}
+        >
+          Personalized Education
         </p>
 
         {error && (

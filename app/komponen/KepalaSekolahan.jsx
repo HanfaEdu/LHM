@@ -28,7 +28,15 @@ export default function KepalaSekolahan({ judul, keterangan, anak }) {
           priority
         />
         <div className={gaya.teks}>
-          <p className={gaya.namaSekolah}>SD Yaumi Fatimah Kudus</p>
+          <p className={gaya.namaSekolah}>
+            SD Yaumi Fatimah Kudus
+            {/* Tagline sekolah. Ditulis miring dengan warna emas tua supaya
+                terbaca sebagai kalimat identitas, bukan sebagai label data --
+                sekaligus tetap tunduk pada hierarki: nama anak di bawahnya
+                yang harus lebih dulu tertangkap mata. */}
+            <span className={gaya.pemisahTagline} aria-hidden="true" />
+            <span className={gaya.tagline}>Personalized Education</span>
+          </p>
           {judul && <h1 className={gaya.judul}>{judul}</h1>}
           {keterangan && <p className={gaya.keterangan}>{keterangan}</p>}
         </div>
