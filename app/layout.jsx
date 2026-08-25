@@ -1,14 +1,41 @@
 import './globals.css';
 
 /**
- * app/icon.png dipakai Next.js sebagai favicon secara otomatis -- tidak
- * perlu <link rel="icon"> manual, dan Next.js yang mengurus cache-busting
- * setiap berkasnya berubah.
+ * Identitas yang terlihat orang luar: judul tab peramban dan pratinjau
+ * tautan di WhatsApp.
+ *
+ * "SiPaDi" sengaja tidak dipakai di sini. Nama itu berguna di dalam
+ * sekolah, tetapi orang tua yang menerima tautan di WhatsApp tidak punya
+ * konteks apa pun untuk memahaminya -- yang terbaca hanya singkatan asing
+ * di atas sebuah tautan, dan tautan asing justru mengurangi kepercayaan.
+ * Nama sekolah dan kata yang langsung dimengerti jauh lebih meyakinkan.
+ * SiPaDi tetap tampil di halaman masuk, yang hanya dilihat guru dan
+ * kepala sekolah.
+ *
+ * Judul ini juga sengaja TIDAK memuat nama siswa. Pratinjau WhatsApp
+ * dibuat dari metadata halaman, jadi nama anak akan ikut terbaca di daftar
+ * chat -- termasuk oleh siapa pun yang kebetulan melihat layar HP orang
+ * tuanya. Nama anak hanya muncul setelah tautannya benar-benar dibuka.
  */
+
+const alamatResmi = process.env.NEXT_PUBLIC_SITE_URL || 'https://akademik-sdyaumi.vercel.app';
+
 export const metadata = {
-  title: 'SiPaDi — SD Yaumi Fatimah Kudus',
+  // metadataBase membuat /logo.png di bawah menjadi alamat lengkap;
+  // WhatsApp mengabaikan gambar pratinjau yang alamatnya relatif.
+  metadataBase: new URL(alamatResmi),
+  title: 'Akademik — SD Yaumi Fatimah Kudus',
   description:
-    'Sistem Rapor Digital: capaian akademik, Tahfidz, dan Tahsin siswa SD Yaumi Fatimah Kudus.',
+    'Capaian akademik, Tahfidz, dan Tahsin siswa SD Yaumi Fatimah Kudus.',
+  openGraph: {
+    title: 'Akademik — SD Yaumi Fatimah Kudus',
+    description:
+      'Capaian akademik, Tahfidz, dan Tahsin siswa SD Yaumi Fatimah Kudus.',
+    siteName: 'SD Yaumi Fatimah Kudus',
+    locale: 'id_ID',
+    type: 'website',
+    images: [{ url: '/logo.png', width: 256, height: 256, alt: 'Logo SD Yaumi Fatimah Kudus' }],
+  },
 };
 
 export const viewport = {
