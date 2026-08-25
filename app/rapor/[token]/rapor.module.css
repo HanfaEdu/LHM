@@ -168,8 +168,54 @@
   color: var(--tinta-lembut);
 }
 
+.bingkaiTabel {
+  position: relative;
+}
+
 .gulirTabel {
   overflow-x: auto;
+}
+
+/* ================================================================
+   Penanda "masih ada kolom di sebelah kanan"
+   ================================================================
+   Pasangan tetap dari goyangan sekali di page.jsx. Goyangan hanya
+   tertangkap kalau pembaca kebetulan sedang melihat ke tabel saat itu;
+   penanda ini masih ada saat ia kembali lima menit kemudian, dan padam
+   sendiri begitu tabelnya digeser sampai kolom terakhir.
+
+   Digambar sebagai kabut yang menipis, bukan garis tegas: garis di tepi
+   tabel akan terbaca sebagai batas kolom, sementara isi yang memudar
+   justru mengatakan "ada yang terpotong di balik ini".
+
+   pointer-events: none supaya jari yang menyentuh daerah ini tetap
+   menggeser tabel di bawahnya. */
+.petunjukGeser {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  pointer-events: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--seri-1);
+  background: linear-gradient(
+    to right,
+    rgb(255 255 255 / 0%),
+    var(--kartu) 78%
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  .petunjukGeser {
+    background: linear-gradient(to right, rgb(26 26 25 / 0%), var(--kartu) 78%);
+  }
 }
 
 .tabel {
@@ -1052,6 +1098,12 @@
 
   .gulirTabel {
     overflow: visible;
+  }
+
+  /* Di atas kertas seluruh kolom tercetak, jadi tidak ada yang perlu
+     digeser -- kabut penanda hanya akan menutupi kolom terakhir. */
+  .petunjukGeser {
+    display: none;
   }
 
   /* ----------------------------------------------------------------

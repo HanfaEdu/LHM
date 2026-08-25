@@ -187,6 +187,10 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
     return <p className={gaya.kosong}>Belum ada capaian {jenis} untuk bulan ini.</p>;
   }
 
+  const adaDibawahTarget = data.some(
+    (b) => b[kTarget] !== null && b[kCapaian] < b[kTarget]
+  );
+
   return (
     <div className={gaya.grafik}>
       <ResponsiveContainer width="100%" height="100%">
@@ -216,11 +220,42 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
                 : [`${v} — ${getQuranLevelName(jenis, v)}`, n]
             }
           />
-          <Legend content={<LegendaGrafik bulatanTarget />} />
-          {/* Siswa di bawah target diberi warna status agar terlihat tanpa
-              harus membandingkan tinggi batang dengan garis target. */}
-          {/* fill dipasang di Bar agar kotak legenda ikut berwarna; Cell di
-              bawahnya menimpanya per siswa. */}
+          {/* Keterangan "Di bawah target" hanya dimunculkan kalau memang
+              ada siswa yang di bawah target -- legenda untuk sesuatu yang
+              tidak ada di grafiknya hanya membuat pembaca mencari-cari. */}
+          <Legend
+            content={
+              <LegendaGrafik
+                bulatanTarget
+                tambahan={
+                  adaDibawahTarget
+                    ? [
+                        {
+                          kunci: 'dibawah',
+                          label: 'Di bawah target',
+                          warna,
+                          warnaTepi: 'var(--kritis)',
+                        },
+                      ]
+                    : undefined
+                }
+              />
+            }
+          />
+          {/* Siswa di bawah target ditandai GARIS TEPI merah, bukan isian
+              merah. Dengan isian merah, satu grafik memuat dua warna yang
+              sama pekatnya -- biru dan merah pada Tahfidz, hijau dan merah
+              pada Tahsin -- dan keduanya berebut dibaca sebagai "jenis
+              data yang berbeda", padahal isinya sama-sama capaian siswa.
+              Yang berbeda statusnya, bukan datanya.
+
+              Isian tetap satu warna per grafik (biru Tahfidz, hijau
+              Tahsin) sehingga grafiknya terbaca sebagai satu kesatuan,
+              dan status di bawah target dibawa oleh garis tepinya saja --
+              lapisan terpisah yang tidak mengubah arti warna isian.
+
+              fill dipasang di Bar agar kotak legenda ikut berwarna; Cell
+              di bawahnya menimpanya per siswa. */}
           <Bar
             dataKey={kCapaian}
             name="Capaian"
@@ -228,16 +263,20 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
             radius={[4, 4, 0, 0]}
             maxBarSize={30}
           >
-            {data.map((b, i) => (
-              <Cell
-                key={i}
-                fill={
-                  b[kTarget] !== null && b[kCapaian] < b[kTarget]
-                    ? 'var(--kritis)'
-                    : warna
-                }
-              />
-            ))}
+            {data.map((b, i) => {
+              const dibawah = b[kTarget] !== null && b[kCapaian] < b[kTarget];
+              return (
+                <Cell
+                  key={i}
+                  fill={warna}
+                  stroke={dibawah ? 'var(--kritis)' : 'none'}
+                  /* 2.5px, bukan 1px: pada layar HP batangnya hanya sekitar
+                     20px lebar, dan garis setipis 1px di tepi batang
+                     berwarna pekat praktis lenyap. */
+                  strokeWidth={dibawah ? 2.5 : 0}
+                />
+              );
+            })}
           </Bar>
           <Line
             dataKey={kTarget}

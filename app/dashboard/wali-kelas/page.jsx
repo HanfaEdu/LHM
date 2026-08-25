@@ -222,7 +222,7 @@ export default function DasborWaliKelas() {
               <section className={`${gaya.kartu} ${gaya.kartuTahfidz}`}>
                 <h2 className={gaya.judulKartu}>Capaian Tahfidz</h2>
                 <p className={gaya.ketKartu}>
-                  Batang merah menandai siswa yang masih di bawah target.
+                  Batang bergaris tepi merah menandai siswa yang masih di bawah target.
                 </p>
                 <GrafikKelasQuran jenis="tahfidz" baris={baris} />
                 <RekapQuran jenis="tahfidz" baris={baris} />
@@ -232,7 +232,7 @@ export default function DasborWaliKelas() {
               <section className={`${gaya.kartu} ${gaya.kartuTahsin}`}>
                 <h2 className={gaya.judulKartu}>Capaian Tahsin</h2>
                 <p className={gaya.ketKartu}>
-                  Batang merah menandai siswa yang masih di bawah target.
+                  Batang bergaris tepi merah menandai siswa yang masih di bawah target.
                 </p>
                 <GrafikKelasQuran jenis="tahsin" baris={baris} />
                 <RekapQuran jenis="tahsin" baris={baris} />

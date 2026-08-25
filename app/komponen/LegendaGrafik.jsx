@@ -26,12 +26,25 @@
 const UKURAN = 14;
 const TENGAH = UKURAN / 2;
 
-function Ikon({ warna, putusPutus, jenis, bulatanTarget }) {
+function Ikon({ warna, warnaTepi, putusPutus, jenis, bulatanTarget }) {
   // Batang digambar sebagai kotak, sesuai bentuk datanya di grafik.
   if (jenis === 'rect' || jenis === 'square') {
     return (
       <svg width={UKURAN} height={UKURAN} viewBox={`0 0 ${UKURAN} ${UKURAN}`} aria-hidden="true">
-        <rect width={UKURAN} height={UKURAN} rx="2" fill={warna} />
+        {/* Kotak dikecilkan setengah ketebalan garis saat bergaris tepi:
+            SVG menggambar garis tepi tepat di atas batas bentuknya, jadi
+            separuhnya akan terpotong keluar viewBox kalau kotaknya tetap
+            selebar penuh. */}
+        <rect
+          x={warnaTepi ? 1 : 0}
+          y={warnaTepi ? 1 : 0}
+          width={UKURAN - (warnaTepi ? 2 : 0)}
+          height={UKURAN - (warnaTepi ? 2 : 0)}
+          rx="2"
+          fill={warna}
+          stroke={warnaTepi || 'none'}
+          strokeWidth={warnaTepi ? 2 : 0}
+        />
       </svg>
     );
   }
@@ -61,7 +74,18 @@ function Ikon({ warna, putusPutus, jenis, bulatanTarget }) {
   );
 }
 
-export default function LegendaGrafik({ payload, bulatanTarget = false }) {
+/**
+ * `tambahan` menyisipkan keterangan yang tidak berasal dari seri Recharts
+ * mana pun -- dipakai untuk status yang dibawa oleh tampilan batang, bukan
+ * oleh seri tersendiri. Contohnya "Di bawah target" pada grafik Tahfidz
+ * dan Tahsin: batangnya seri yang sama persis, hanya garis tepinya merah.
+ *
+ * Ditaruh di legenda, bukan sebagai kalimat di bawah judul kartu, karena
+ * baris legenda memang sudah ada di tiap grafik -- keterangannya jadi
+ * tidak menambah tinggi halaman sedikit pun, dan ikut ke mana pun
+ * grafiknya dipakai tanpa perlu didaftarkan ulang di tiap dasbor.
+ */
+export default function LegendaGrafik({ payload, bulatanTarget = false, tambahan }) {
   if (!payload?.length) return null;
 
   return (
@@ -92,6 +116,16 @@ export default function LegendaGrafik({ payload, bulatanTarget = false }) {
             bulatanTarget={bulatanTarget}
           />
           <span style={{ color: 'var(--tinta-lembut)' }}>{seri.value}</span>
+        </li>
+      ))}
+
+      {tambahan?.map((t) => (
+        <li
+          key={t.kunci}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+        >
+          <Ikon jenis="rect" warna={t.warna} warnaTepi={t.warnaTepi} />
+          <span style={{ color: 'var(--tinta-lembut)' }}>{t.label}</span>
         </li>
       ))}
     </ul>

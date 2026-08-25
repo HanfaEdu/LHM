@@ -653,6 +653,136 @@ function TitikTargetBerpendar({ cx, cy, value }) {
    Tabel 12 bulan
    ================================================================ */
 function TabelBulanan({ bulanan }) {
+  const wadahGulir = useRef(null);
+  const sudahDigoyang = useRef(false);
+  const [adaLagiKanan, setAdaLagiKanan] = useState(false);
+
+  /**
+   * Menyalakan penanda tepi kanan selama masih ada kolom yang belum
+   * terlihat. Berbeda dari goyangan di bawah, penanda ini permanen --
+   * goyangan hanya sekali dan hanya tertangkap kalau pembaca kebetulan
+   * sedang melihat, sedangkan penanda ini masih ada saat ia kembali ke
+   * tabel lima menit kemudian.
+   */
+  useEffect(() => {
+    const el = wadahGulir.current;
+    if (!el) return;
+
+    const perbarui = () => {
+      setAdaLagiKanan(el.scrollWidth - el.clientWidth - el.scrollLeft > 2);
+    };
+
+    perbarui();
+    el.addEventListener('scroll', perbarui, { passive: true });
+    window.addEventListener('resize', perbarui);
+    return () => {
+      el.removeEventListener('scroll', perbarui);
+      window.removeEventListener('resize', perbarui);
+    };
+  }, [bulanan]);
+
+  /**
+   * Menggeser tabel sedikit ke kanan lalu kembali, tiga kali, saat tabel
+   * pertama kali masuk ke layar.
+   *
+   * Tabel ini sepuluh kolom dan di layar HP hanya lima yang muat. Yang
+   * terpotong justru Tahfidz dan Tahsin, dan tidak ada satu pun tanda
+   * bahwa mereka ada: tepinya tidak terlihat terpotong, dan peramban HP
+   * menyembunyikan bilah gulir sampai disentuh. Tabelnya tampak sudah
+   * selesai di kolom IPA.
+   *
+   * Gerakan dipilih karena tidak menambah tinggi halaman sama sekali --
+   * masalah yang membuat versi "tabel jadi kartu" ditinggalkan. Yang
+   * digeser hanya sekitar satu kolom, bukan sampai mentok: tujuannya
+   * memberi tahu "ada lanjutannya", bukan membacakan isinya.
+   *
+   * Tiga hal yang dijaga:
+   *   - Hanya sekali seumur halaman. Gerakan yang berulang tiap kali
+   *     tabel lewat di layar berubah dari petunjuk menjadi gangguan.
+   *   - Berhenti seketika kalau pembaca menyentuh tabelnya sendiri --
+   *     begitu ia menggeser sendiri, petunjuknya sudah tidak diperlukan
+   *     dan tangannya tidak boleh dilawan.
+   *   - Tidak berjalan sama sekali bagi pengguna yang meminta gerak
+   *     minimal lewat setelan sistem.
+   */
+  useEffect(() => {
+    const el = wadahGulir.current;
+    if (!el || sudahDigoyang.current) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    let batal = false;
+    let rangka = 0;
+
+    const hentikan = () => {
+      batal = true;
+      cancelAnimationFrame(rangka);
+    };
+
+    const gerak = (dari, ke, lama) =>
+      new Promise((selesai) => {
+        const mulai = performance.now();
+        const langkah = (kini) => {
+          if (batal) return selesai();
+          const p = Math.min(1, (kini - mulai) / lama);
+          // easeInOutSine: berangkat dan berhenti pelan, tanpa sentakan.
+          el.scrollLeft = dari + (ke - dari) * (0.5 - Math.cos(Math.PI * p) / 2);
+          if (p < 1) rangka = requestAnimationFrame(langkah);
+          else selesai();
+        };
+        rangka = requestAnimationFrame(langkah);
+      });
+
+    const jeda = (lama) => new Promise((r) => setTimeout(r, lama));
+
+    const goyang = async () => {
+      const maks = el.scrollWidth - el.clientWidth;
+      // Tidak ada yang tersembunyi (layar lebar) -- tidak ada yang perlu
+      // diberitahukan.
+      if (maks < 24) return;
+
+      const awal = el.scrollLeft;
+      // Sekitar satu kolom, dan tidak pernah melewati batas gulirnya.
+      const puncak = Math.min(awal + 96, maks);
+
+      for (let i = 0; i < 3 && !batal; i += 1) {
+        await gerak(awal, puncak, 520);
+        if (batal) return;
+        await gerak(puncak, awal, 420);
+        if (batal) return;
+        await jeda(160);
+      }
+    };
+
+    const pengamat = new IntersectionObserver(
+      (entri) => {
+        if (!entri.some((e) => e.isIntersecting) || sudahDigoyang.current) return;
+        sudahDigoyang.current = true;
+        pengamat.disconnect();
+        // Jeda singkat supaya goyangannya tidak bertabrakan dengan gerak
+        // gulir halaman yang baru saja membawa tabel ini ke layar.
+        setTimeout(goyang, 350);
+      },
+      // Baru dianggap "terlihat" setelah tabelnya berada di paruh tengah
+      // layar: tabel ini lebih tinggi dari layar HP, sehingga ambang
+      // berbasis persentase luas tidak akan pernah tercapai.
+      { threshold: 0, rootMargin: '-25% 0px -25% 0px' }
+    );
+
+    pengamat.observe(el);
+
+    el.addEventListener('pointerdown', hentikan);
+    el.addEventListener('touchstart', hentikan, { passive: true });
+    el.addEventListener('wheel', hentikan, { passive: true });
+
+    return () => {
+      hentikan();
+      pengamat.disconnect();
+      el.removeEventListener('pointerdown', hentikan);
+      el.removeEventListener('touchstart', hentikan);
+      el.removeEventListener('wheel', hentikan);
+    };
+  }, []);
+
   const rata = (kolom) => {
     const angka = bulanan.map((b) => b[kolom]).filter((v) => v !== null);
     if (!angka.length) return null;
@@ -686,7 +816,12 @@ function TabelBulanan({ bulanan }) {
         </summary>
 
         <div className={gaya.isiLipatan}>
-      <div className={gaya.gulirTabel}>
+      {/* Bingkai berposisi relatif: penanda tepi kanan digantung di sini,
+          bukan di dalam wadah gulirnya -- kalau di dalam, ia ikut bergeser
+          bersama isi tabel dan justru menghilang tepat ketika masih ada
+          kolom yang belum terlihat. */}
+      <div className={gaya.bingkaiTabel}>
+      <div className={gaya.gulirTabel} ref={wadahGulir}>
         <table className={gaya.tabel}>
           {/* Kepala tabel dua tingkat: tanpa pengelompokan ini, kolom
               "Tahfidz" dan "Tahsin" tidak menjelaskan apakah isinya capaian
@@ -766,6 +901,12 @@ function TabelBulanan({ bulanan }) {
             </tr>
           </tbody>
         </table>
+      </div>
+      {adaLagiKanan && (
+        <span className={gaya.petunjukGeser} aria-hidden="true">
+          ›
+        </span>
+      )}
       </div>
         </div>
       </details>
