@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -86,46 +86,84 @@ export default function HalamanRapor({ params }) {
    * sendiri, dan tanpa daftar itu angka pada grafik tidak bisa
    * diterjemahkan.
    */
-  useEffect(() => {
-    const bukaSemua = () => {
-      document.querySelectorAll('details:not([open])').forEach((d) => {
-        d.dataset.dibukaUntukCetak = 'ya';
-        d.open = true;
-      });
-    };
-    const kembalikan = () => {
-      document.querySelectorAll('details[data-dibuka-untuk-cetak]').forEach((d) => {
-        d.open = false;
-        delete d.dataset.dibukaUntukCetak;
-      });
-    };
+  const sedangCetak = useRef(false);
 
-    window.addEventListener('beforeprint', bukaSemua);
-    window.addEventListener('afterprint', kembalikan);
-    return () => {
-      window.removeEventListener('beforeprint', bukaSemua);
-      window.removeEventListener('afterprint', kembalikan);
-    };
-  }, []);
-
-  /**
-   * Sebagian peramban HP tidak memicu beforeprint saat mencetak lewat
-   * menu bagikan, jadi lipatannya dibuka langsung di sini. Pengembaliannya
-   * bersandar pada afterprint, dengan pewaktu cadangan untuk peramban yang
-   * juga tidak memicu itu.
-   */
-  function cetak() {
+  const bukaLipatan = () => {
     document.querySelectorAll('details:not([open])').forEach((d) => {
       d.dataset.dibukaUntukCetak = 'ya';
       d.open = true;
     });
-    window.print();
-    setTimeout(() => {
-      document.querySelectorAll('details[data-dibuka-untuk-cetak]').forEach((d) => {
-        d.open = false;
-        delete d.dataset.dibukaUntukCetak;
+  };
+
+  const kembalikanLipatan = () => {
+    document.querySelectorAll('details[data-dibuka-untuk-cetak]').forEach((d) => {
+      d.open = false;
+      delete d.dataset.dibukaUntukCetak;
+    });
+    sedangCetak.current = false;
+  };
+
+  useEffect(() => {
+    const sebelum = () => {
+      sedangCetak.current = true;
+      bukaLipatan();
+    };
+
+    /**
+     * Di HP, pratinjau cetak adalah layar tersendiri dan afterprint sering
+     * tidak pernah terpicu. Kembalinya fokus ke halaman adalah tanda yang
+     * jauh lebih bisa diandalkan bahwa pratinjaunya sudah ditutup -- entah
+     * karena dicetak, dibatalkan, atau tertutup tanpa sengaja.
+     */
+    const saatKembali = () => {
+      if (sedangCetak.current && document.visibilityState === 'visible') {
+        kembalikanLipatan();
+      }
+    };
+
+    window.addEventListener('beforeprint', sebelum);
+    window.addEventListener('afterprint', kembalikanLipatan);
+    window.addEventListener('focus', saatKembali);
+    document.addEventListener('visibilitychange', saatKembali);
+
+    return () => {
+      window.removeEventListener('beforeprint', sebelum);
+      window.removeEventListener('afterprint', kembalikanLipatan);
+      window.removeEventListener('focus', saatKembali);
+      document.removeEventListener('visibilitychange', saatKembali);
+    };
+  }, []);
+
+  /**
+   * Sebagian peramban HP tidak memicu beforeprint saat mencetak lewat menu
+   * bagikan, jadi lipatannya dibuka langsung di sini.
+   *
+   * Dua penggambaran ditunggu sebelum window.print(): di HP, print()
+   * kembali seketika sementara pratinjaunya disiapkan belakangan, sehingga
+   * lipatan yang baru saja dibuka belum tentu sudah tergambar saat halaman
+   * dipotret. Menunggu satu frame saja belum cukup pada perangkat lambat.
+   *
+   * Pengembalian lipatan TIDAK lagi memakai pewaktu. Pewaktu bisa habis
+   * selagi pratinjau masih disiapkan, menutup lipatannya kembali, dan
+   * justru menghapus keterangan poin dari PDF yang dihasilkan -- persis
+   * masalah yang hendak diperbaiki. Sekarang menunggu fokus kembali ke
+   * halaman.
+   */
+  function cetak() {
+    sedangCetak.current = true;
+    bukaLipatan();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try {
+          window.print();
+        } catch {
+          // Peramban yang menolak print() tidak boleh meninggalkan
+          // lipatan dalam keadaan terbuka.
+          kembalikanLipatan();
+        }
       });
-    }, 1500);
+    });
   }
 
   if (butuhPin && !data) {
