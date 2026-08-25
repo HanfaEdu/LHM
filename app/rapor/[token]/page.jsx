@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Bar,
   CartesianGrid,
@@ -30,6 +31,39 @@ const WARNA = {
   tahsin: 'var(--seri-3)',
 };
 
+/* ================================================================
+   Ukuran grafik saat dicetak
+   ================================================================
+   Recharts menggambar SVG dengan lebar tetap dalam piksel, hasil
+   pengukuran wadahnya saat halaman tampil di layar. Ukuran itu tidak
+   pernah diukur ulang ketika halaman dicetak. Akibatnya grafik yang
+   lahir di layar HP selebar 390px tetap digambar 390px di atas kertas
+   yang bidang isinya sekitar 700px -- separuh halaman kosong di sebelah
+   kanan tiap grafik, dan rapor dua bulan data membengkak jadi delapan
+   halaman.
+
+   Karena itu lebarnya diambil alih: selama proses cetak berlangsung,
+   grafik digambar ulang pada lebar kertas, bukan lebar layar. Nilainya
+   dipatok aman di dalam bidang isi A4 (186mm ~ 703px pada 96dpi) yang
+   dikunci lewat .wadah di rapor.module.css -- kalau margin @page di
+   sana diubah, angka ini perlu ikut disesuaikan.
+
+   Konteks dipakai, bukan properti yang dioper turun, karena grafik
+   terdalam ("Capaian Kelas") berada dua tingkat di bawah halaman dan
+   jalur operannya hanya akan melewati komponen yang tidak
+   berkepentingan sama sekali dengan urusan cetak. */
+const LEBAR_GRAFIK_CETAK = 696;
+const TINGGI_GRAFIK_CETAK = 300;
+
+const KonteksCetak = createContext(false);
+
+function useUkuranGrafik() {
+  const sedangDicetak = useContext(KonteksCetak);
+  return sedangDicetak
+    ? { width: LEBAR_GRAFIK_CETAK, height: TINGGI_GRAFIK_CETAK }
+    : { width: '100%', height: '100%' };
+}
+
 export default function HalamanRapor({ params }) {
   // Next.js 14: params adalah objek biasa, bukan Promise.
   const token = params.token;
@@ -40,6 +74,22 @@ export default function HalamanRapor({ params }) {
   const [galat, setGalat] = useState('');
   const [data, setData] = useState(null);
   const [tahunAjaran, setTahunAjaran] = useState('');
+
+  /* Menyala hanya selagi halaman disiapkan untuk dicetak; dipakai grafik
+     lewat KonteksCetak untuk menggambar diri pada lebar kertas. */
+  const [modeCetak, setModeCetak] = useState(false);
+
+  /* Tanggal cetak diisi setelah komponen terpasang, bukan saat render.
+     new Date() di badan render menghasilkan nilai yang berbeda antara
+     server dan peramban, dan React menolak hasil render yang tidak
+     cocok itu. */
+  const [tanggalCetak, setTanggalCetak] = useState('');
+
+  useEffect(() => {
+    setTanggalCetak(
+      new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date())
+    );
+  }, []);
 
   async function ambilData(pinDipakai, tahun) {
     setMemuat(true);
@@ -95,18 +145,34 @@ export default function HalamanRapor({ params }) {
     });
   };
 
+  /**
+   * Menyiapkan halaman untuk dipotret peramban: lipatan dibuka dan grafik
+   * digambar ulang pada lebar kertas.
+   *
+   * flushSync dipakai, bukan setState biasa, karena jalur Ctrl+P memanggil
+   * ini dari dalam beforeprint -- peramban memotret halaman segera setelah
+   * penanganya selesai, sementara render React yang biasa baru dikerjakan
+   * setelahnya. Tanpa flushSync, grafik pada jalur itu tetap tercetak
+   * selebar layar.
+   */
+  const siapkanCetak = () => {
+    sedangCetak.current = true;
+    flushSync(() => setModeCetak(true));
+    bukaLipatan();
+  };
+
   const kembalikanLipatan = () => {
     document.querySelectorAll('details[data-dibuka-untuk-cetak]').forEach((d) => {
       d.open = false;
       delete d.dataset.dibukaUntukCetak;
     });
+    setModeCetak(false);
     sedangCetak.current = false;
   };
 
   useEffect(() => {
     const sebelum = () => {
-      sedangCetak.current = true;
-      bukaLipatan();
+      siapkanCetak();
     };
 
     /**
@@ -132,6 +198,10 @@ export default function HalamanRapor({ params }) {
       window.removeEventListener('focus', saatKembali);
       document.removeEventListener('visibilitychange', saatKembali);
     };
+    // Pendengar sengaja didaftarkan sekali saja; fungsi di dalamnya hanya
+    // menyentuh DOM, ref, dan penyetel state -- semuanya tidak berubah
+    // perilakunya antar-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -150,8 +220,7 @@ export default function HalamanRapor({ params }) {
    * halaman.
    */
   function cetak() {
-    sedangCetak.current = true;
-    bukaLipatan();
+    siapkanCetak();
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -221,7 +290,10 @@ export default function HalamanRapor({ params }) {
 
   if (!data) return null;
 
+  const tahunTampil = tahunAjaran || data.kelas.tahun_ajaran;
+
   return (
+    <KonteksCetak.Provider value={modeCetak}>
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
@@ -253,6 +325,14 @@ export default function HalamanRapor({ params }) {
                 </select>
               ) : (
                 <span className={gaya.nilaiTahun}>{data.kelas.tahun_ajaran}</span>
+              )}
+              {/* Dropdown-nya sendiri disembunyikan saat dicetak karena
+                  tidak bisa diklik di atas kertas. Tanpa baris pengganti
+                  ini, label "TAHUN AJARAN" tercetak tanpa tahunnya pada
+                  rapor siswa yang sudah punya lebih dari satu tahun
+                  data. */}
+              {data.tahunAjaranTersedia.length > 1 && (
+                <span className={gaya.judulCetak}>{tahunTampil}</span>
               )}
               </div>
 
@@ -311,7 +391,24 @@ export default function HalamanRapor({ params }) {
 
         <TabelBulanan bulanan={data.bulanan} />
       </div>
+
+      {/* Identitas di kaki tiap halaman cetakan. Rapor ini keluar sebagai
+          berkas beberapa halaman; tanpa penanda, halaman kedua dan
+          seterusnya hanya berisi grafik tanpa satu pun keterangan milik
+          siapa -- masalah nyata begitu lembarnya tercetak dan tercampur
+          dengan rapor anak lain. Disembunyikan sepenuhnya di layar. */}
+      <footer className={gaya.kakiCetak} aria-hidden="true">
+        <span>
+          {data.anak.nama_lengkap} · Kelas {data.kelas.nama_kelas}
+          {tahunTampil ? ` · T.A. ${tahunTampil}` : ''}
+        </span>
+        <span>
+          SD Yaumi Fatimah Kudus
+          {tanggalCetak ? ` · dicetak ${tanggalCetak}` : ''}
+        </span>
+      </footer>
     </div>
+    </KonteksCetak.Provider>
   );
 }
 
@@ -319,6 +416,7 @@ export default function HalamanRapor({ params }) {
    Grafik akademik — tiga mapel sepanjang tahun ajaran
    ================================================================ */
 function GrafikAkademik({ bulanan, target }) {
+  const ukuranGrafik = useUkuranGrafik();
   const adaIsi = bulanan.some(
     (b) => b.rata_b_indo !== null || b.rata_mtk !== null || b.rata_ipa !== null
   );
@@ -329,7 +427,7 @@ function GrafikAkademik({ bulanan, target }) {
 
       {adaIsi ? (
         <div className={gaya.grafik}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer {...ukuranGrafik}>
             <LineChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
               <CartesianGrid stroke="var(--garis)" vertical={false} />
               <XAxis
@@ -413,6 +511,7 @@ function GrafikAkademik({ bulanan, target }) {
    Grafik Tahfidz / Tahsin — batang capaian + titik target
    ================================================================ */
 function GrafikQuran({ jenis, judul, bulanan, warna }) {
+  const ukuranGrafik = useUkuranGrafik();
   const kolomCapaian = jenis === 'tahfidz' ? 'capaian_tahfidz' : 'capaian_tahsin';
   const kolomTarget = jenis === 'tahfidz' ? 'target_tahfidz' : 'target_tahsin';
 
@@ -427,7 +526,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
 
       {adaIsi ? (
         <div className={gaya.grafik}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer {...ukuranGrafik}>
             <ComposedChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
               <CartesianGrid stroke="var(--garis)" vertical={false} />
               <XAxis
@@ -640,7 +739,17 @@ function TabelBulanan({ bulanan }) {
               <td>{tampil(rata('rata_b_indo'))}</td>
               <td>{tampil(rata('rata_mtk'))}</td>
               <td>{tampil(rata('rata_ipa'))}</td>
-              <td colSpan={5}></td>
+              {/* Lima kolom sisanya sengaja tidak dirata-ratakan: target
+                  akademik sama sepanjang tahun, sedangkan Tahfidz dan
+                  Tahsin bersifat kumulatif -- rata-rata poinnya tidak
+                  berarti apa-apa. Diisi tanda hubung, bukan dibiarkan
+                  kosong, supaya barisnya tidak terlihat seperti tabel
+                  yang gagal termuat. */}
+              {[0, 1, 2, 3, 4].map((i) => (
+                <td key={i}>
+                  <span className={gaya.kosong}>–</span>
+                </td>
+              ))}
             </tr>
           </tbody>
         </table>
@@ -740,6 +849,7 @@ function GrafikSatuUkuran({
   namaAnak,
   targetAkademik,
 }) {
+  const ukuranGrafik = useUkuranGrafik();
   const baris = semuaBaris.filter((r) => r[kunci] !== null && r[kunci] !== undefined);
 
   // Target akademik tetap sepanjang tahun, sedangkan target Tahfidz/Tahsin
@@ -767,7 +877,7 @@ function GrafikSatuUkuran({
       <h3 className={gaya.judulUkuran}>{nama}</h3>
 
       <div className={gaya.grafik}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer {...ukuranGrafik}>
           <ComposedChart
             data={baris.map((r) => ({ ...r, target }))}
             margin={{ top: 8, right: 16, bottom: 8, left: -8 }}

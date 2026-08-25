@@ -501,126 +501,6 @@
   border-color: var(--seri-1);
   background: var(--surface);
 }
-
-/* ================================================================
-   Cetak / Simpan sebagai PDF
-   ================================================================
-   Yang dicetak adalah halaman ini apa adanya, bukan hasil pengubahan
-   menjadi gambar: teksnya tetap bisa dicari dan grafiknya tetap tajam
-   saat diperbesar. Yang perlu diatur di sini hanya membuang kontrol yang
-   tidak berguna di atas kertas, dan mengatur di mana halaman boleh
-   dipenggal. */
-@media print {
-  /* Latar gelap tidak pernah tepat di atas kertas: tintanya boros dan
-     hasilnya sering keluar sebagai kotak kelabu. Seluruh palet dipaksa
-     ke mode terang, apa pun setelan perangkat pembacanya. */
-  .halaman {
-    --surface: #ffffff;
-    --kartu: #ffffff;
-    --garis: #cfcdc7;
-    --tinta: #000000;
-    --tinta-lembut: #333333;
-    --tinta-samar: #666666;
-
-    padding: 0;
-    min-height: auto;
-    background: #ffffff;
-  }
-
-  .kartu,
-  .kepala {
-    border: 1px solid var(--garis);
-    box-shadow: none;
-    /* Kartu tidak boleh terpenggal di tengah grafik; kalau tidak muat,
-       seluruh kartu pindah ke halaman berikutnya. */
-    break-inside: avoid;
-    page-break-inside: avoid;
-    animation: none;
-  }
-
-  /* Kontrol tidak berfungsi di atas kertas dan hanya memakan tempat. */
-  .tombolCetak,
-  .penyaring,
-  .pilih {
-    display: none !important;
-  }
-
-  /* Tooltip Recharts tetap menempel di grafik setelah disentuh, dan ikut
-     tercetak sebagai kotak melayang menutupi batang di bawahnya --
-     terbawa ke PDF sebagai kotoran yang tidak bisa dihapus pembacanya. */
-  .grafik :global(.recharts-tooltip-wrapper) {
-    display: none !important;
-  }
-
-  .judulCetak {
-    display: block;
-    margin: 0 0 0.6rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--tinta-lembut);
-  }
-
-  /* Tabel rincian dibuka paksa: pembaca berkas PDF tidak bisa mengklik
-     lipatan, jadi tabel yang tertutup akan hilang begitu saja dari hasil
-     cetakan tanpa jejak. */
-  .lipatan > summary {
-    list-style: none;
-  }
-
-  .penanda {
-    display: none;
-  }
-
-  .isiLipatan {
-    display: block !important;
-    animation: none;
-  }
-
-  /* Keterangan poin justru berguna di atas kertas -- pembaca tidak bisa
-     membuka lipatannya sendiri, dan tanpa daftar ini angka pada grafik
-     tidak bisa diterjemahkan. Lipatannya dibuka lewat JavaScript sebelum
-     mencetak; di sini tinggal merapikan tampilannya.
-
-     Baris "Lihat keterangan..." beserta tanda panahnya dihapus: daftarnya
-     sudah tercetak, tidak ada yang perlu diklik. Penggantinya judulCetak
-     yang hanya muncul di kertas. */
-  .keterangan > summary {
-    display: none;
-  }
-
-  .daftarKeterangan {
-    display: grid !important;
-    max-height: none;
-    overflow: visible;
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .grafik {
-    height: 300px;
-    overflow: visible;
-  }
-
-  .grafik > :global(.recharts-responsive-container) {
-    min-width: 0;
-  }
-
-  /* Dua grafik Qur'an dibiarkan berdampingan supaya muat satu halaman. */
-  .tumpuk {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .pendarTarget {
-    animation: none;
-    opacity: 0.25;
-  }
-}
-
-@page {
-  size: A4;
-  margin: 12mm;
-}
-
 /* Satu blok per ukuran di kartu "Capaian Kelas": kelima grafik berada
    dalam satu kartu, jadi butuh pemisah yang terbaca tanpa menjadikan
    masing-masing kartu sendiri (yang akan menggandakan bingkai dan
@@ -642,17 +522,6 @@
   font-weight: 600;
   margin: 0 0 0.6rem;
 }
-
-@media print {
-  /* Tiap ukuran diusahakan utuh dalam satu halaman; kelimanya tidak akan
-     muat bersama, jadi pemenggalannya diarahkan ke antar-blok. */
-  .blokUkuran {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-}
-
-
 /* ================================================================
    Pilihan yang bernapas
    ================================================================
@@ -842,20 +711,339 @@
     min-height: 44px;
   }
 }
-
-/* Di atas kertas tidak ada yang bisa diklik. */
-@media print {
-  .penyaring select,
-  .pilih {
-    animation: none;
-    box-shadow: none;
-  }
-}
-
-
 /* Baris keterangan yang hanya muncul di atas kertas: pengganti kontrol
    yang disembunyikan saat dicetak (pemilih bulan, teks "Lihat
    keterangan..."). Di layar, kontrolnya sendiri sudah menjelaskan. */
 .judulCetak {
   display: none;
+}
+
+/* Baris identitas yang hanya muncul di atas kertas, berulang di tiap
+   halaman. Di layar tidak diperlukan: halamannya satu dan judulnya sudah
+   terlihat di kepala. */
+.kakiCetak {
+  display: none;
+}
+
+/* ================================================================
+   CETAK / SIMPAN PDF  —  BLOK INI HARUS TETAP PALING BAWAH
+   ================================================================
+   Seluruh aturan cetak dikumpulkan di sini, bukan diselipkan di dekat
+   komponennya masing-masing. Alasannya bukan kerapian semata: @media
+   print tidak menambah kekhususan (specificity) sedikit pun, sehingga
+   aturan layar yang kebetulan ditulis LEBIH BAWAH akan menang atas
+   aturan cetak yang ditulis di atasnya. Itulah yang sempat terjadi --
+   `.judulCetak { display: none }` dan `.keterangan summary { display:
+   inline-flex }` di bagian bawah berkas membatalkan aturan cetak yang
+   sudah benar, sehingga judul "Bulan Juli" hilang dari hasil PDF
+   sementara tombol "Lihat keterangan..." justru ikut tercetak.
+
+   Kalau menambah aturan cetak baru, tambahkan DI DALAM blok ini.
+
+   ----------------------------------------------------------------
+   Ukuran kertas
+   ----------------------------------------------------------------
+   Dua lapis pengaman dipakai bersama supaya tata letaknya tidak
+   berubah bentuk apa pun kertas yang dipilih di dialog cetak:
+
+   1. @page menetapkan A4 tegak. Kalau yang terpasang di dialog ternyata
+      Letter, F4/Folio, atau Legal, peramban menskalakan halaman A4 ini
+      utuh ke kertas tersebut -- mengecil atau membesar bersama-sama,
+      tanpa ada yang berpindah baris.
+   2. .wadah dikunci pada lebar isi A4 (210mm dikurangi margin 12mm di
+      kiri-kanan = 186mm). Jadi kalaupun peramban mengabaikan @page dan
+      memakai kertas yang lebih lebar, isinya tetap disusun pada lebar
+      yang sama dan hanya tepinya yang bertambah lega -- bukan grafik
+      dan tabel yang ikut melar.
+
+   Lebar grafik (LEBAR_GRAFIK_CETAK di page.jsx) dipatok pada angka yang
+   aman di dalam 186mm itu. Kalau nilai margin di sini diubah, angka di
+   sana perlu ikut disesuaikan. */
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+@media print {
+  /* Latar gelap tidak pernah tepat di atas kertas: tintanya boros dan
+     hasilnya sering keluar sebagai kotak kelabu. Seluruh palet dipaksa
+     ke mode terang, apa pun setelan perangkat pembacanya. */
+  .halaman {
+    --surface: #ffffff;
+    --kartu: #ffffff;
+    --garis: #cfcdc7;
+    --tinta: #000000;
+    --tinta-lembut: #333333;
+    --tinta-samar: #666666;
+
+    min-height: auto;
+    background: #ffffff;
+    /* Ruang bawah disisakan untuk baris identitas yang menempel di kaki
+       tiap halaman; tanpa ini baris itu menimpa isi halaman. Dilebihkan
+       sedikit dari tinggi barisnya sendiri karena nama siswa yang panjang
+       bisa membuatnya turun menjadi dua baris. */
+    padding: 0 0 15mm;
+  }
+
+  .wadah {
+    max-width: 186mm;
+    margin: 0 auto;
+  }
+
+  /* ----------------------------------------------------------------
+     Kartu dilucuti bingkainya
+     ----------------------------------------------------------------
+     Di layar, bingkai kartu memisahkan bagian satu dari yang lain. Di
+     atas kertas bingkai itu justru merugikan: satu kartu yang lebih
+     tinggi dari sisa halaman akan dipindahkan utuh ke halaman
+     berikutnya (break-inside: avoid), meninggalkan setengah halaman
+     kosong -- inilah yang membuat rapor dua bulan data membengkak
+     menjadi delapan halaman. Kalau bingkainya dibiarkan tetapi
+     pemenggalannya diizinkan, yang muncul justru kotak yang terpotong
+     di tengah.
+
+     Jadi bingkainya dihapus dan penggantinya garis tipis di atas tiap
+     bagian -- cara yang sudah biasa dipakai laporan cetak, dan membuat
+     isi halaman mengalir rapat tanpa pernah ada kotak yang terbelah. */
+  .kartu {
+    border: none;
+    border-top: 1px solid var(--garis);
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: 0.9rem 0 0;
+    margin: 0 0 0.9rem;
+    animation: none;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .kepala {
+    border: none;
+    border-bottom: 2px solid var(--tinta);
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: 0 0 0.75rem;
+    margin-bottom: 0.9rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    animation: none;
+  }
+
+  /* Judul tidak boleh tertinggal sendirian di kaki halaman sementara
+     grafiknya pindah ke halaman berikutnya. */
+  .judulKartu,
+  .judulUkuran,
+  .ketKartu,
+  .judulCetak {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Kontrol tidak berfungsi di atas kertas dan hanya memakan tempat. */
+  .tombolCetak,
+  .penyaring,
+  .pilih {
+    display: none !important;
+  }
+
+  /* Tooltip Recharts tetap menempel di grafik setelah disentuh, dan ikut
+     tercetak sebagai kotak melayang menutupi batang di bawahnya --
+     terbawa ke PDF sebagai kotoran yang tidak bisa dihapus pembacanya. */
+  .grafik :global(.recharts-tooltip-wrapper) {
+    display: none !important;
+  }
+
+  /* Baris pengganti kontrol yang disembunyikan di atas: nama bulan yang
+     sedang ditampilkan, judul daftar keterangan, dan tahun ajaran yang
+     tadinya berupa dropdown. */
+  .judulCetak {
+    display: block;
+    margin: 0 0 0.6rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--tinta-lembut);
+  }
+
+  /* ----------------------------------------------------------------
+     Grafik
+     ----------------------------------------------------------------
+     Recharts menggambar SVG dengan lebar dan tinggi tetap dalam piksel,
+     hasil pengukuran saat halaman tampil di layar. Ukuran itu tidak
+     diukur ulang saat mencetak, jadi grafik yang lahir di layar HP
+     selebar 390px tetap 390px di atas kertas selebar 700px -- separuh
+     halaman kosong di sebelah kanannya. Karena itu page.jsx menggambar
+     ulang grafiknya pada lebar cetak sebelum window.print() dipanggil;
+     di sini wadahnya tinggal dibiarkan mengikuti ukuran SVG barunya,
+     bukan lagi dipatok 320px seperti di layar. */
+  .grafik {
+    width: auto;
+    height: auto;
+    overflow: visible;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Tahfidz dan Tahsin ditumpuk, tidak diadu dua lajur. Berdampingan,
+     masing-masing hanya kebagian sekitar 90mm untuk dua belas nama
+     bulan yang dimiringkan -- terbaca, tetapi berdesakan. Ditumpuk,
+     keduanya memakai lebar penuh dan tetap muat karena bingkai kartu
+     yang boros tempat sudah dihapus. */
+  .tumpuk {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .narasi {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Tabel rincian dibuka paksa: pembaca berkas PDF tidak bisa mengklik
+     lipatan, jadi tabel yang tertutup akan hilang begitu saja dari hasil
+     cetakan tanpa jejak. */
+  .lipatan > summary {
+    list-style: none;
+  }
+
+  .penanda {
+    display: none;
+  }
+
+  .isiLipatan {
+    display: block !important;
+    animation: none;
+  }
+
+  .gulirTabel {
+    overflow: visible;
+  }
+
+  /* ----------------------------------------------------------------
+     Tabel rincian dikecilkan agar muat selebar kertas
+     ----------------------------------------------------------------
+     Sepuluh kolom pada ukuran layar menuntut sekitar 733px, sementara
+     bidang isi A4 hanya 703px. Di layar selisih itu tidak terasa karena
+     tabelnya bisa digeser ke samping; di atas kertas tidak ada yang
+     bisa digeser -- kolom "Target" milik Tahsin terpotong tepat di tepi
+     kanan halaman dan angkanya hilang dari cetakan.
+
+     Yang dikecilkan huruf dan jarak dalam selnya, bukan lebar kolomnya:
+     mengecilkan kolom hanya memindahkan masalahnya menjadi teks yang
+     patah-patah. Pada ukuran ini tabelnya masih setara cetakan rapor
+     biasa dan tetap nyaman dibaca. */
+  .tabel {
+    min-width: 0;
+    font-size: 0.72rem;
+  }
+
+  .tabel th,
+  .tabel td {
+    padding: 0.3rem 0.35rem;
+  }
+
+  /* Kalau tabelnya terpenggal, kepala tabel diulang di halaman
+     berikutnya -- tanpa ini kolom-kolom di halaman kedua tinggal angka
+     tanpa nama. Barisnya sendiri tidak boleh terbelah di tengah. */
+  .tabel thead {
+    display: table-header-group;
+  }
+
+  .tabel tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ----------------------------------------------------------------
+     Keterangan poin Tahfidz / Tahsin
+     ----------------------------------------------------------------
+     Daftar ini justru berguna di atas kertas: pembaca tidak bisa
+     membuka lipatannya sendiri, dan tanpa daftar ini angka pada grafik
+     tidak bisa diterjemahkan menjadi nama surah atau materi. Lipatannya
+     dibuka lewat JavaScript sebelum mencetak; di sini tinggal
+     merapikan tampilannya.
+
+     Baris "Lihat keterangan..." beserta tanda panahnya dihapus:
+     daftarnya sudah tercetak, tidak ada yang perlu diklik. */
+  .keterangan > summary {
+    display: none;
+  }
+
+  .daftarKeterangan {
+    display: grid !important;
+    max-height: none;
+    overflow: visible;
+    background: transparent;
+    padding: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Daftar yang sama muncul dua kali di halaman ini: sekali di bawah
+     grafik Tahfidz/Tahsin milik anak sendiri, sekali lagi di bawah
+     grafik perbandingan sekelas. Di layar itu wajar -- pembaca hanya
+     melihat satu bagian pada satu waktu. Di atas kertas, salinan
+     keduanya memakan dua halaman penuh untuk isi yang persis sama,
+     jadi yang dicetak cukup yang pertama. */
+  .blokUkuran .keterangan {
+    display: none;
+  }
+
+  /* Tiap ukuran pada "Capaian Kelas" diusahakan utuh dalam satu
+     halaman; kelimanya tidak akan muat bersama, jadi pemenggalannya
+     diarahkan ke antar-blok, bukan ke tengah grafik. */
+  .blokUkuran {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .penyaring select,
+  .pilih {
+    animation: none;
+    box-shadow: none;
+  }
+
+  .pendarTarget {
+    animation: none;
+    opacity: 0.25;
+  }
+
+  /* ----------------------------------------------------------------
+     Identitas di kaki tiap halaman
+     ----------------------------------------------------------------
+     Rapor ini keluar sebagai berkas beberapa halaman. Tanpa penanda,
+     halaman kedua dan seterusnya hanya berisi grafik dan daftar tanpa
+     satu pun keterangan milik siapa -- masalah nyata begitu lembarnya
+     tercetak dan tercampur dengan rapor anak lain di meja wali kelas.
+
+     position: fixed dipakai karena elemen ber-posisi tetap diulang oleh
+     peramban di setiap halaman cetakan; ruang untuk baris ini sudah
+     disisakan lewat padding-bottom pada .halaman di atas. */
+  .kakiCetak {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 3px;
+    border-top: 1px solid var(--garis);
+    font-size: 8pt;
+    line-height: 1.3;
+    color: var(--tinta-samar);
+  }
+
+  /* Sisi kanan (nama sekolah dan tanggal) panjangnya tetap, jadi ia yang
+     dijaga tidak patah; sisi kiri memuat nama siswa yang panjangnya tidak
+     bisa diduga, dan dibiarkan membungkus kalau memang perlu. */
+  .kakiCetak span:last-child {
+    flex: none;
+    text-align: right;
+  }
+
+  .kakiCetak span:first-child {
+    min-width: 0;
+  }
 }

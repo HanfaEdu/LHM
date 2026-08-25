@@ -351,3 +351,27 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 4px;
   transition: width 1s ease-out;
 }
+
+/* =========================================================================
+   CETAK
+   =========================================================================
+   body di berkas ini berlatar biru tua (--bg-primary) untuk halaman
+   login dan beranda. Latar itu ikut tercetak: pada hasil "Simpan PDF"
+   ia menyembul setipis rambut di keempat tepi halaman -- karena kotak
+   putih dasbor tidak persis menutupinya -- dan menjadi pita gelap
+   selebar halaman di bawah isi terakhir, tempat kotak putih itu sudah
+   berakhir sementara kertasnya belum.
+
+   Karena itu latar halaman dipaksa putih saat mencetak. !important
+   dipakai dengan sadar: aturan asalnya menempel langsung pada elemen
+   body, dan berkas ini bisa dimuat sebelum maupun sesudah modul CSS
+   halaman lain, sehingga urutan berkas saja bukan jaminan.
+   ========================================================================= */
+@media print {
+  html,
+  body {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #000000;
+  }
+}

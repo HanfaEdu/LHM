@@ -141,3 +141,33 @@
     flex: 1 1 8rem;
   }
 }
+
+/* ================================================================
+   Cetak
+   ================================================================
+   Di layar, kepala halaman berupa kartu bergaris supaya terpisah dari
+   isi di bawahnya. Di atas kertas kotak itu justru terbaca sebagai
+   bingkai asing: seluruh bagian lain pada hasil cetak sudah dilucuti
+   bingkainya dan hanya dipisahkan garis tipis, sehingga satu-satunya
+   kotak yang tersisa tampak seperti sisa yang terlupakan.
+
+   Diganti garis tebal di bawahnya -- pemisah kepala surat yang biasa
+   dipakai dokumen resmi, dan tidak pernah bisa terbelah di tengah
+   halaman seperti kotak. */
+@media print {
+  .kepala {
+    border: none;
+    border-bottom: 2px solid #000000;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: 0 0 0.75rem;
+    margin-bottom: 0.9rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .tagline {
+    color: #6b5210;
+  }
+}
