@@ -1,0 +1,192 @@
+/* ================================================================
+   Tombol "Input/Edit LHM"
+   ================================================================
+   Satu-satunya tombol di sistem ini yang membawa penggunanya KELUAR
+   dari aplikasi, dan satu-satunya jalan wali kelas menuju tempat
+   mengisi nilai. Karena itu ia sengaja dibuat paling menonjol di
+   antara kontrol lain -- bukan demi hiasan, melainkan karena inilah
+   yang paling sering dicari dan paling merugikan kalau terlewat.
+
+   Bentuk, ukuran, dan geraknya sama di kedua tempat pemakaiannya;
+   yang berbeda hanya warnanya, lewat variabel di .terang dan .gelap.
+   ================================================================ */
+.tombol {
+  /* position + overflow menampung sapuan kilau di bawah. overflow
+     hidden tidak memotong cincin fokus: cincin itu box-shadow milik
+     elemen ini sendiri, bukan anaknya. */
+  position: relative;
+  overflow: hidden;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  /* 46px: di atas ambang 44px yang nyaman untuk ibu jari. */
+  min-height: 46px;
+  padding: 0.7rem 1.35rem;
+  border-radius: 10px;
+  border: 1px solid var(--tepi-lhm);
+  background: var(--latar-lhm);
+  color: var(--tinta-lhm);
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--bayang-lhm);
+  transition: translate 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+/* ----------------------------------------------------------------
+   Gerak: sapuan cahaya
+   ----------------------------------------------------------------
+   Yang dipakai sapuan cahaya, bukan denyut ukuran atau warna, karena
+   tiga alasan:
+
+   1. Sapuan cahaya sudah menjadi bahasa yang dikenali sebagai
+      "tombol menunggu ditekan" -- pengguna tidak perlu diajari.
+   2. Ia tidak mengubah ukuran maupun posisi tombol, sehingga tidak
+      pernah menggeser teks di sekitarnya (denyut skala melakukan
+      itu, dan pada kepala dasbor yang padat hasilnya bergoyang).
+   3. Warnanya cuma putih transparan, jadi tidak menambah warna baru
+      yang tampak bermakna pada halaman yang paletnya sudah penuh
+      arti.
+
+   Sapuannya cepat (0,9 detik) lalu diam lama (sisa dari 4,2 detik).
+   Gerak yang terus-menerus akan tertangkap sebagai kedipan yang
+   mengganggu saat wali kelas sedang membaca angka di sebelahnya;
+   sapuan sesekali cukup untuk menarik mata sekali, lalu melepasnya. */
+.tombol::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -55%;
+  width: 45%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    var(--kilau-lhm) 50%,
+    transparent 100%
+  );
+  animation: sapuKilau 4.2s ease-in-out infinite;
+}
+
+@keyframes sapuKilau {
+  0% {
+    translate: 0 0;
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  21% {
+    translate: 420% 0;
+    opacity: 1;
+  }
+  26%,
+  100% {
+    translate: 420% 0;
+    opacity: 0;
+  }
+}
+
+.panah {
+  flex: none;
+  transition: translate 0.18s ease;
+}
+
+/* Keterangan "terbuka di tab baru" hanya untuk pembaca layar. Di layar
+   ia sudah diwakili panah serong; ditulis pun, ia akan memanjangkan
+   tombol tanpa memberi tahu apa-apa yang belum terlihat. */
+.luar {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------
+   Sentuh, tunjuk, dan papan ketik
+   ----------------------------------------------------------------
+   :hover dikurung di balik (hover: hover) karena pada layar sentuh
+   aturan itu "nyangkut" setelah jari diangkat -- tombol yang terakhir
+   disentuh terus tampak terangkat, dan terbaca sebagai "sedang aktif".
+   Sebagian besar pengguna di sini membuka lewat HP. */
+@media (hover: hover) and (pointer: fine) {
+  .tombol:hover {
+    translate: 0 -2px;
+    filter: brightness(1.06);
+    box-shadow: var(--bayang-lhm-sorot);
+  }
+
+  .tombol:hover .panah {
+    translate: 2px -2px;
+  }
+}
+
+.tombol:active {
+  translate: 0 1px;
+  filter: brightness(0.96);
+  box-shadow: var(--bayang-lhm);
+}
+
+.tombol:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--fokus-lhm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tombol,
+  .tombol::before,
+  .panah {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ================================================================
+   Varian terang — kepala dasbor wali kelas
+   ================================================================
+   Memakai biru aksen aplikasi, sama dengan tombol "Tautan Orang Tua"
+   di dasbor kepala sekolah: keduanya sama-sama "pergi ke tempat
+   lain", jadi memberi mereka dua warna berbeda hanya akan menyiratkan
+   perbedaan arti yang tidak ada. */
+.terang {
+  --latar-lhm: var(--seri-1);
+  --tepi-lhm: transparent;
+  --tinta-lhm: #ffffff;
+  --kilau-lhm: rgb(255 255 255 / 42%);
+  --bayang-lhm: 0 2px 8px rgb(42 120 214 / 28%);
+  --bayang-lhm-sorot: 0 6px 16px rgb(42 120 214 / 38%);
+  --fokus-lhm: var(--pendar-fokus, rgb(42 120 214 / 35%));
+}
+
+/* ================================================================
+   Varian gelap — di bawah kartu login
+   ================================================================
+   Sengaja BUKAN gradien tosca seperti tombol "Masuk dengan Akun
+   Google" di dalam kartu. Di halaman login, masuk adalah tindakan
+   utama; tombol ini pelengkap. Kalau keduanya sama pekatnya,
+   pengguna yang datang untuk login harus memilih lebih dulu antara
+   dua tombol yang tampak sama pentingnya.
+
+   Maka bentuknya bergaris tepi dengan isian tipis: jelas terbaca
+   sebagai tombol, tetapi satu tingkat lebih tenang -- dan sapuan
+   cahayanya yang memastikan ia tetap ditemukan. */
+.gelap {
+  --latar-lhm: rgb(255 255 255 / 6%);
+  --tepi-lhm: rgb(0 245 212 / 45%);
+  --tinta-lhm: #a9f5e6;
+  --kilau-lhm: rgb(0 245 212 / 22%);
+  --bayang-lhm: 0 2px 12px rgb(0 245 212 / 10%);
+  --bayang-lhm-sorot: 0 6px 18px rgb(0 245 212 / 22%);
+  --fokus-lhm: rgb(0 245 212 / 40%);
+}

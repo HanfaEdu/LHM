@@ -25,6 +25,7 @@ import {
   TabelDistribusi,
 } from '../komponen';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
+import TombolLhm from '@/app/komponen/TombolLhm';
 import gaya from '../dasbor.module.css';
 
 export default function DasborWaliKelas() {
@@ -169,6 +170,11 @@ export default function DasborWaliKelas() {
                 ))}
               </select>
             </label>
+            {/* Berdiri di baris kontrol yang sama dengan pemilih kelas dan
+                bulan, tetapi bukan bagian dari penyaringan: inilah pintu
+                ke tempat wali kelas benar-benar bekerja, jadi ia harus
+                terlihat tanpa perlu menggulir ke mana pun. */}
+            <TombolLhm className={gaya.tombolLhm} />
             </div>
           }
         />

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LogIn } from 'lucide-react';
 import LogoBerbintang from './LogoBerbintang';
+import TombolLhm from '@/app/komponen/TombolLhm';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -64,9 +65,15 @@ export default function LoginPage() {
 
   return (
     <div style={{
+      /* Kolom, bukan baris: tombol LHM berdiri DI BAWAH kartu login,
+         bukan di dalamnya -- ia bukan bagian dari proses masuk, dan
+         menaruhnya di dalam kartu akan membuatnya terbaca sebagai
+         alternatif cara login. */
       display: 'flex',
+      flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
+      gap: '18px',
       minHeight: '100vh',
       padding: '20px',
       position: 'relative'
@@ -115,6 +122,12 @@ export default function LoginPage() {
           <p>© 2026 SD Yaumi Fatimah Kudus. All rights reserved.</p>
         </div>
       </div>
+
+      {/* Jalan pintas bagi wali kelas yang datang ke sini semata-mata
+          untuk mengisi nilai. Sebelumnya mereka harus masuk dulu, lalu
+          mencari tautannya di dalam dasbor -- padahal mengisi nilai
+          tidak membutuhkan sesi login sama sekali. */}
+      <TombolLhm varian="gelap" />
     </div>
   );
 }

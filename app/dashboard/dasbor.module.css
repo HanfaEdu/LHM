@@ -817,3 +817,20 @@
   color: var(--tinta-lembut);
   white-space: nowrap;
 }
+
+/* Tombol "Input/Edit LHM" di baris kontrol kepala dasbor wali kelas.
+   Didorong ke dasar baris supaya sejajar dengan kotak dropdown di
+   sebelahnya -- label "Kelas" dan "Bulan" berada di atas kotaknya,
+   sehingga baris itu rata bawah, bukan rata atas. */
+.tombolLhm {
+  align-self: flex-end;
+}
+
+/* Di layar sempit ia turun ke barisnya sendiri selebar penuh: dijejerkan
+   dengan dua dropdown pada layar 390px, ketiganya menyempit sampai
+   tulisannya terpotong. */
+@media (max-width: 640px) {
+  .tombolLhm {
+    flex: 1 0 100%;
+  }
+}
