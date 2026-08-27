@@ -143,6 +143,12 @@ export default function DasborWaliKelas() {
           keterangan={`${kelas?.wali_kelas || profil?.nama || ''} · Tahun Ajaran ${
             kelas?.tahun_ajaran ?? ''
           }${baris.length ? ` · ${baris.length} siswa` : ''}`}
+          aksi={
+            <>
+              <TombolLhm />
+              <TombolKeluar />
+            </>
+          }
           anak={
             <div className={gaya.penyaring}>
             {daftarKelas.length > 1 && (
@@ -175,8 +181,6 @@ export default function DasborWaliKelas() {
                 bulan, tetapi bukan bagian dari penyaringan: inilah pintu
                 ke tempat wali kelas benar-benar bekerja, jadi ia harus
                 terlihat tanpa perlu menggulir ke mana pun. */}
-            <TombolLhm className={gaya.tombolLhm} />
-            <TombolKeluar />
             </div>
           }
         />

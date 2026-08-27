@@ -13,10 +13,10 @@ import gaya from './kepala-sekolahan.module.css';
  *
  * Susunannya dua tingkat, bukan satu blok teks di samping logo:
  *
- *     [logo]  SD YAUMI FATIMAH KUDUS
- *             Personalized Education
+ *     [logo]  SD YAUMI FATIMAH KUDUS        [Input/Edit LHM]
+ *             Personalized Education                     [keluar]
  *     Naira Faida Hanifa
- *     Kelas 3 · Wali Kelas: ...
+ *     Kelas 3 · Wali Kelas: ...                  Kelas ▾   Bulan ▾
  *
  * Logo hanya menyandingi dua baris identitas sekolah, sementara nama anak
  * dan keterangannya turun ke tepi kiri kartu. Sebelumnya keempat baris
@@ -24,10 +24,26 @@ import gaya from './kepala-sekolahan.module.css';
  * lajur sempit dan patah menjadi beberapa baris -- padahal nama itulah
  * yang paling dulu perlu terbaca.
  *
- * `judul`, `keterangan`, dan `anak` semuanya opsional supaya komponen ini
- * tetap bisa dipakai di halaman yang belum punya konteks.
+ * Sisi kanan dipisah menjadi DUA zona yang berbeda maknanya, bukan satu
+ * baris kontrol bercampur:
+ *
+ *   `aksi`  tindakan halaman -- pergi ke tempat lain, keluar akun.
+ *           Ditaruh di pojok kanan ATAS, tempat baku bagi tindakan yang
+ *           berlaku untuk seluruh halaman.
+ *   `anak`  penyaring isi -- pemilih kelas, bulan, tahun ajaran.
+ *           Ditaruh di bawah zona aksi.
+ *
+ * Urutannya penting, bukan sekadar rapi. Sebelumnya keduanya berbaris
+ * bersama, dan di layar HP tombol "Input/Edit LHM" jatuh tepat DI BAWAH
+ * pemilih bulan -- susunan yang persis sama dengan formulir, sehingga
+ * tombolnya terbaca sebagai "terapkan bulan ini", bukan sebagai pintu ke
+ * halaman lain. Dengan aksi berada di atas penyaring, salah baca itu
+ * tidak mungkin lagi terjadi.
+ *
+ * `judul`, `keterangan`, `aksi`, dan `anak` semuanya opsional supaya
+ * komponen ini tetap bisa dipakai di halaman yang belum punya konteks.
  */
-export default function KepalaSekolahan({ judul, keterangan, anak }) {
+export default function KepalaSekolahan({ judul, keterangan, aksi, anak }) {
   return (
     <header className={gaya.kepala}>
       <div className={gaya.identitas}>
@@ -53,7 +69,12 @@ export default function KepalaSekolahan({ judul, keterangan, anak }) {
         {judul && <h1 className={gaya.judul}>{judul}</h1>}
         {keterangan && <p className={gaya.keterangan}>{keterangan}</p>}
       </div>
-      {anak && <div className={gaya.aksi}>{anak}</div>}
+      {(aksi || anak) && (
+        <div className={gaya.kanan}>
+          {aksi && <div className={gaya.aksiUtama}>{aksi}</div>}
+          {anak && <div className={gaya.aksi}>{anak}</div>}
+        </div>
+      )}
     </header>
   );
 }

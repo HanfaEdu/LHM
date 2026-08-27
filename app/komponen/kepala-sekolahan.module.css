@@ -12,7 +12,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.85rem 1.5rem;
-  align-items: flex-end;
+  /* flex-start, bukan flex-end: zona aksi harus menempel di pojok kanan
+     ATAS kartu. Dengan flex-end, ia justru turun sejajar baris terakhir
+     identitas -- dan tindakan yang berlaku untuk seluruh halaman berakhir
+     tersembunyi di bawah, bercampur dengan pemilih bulan. */
+  align-items: flex-start;
   justify-content: space-between;
 }
 
@@ -97,6 +101,23 @@
   overflow-wrap: anywhere;
 }
 
+/* Kolom kanan: zona aksi di atas, zona penyaring di bawahnya. */
+.kanan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.9rem;
+}
+
+/* Tindakan halaman. Ditumpuk menurun di layar lebar supaya benar-benar
+   menempati pojok kanan atas seperti tombol akun pada umumnya. */
+.aksiUtama {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
 .aksi {
   display: flex;
   flex-wrap: wrap;
@@ -132,6 +153,11 @@
 
   /* Kontrol turun ke barisnya sendiri selebar penuh supaya sasaran
      sentuhnya tidak terjepit di samping nama yang panjang. */
+  .kanan {
+    width: 100%;
+    align-items: stretch;
+  }
+
   .aksi {
     width: 100%;
     align-items: flex-end;
@@ -139,6 +165,34 @@
 
   .aksi > * {
     flex: 1 1 8rem;
+  }
+
+  /* ----------------------------------------------------------------
+     Zona aksi di layar sempit
+     ----------------------------------------------------------------
+     Berbaris menyamping dan rata kanan, bukan ditumpuk menurun seperti
+     di layar lebar. Alasannya ukuran: pada layar 390px, bidang isi
+     kartu tinggal sekitar 331px -- cukup untuk "Input/Edit LHM" (197px)
+     bersama tombol keluar (44px) dalam satu baris, sementara menumpuk
+     keduanya menambah 52px tinggi pada kepala yang sudah dibaca lebih
+     dulu daripada apa pun di halaman ini.
+
+     Pojok kanan atas yang sesungguhnya tidak mungkin di lebar ini:
+     disandingkan dengan "SD YAUMI FATIMAH KUDUS", yang tersisa untuk
+     nama sekolah hanya 82px. Yang dipertahankan adalah maksudnya --
+     aksi tetap berada DI ATAS pemilih bulan, sehingga tidak ada lagi
+     tombol yang menggantung di bawah dropdown seperti tombol kirim. */
+  .aksiUtama {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* Tombol utama mengisi sisa ruang, tombol keluar tetap sekecil
+     lambangnya. */
+  .aksiUtama > :first-child {
+    flex: 1 1 auto;
   }
 }
 

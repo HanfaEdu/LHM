@@ -220,6 +220,14 @@ export default function DasborKepalaSekolah() {
         <KepalaSekolahan
           judul={`Dasbor Sekolah · ${bulan || 'belum ada data'}`}
           keterangan={`${profil?.nama ?? ''} · ${kelasTahunIni.length} kelas`}
+          aksi={
+            <>
+              <Link href="/dashboard/kepala-sekolah/tautan" className={gaya.tombolAksi}>
+                Tautan Orang Tua
+              </Link>
+              <TombolKeluar />
+            </>
+          }
           anak={
             <div className={gaya.penyaring}>
             {/* Selalu ditampilkan, bukan hanya saat sudah ada lebih dari satu
@@ -262,10 +270,6 @@ export default function DasborKepalaSekolah() {
                 ))}
               </select>
             </label>
-            <Link href="/dashboard/kepala-sekolah/tautan" className={gaya.tombolAksi}>
-              Tautan Orang Tua
-            </Link>
-            <TombolKeluar />
             </div>
           }
         />
