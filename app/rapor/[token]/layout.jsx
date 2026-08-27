@@ -26,8 +26,14 @@ import { supabaseServer } from '@/lib/supabase-server';
  * pencarian.
  */
 export async function generateMetadata({ params }) {
+  // manifest ditunjuk untuk SETIAP token, berlaku maupun tidak: dari
+  // manifest inilah perangkat tahu halaman ini bisa dipasang sebagai
+  // aplikasi tersendiri, dan isinya (nama anak, ikon) disusun di
+  // manifest.webmanifest/route.js.
   const bawaan = {
     title: 'Akademik — SD Yaumi Fatimah Kudus',
+    manifest: `/rapor/${params.token}/manifest.webmanifest`,
+    appleWebApp: { capable: true, title: 'Rapor', statusBarStyle: 'default' },
     robots: { index: false, follow: false },
   };
 
@@ -59,6 +65,15 @@ export async function generateMetadata({ params }) {
     return {
       title: judul,
       description: keterangan,
+      manifest: bawaan.manifest,
+      /* Nama ikon layar utama di iPhone. Safari tidak membaca short_name
+         dari manifest, jadi tanpa baris ini ikon Naira dan ikon Aksara
+         akan bernama sama persis dan tidak bisa dibedakan. */
+      appleWebApp: {
+        capable: true,
+        title: siswa.nama_panggilan,
+        statusBarStyle: 'default',
+      },
       robots: { index: false, follow: false },
       openGraph: {
         title: judul,

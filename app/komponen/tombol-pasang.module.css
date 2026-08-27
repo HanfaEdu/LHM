@@ -1,0 +1,152 @@
+/* ================================================================
+   Ajakan memasang aplikasi
+   ================================================================
+   Sengaja tidak berbentuk kartu seperti bagian data di bawahnya, dan
+   sengaja tidak berwarna pekat: ini bukan data, dan bukan pula
+   peringatan. Ia tawaran yang boleh diabaikan, jadi bentuknya bilah
+   tipis bergaris putus-putus -- cukup terlihat sebagai sesuatu yang
+   baru, tetapi jelas bukan bagian dari rapor.
+
+   Nilai cadangan dipasang pada tiap variabel (--kartu, --garis, dst)
+   karena komponen ini bisa ditaruh di halaman yang belum mendefinisikan
+   palet dasbor.
+   ================================================================ */
+.ajakan {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 1.1rem;
+  border: 1px dashed var(--garis, #e6e4df);
+  border-radius: 12px;
+  background: var(--surface, #fcfcfb);
+  animation: munculAjakan 0.35s ease both;
+}
+
+@keyframes munculAjakan {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.ikon {
+  flex: none;
+  color: var(--seri-1, #2a78d6);
+}
+
+.teks {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.judul {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--tinta, #0b0b0b);
+}
+
+.keterangan {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--tinta-lembut, #52514e);
+}
+
+/* Lambang Bagikan yang disebut di kalimat petunjuk iPhone. Disejajarkan
+   dengan garis dasar huruf supaya tidak melompat di tengah kalimat. */
+.ikonSebaris {
+  display: inline-block;
+  vertical-align: -2px;
+  color: var(--seri-1, #2a78d6);
+}
+
+.tombol {
+  flex: none;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--seri-1, #2a78d6);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tombol:hover {
+    filter: brightness(1.08);
+  }
+}
+
+.tombol:active {
+  filter: brightness(0.94);
+}
+
+.tombol:focus-visible,
+.tutup:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pendar-fokus, rgb(42 120 214 / 35%));
+}
+
+.tutup {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tinta-samar, #86847d);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tutup:hover {
+    color: var(--tinta, #0b0b0b);
+  }
+}
+
+/* Di layar sempit tombolnya turun ke baris sendiri: dijejerkan bersama
+   teks dua baris dan tombol tutup, yang tersisa untuknya tinggal
+   sekitar 60px dan tulisan "Pasang" terpotong. */
+@media (max-width: 560px) {
+  .ajakan {
+    flex-wrap: wrap;
+  }
+
+  .teks {
+    flex: 1 1 60%;
+  }
+
+  .tombol {
+    flex: 1 0 100%;
+    order: 3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ajakan {
+    animation: none;
+  }
+}
+
+/* Tidak ada gunanya di atas kertas -- tidak ada yang bisa dipasang dari
+   selembar cetakan. */
+@media print {
+  .ajakan {
+    display: none;
+  }
+}

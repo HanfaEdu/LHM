@@ -1,4 +1,5 @@
 import './globals.css';
+import PendaftarSW from './komponen/PendaftarSW';
 
 /**
  * Identitas yang terlihat orang luar: judul tab peramban dan pratinjau
@@ -27,6 +28,10 @@ export const metadata = {
   title: 'Akademik — SD Yaumi Fatimah Kudus',
   description:
     'Capaian akademik, Tahfidz, dan Tahsin siswa SD Yaumi Fatimah Kudus.',
+  /* Safari mengambil nama ikon layar utama dari meta ini, bukan dari
+     short_name di manifest. Halaman rapor menimpanya dengan nama anak
+     masing-masing (lihat app/rapor/[token]/layout.jsx). */
+  appleWebApp: { capable: true, title: 'SiPaDi', statusBarStyle: 'default' },
   openGraph: {
     title: 'Akademik — SD Yaumi Fatimah Kudus',
     description:
@@ -41,6 +46,14 @@ export const metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
+  /* Warna bilah status saat aplikasi terpasang dijalankan. Dua nilai,
+     karena dasbor sendiri mengikuti mode terang/gelap perangkat -- satu
+     nilai saja membuat bilah status bertabrakan dengan halaman di salah
+     satu mode. */
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fcfcfb' },
+    { media: '(prefers-color-scheme: dark)', color: '#121211' },
+  ],
   // Zoom tidak dikunci: sebagian besar orang tua membuka rapor ini di HP,
   // dan tabel rincian dua belas bulan wajar diperbesar untuk dibaca.
   maximumScale: 5,
@@ -49,7 +62,10 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="id">
-      <body>{children}</body>
+      <body>
+        {children}
+        <PendaftarSW />
+      </body>
     </html>
   );
 }

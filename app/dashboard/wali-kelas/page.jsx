@@ -27,6 +27,7 @@ import {
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolLhm from '@/app/komponen/TombolLhm';
 import TombolKeluar from '@/app/komponen/TombolKeluar';
+import TombolPasang from '@/app/komponen/TombolPasang';
 import gaya from '../dasbor.module.css';
 
 export default function DasborWaliKelas() {
@@ -184,6 +185,8 @@ export default function DasborWaliKelas() {
             </div>
           }
         />
+
+        <TombolPasang />
 
         {!baris.length ? (
           <div className={gaya.kartu}>

@@ -47,6 +47,7 @@ import {
 } from '../komponen';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolKeluar from '@/app/komponen/TombolKeluar';
+import TombolPasang from '@/app/komponen/TombolPasang';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
 import gaya from '../dasbor.module.css';
 
@@ -273,6 +274,8 @@ export default function DasborKepalaSekolah() {
             </div>
           }
         />
+
+        <TombolPasang />
 
         <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
           <h2 className={gaya.judulKartu}>Ketuntasan Antar Kelas</h2>

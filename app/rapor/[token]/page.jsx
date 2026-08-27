@@ -17,8 +17,9 @@ import {
 } from 'recharts';
 import { BULAN_AJARAN, TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
 import { bulanBerdata } from '@/lib/statistik';
-import { Printer } from 'lucide-react';
+import { Printer, WifiOff } from 'lucide-react';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
+import TombolPasang from '@/app/komponen/TombolPasang';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
 import gaya from './rapor.module.css';
 
@@ -85,11 +86,68 @@ export default function HalamanRapor({ params }) {
      cocok itu. */
   const [tanggalCetak, setTanggalCetak] = useState('');
 
+  /* Waktu pengambilan data yang sedang ditampilkan, diisi HANYA kalau
+     datanya berasal dari salinan tersimpan -- bukan dari jaringan. */
+  const [waktuSalinan, setWaktuSalinan] = useState(null);
+
   useEffect(() => {
     setTanggalCetak(
       new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date())
     );
   }, []);
+
+  /* ================================================================
+     Salinan luring
+     ================================================================
+     Data rapor diambil lewat POST ke /api/rapor, dan Cache API milik
+     service worker tidak bisa menyimpan jawaban permintaan POST sama
+     sekali. Karena itu salinannya disimpan di sini, bukan di sw.js.
+
+     Yang disimpan hanya rapor anak sendiri, di HP orang tuanya sendiri,
+     dan dibuang begitu tautannya tidak berlaku lagi -- lihat
+     hapusSalinan() di bawah.
+
+     Kuncinya memuat token DAN tahun ajaran: satu keluarga bisa membuka
+     lebih dari satu anak di HP yang sama, dan satu anak bisa punya lebih
+     dari satu tahun data. */
+  const kunciSalinan = (tahun) => `rapor:${token}:${tahun || 'kini'}`;
+
+  function simpanSalinan(tahun, isi) {
+    try {
+      localStorage.setItem(
+        kunciSalinan(tahun),
+        JSON.stringify({ waktu: Date.now(), isi })
+      );
+    } catch {
+      // Penyimpanan penuh atau diblokir. Bukan kegagalan yang perlu
+      // diberitahukan: yang hilang hanya kemampuan membaca tanpa sinyal.
+    }
+  }
+
+  function bacaSalinan(tahun) {
+    try {
+      const mentah = localStorage.getItem(kunciSalinan(tahun));
+      if (!mentah) return null;
+      const { waktu, isi } = JSON.parse(mentah);
+      return isi ? { waktu, isi } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /* Dipanggil saat server menolak tautannya (dicabut, diganti, atau
+     salah). Salinan lama harus ikut dibuang -- kalau tidak, tautan yang
+     sudah dicabut sekolah tetap bisa dibaca dari HP selamanya. */
+  function hapusSalinan() {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+        const k = localStorage.key(i);
+        if (k?.startsWith(`rapor:${token}:`)) localStorage.removeItem(k);
+      }
+    } catch {
+      // Tidak bisa dihapus: tidak ada yang bisa dilakukan dari sini.
+    }
+  }
 
   async function ambilData(pinDipakai, tahun) {
     setMemuat(true);
@@ -107,14 +165,29 @@ export default function HalamanRapor({ params }) {
         return;
       }
       if (!respons.ok) {
+        // Tautan ditolak server. Salinan lama dibuang supaya tautan yang
+        // sudah dicabut sekolah tidak tetap terbaca dari HP.
+        hapusSalinan();
         setGalat(isi.error || 'Data tidak dapat dimuat.');
         return;
       }
       setData(isi);
       setTahunAjaran(isi.kelas.tahun_ajaran);
       setButuhPin(false);
+      setWaktuSalinan(null);
+      simpanSalinan(tahun, isi);
     } catch {
-      setGalat('Tidak dapat terhubung ke server. Periksa koneksi internet.');
+      // Jaringan gagal -- bukan penolakan server. Inilah keadaan yang
+      // dilayani salinan luring.
+      const salinan = bacaSalinan(tahun);
+      if (salinan) {
+        setData(salinan.isi);
+        setTahunAjaran(salinan.isi.kelas.tahun_ajaran);
+        setButuhPin(false);
+        setWaktuSalinan(salinan.waktu);
+      } else {
+        setGalat('Tidak dapat terhubung ke server. Periksa koneksi internet.');
+      }
     } finally {
       setMemuat(false);
     }
@@ -359,6 +432,27 @@ export default function HalamanRapor({ params }) {
             </>
           }
         />
+
+        {/* Peringatan data lama HARUS berada di atas grafik, bukan di
+            bawahnya: kalau ditaruh di bawah, orang tua sudah selesai
+            membaca angkanya sebelum tahu angka itu belum diperbarui. */}
+        {waktuSalinan && (
+          <p className={gaya.dataLama}>
+            <WifiOff size={16} aria-hidden="true" />
+            <span>
+              Sedang tanpa koneksi. Yang ditampilkan data tersimpan per{' '}
+              <strong>
+                {new Intl.DateTimeFormat('id-ID', {
+                  dateStyle: 'long',
+                  timeStyle: 'short',
+                }).format(new Date(waktuSalinan))}
+              </strong>
+              , belum tentu yang terbaru.
+            </span>
+          </p>
+        )}
+
+        <TombolPasang nama={data.anak.nama_panggilan} />
 
         <GrafikAkademik bulanan={data.bulanan} target={data.kelas.target_akademik} />
 

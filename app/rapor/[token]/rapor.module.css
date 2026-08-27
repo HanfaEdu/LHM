@@ -897,6 +897,46 @@
   white-space: nowrap;
 }
 
+/* ================================================================
+   Peringatan data tersimpan
+   ================================================================
+   Muncul hanya saat halaman dibuka tanpa koneksi dan yang ditampilkan
+   berasal dari salinan di HP. Warnanya kuning peringatan, bukan merah:
+   tidak ada yang salah dan tidak ada yang gagal -- angkanya benar,
+   hanya belum tentu yang terbaru. Merah akan membuat orang tua mengira
+   rapor anaknya bermasalah.
+
+   Tanggalnya ditulis lengkap dengan jam, bukan "beberapa hari lalu":
+   pada rapor, selisih satu bulan menentukan apakah angka yang dibaca
+   masih berlaku atau sudah lewat satu periode penilaian. */
+.dataLama {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0 0 1.1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #e6c15a;
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: #fdf7e3;
+  color: #6a5410;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.dataLama svg {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .dataLama {
+    border-color: #6a5410;
+    background: #2b2410;
+    color: #e6c15a;
+  }
+}
+
 
 /* Baris identitas yang hanya muncul di atas kertas, berulang di tiap
    halaman. Di layar tidak diperlukan: halamannya satu dan judulnya sudah
