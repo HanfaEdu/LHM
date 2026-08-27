@@ -111,12 +111,9 @@ export default function TombolPasang({ nama }) {
               <strong>Tambah ke Layar Utama</strong>.
             </>
           ) : nama ? (
-            <>
-              Buka rapor {nama} langsung dari ikonnya, tanpa mencari tautannya
-              lagi di WhatsApp.
-            </>
+            <>Buka rapor {nama} langsung dari menu utama.</>
           ) : (
-            <>Buka dasbor langsung dari ikonnya, tanpa membuka peramban dulu.</>
+            <>Buka dasbor langsung dari menu utama.</>
           )}
         </p>
       </div>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { TriangleAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { muatDaftarKelas, muatProfil } from '@/lib/data-dasbor';
 import { buatXlsx, unduhBlob } from '@/lib/xlsx';
@@ -158,11 +159,34 @@ export default function HalamanTautan() {
     }
   }
 
+  /**
+   * Mengganti token seorang siswa.
+   *
+   * Akibatnya lebih jauh daripada sekadar "tautan lama mati", dan itu
+   * yang perlu disebut sebelum tombolnya ditekan: identitas aplikasi
+   * yang dipasang orang tua di layar utama HP-nya berasal dari token
+   * ini. Token berganti berarti aplikasi yang sudah terpasang menjadi
+   * aplikasi yang berbeda -- ikonnya tetap ada tetapi tidak lagi bisa
+   * membuka rapor apa pun, dan orang tua harus memasang ulang dari
+   * tautan yang baru.
+   *
+   * Kalau yang dibutuhkan hanya menutup akses sementara, "Nonaktifkan"
+   * jauh lebih tepat: token-nya tidak berubah, jadi aplikasi yang sudah
+   * terpasang kembali berfungsi begitu diaktifkan lagi. Karena itu
+   * jalan keluar itu ikut disebut di dalam peringatan ini -- peringatan
+   * yang hanya melarang tanpa menawarkan jalan lain cenderung diabaikan.
+   */
   async function ganti(nis, nama) {
     if (
       !window.confirm(
-        `Ganti tautan ${nama}? Tautan lama akan langsung berhenti berfungsi, ` +
-          'dan tautan baru harus dikirim ulang ke orang tuanya.'
+        `Ganti tautan ${nama}?\n\n` +
+          '• Tautan lama langsung berhenti berfungsi, dan tautan baru ' +
+          'harus dikirim ulang ke orang tuanya.\n\n' +
+          '• Kalau orang tuanya sudah memasang rapor ini sebagai aplikasi ' +
+          'di layar utama HP, ikon itu ikut mati. Mereka harus memasang ' +
+          'ulang dari tautan yang baru.\n\n' +
+          'Kalau hanya ingin menutup akses sementara, pakai "Nonaktifkan" ' +
+          '— tautan dan aplikasinya tetap utuh dan bisa dihidupkan lagi.'
       )
     ) {
       return;
@@ -172,7 +196,11 @@ export default function HalamanTautan() {
     setGalat('');
     try {
       await panggil({ aksi: 'ganti', nis });
-      setPesan(`Tautan ${nama} sudah diganti. Kirim ulang tautan barunya.`);
+      setPesan(
+        `Tautan ${nama} sudah diganti. Kirim ulang tautan barunya — dan ` +
+          'kalau orang tuanya sudah memasangnya sebagai aplikasi, minta ' +
+          'mereka memasang ulang dari tautan yang baru.'
+      );
       await muatDaftar(tahunAjaran);
     } catch (e) {
       setGalat(e.message);
@@ -292,6 +320,21 @@ export default function HalamanTautan() {
             Tautan bersifat pribadi per siswa dan berlaku lintas tahun ajaran —
             tidak perlu diterbitkan ulang saat naik kelas. Unduh Excel untuk
             dibagikan ke wali kelas; tiap kelas berada di lembar tersendiri.
+          </p>
+
+          {/* Ditulis di halaman, bukan hanya di kotak konfirmasi: kotak
+              konfirmasi baru terbaca setelah tombolnya terlanjur ditekan,
+              sementara pertimbangan "Ganti atau Nonaktifkan" perlu ada
+              sebelum itu. */}
+          <p className={gaya.catatanGanti}>
+            <TriangleAlert size={16} aria-hidden="true" />
+            <span>
+              <strong>Ganti</strong> membuat token baru: tautan lama mati, dan
+              aplikasi rapor yang sudah dipasang orang tua di layar utama HP
+              ikut mati sehingga harus dipasang ulang. Untuk menutup akses
+              sementara, pakai <strong>Nonaktifkan</strong> — tautan dan
+              aplikasinya tetap utuh.
+            </span>
           </p>
 
           <div className={gaya.penyaring} style={{ marginBottom: '0.85rem' }}>

@@ -817,3 +817,38 @@
   color: var(--tinta-lembut);
   white-space: nowrap;
 }
+
+/* ================================================================
+   Catatan sebelum mengganti token
+   ================================================================
+   Kuning peringatan, bukan merah: menggantinya bukan tindakan yang
+   salah -- kadang memang perlu, misalnya kalau tautan seorang siswa
+   terlanjur tersebar. Yang perlu disampaikan hanyalah akibatnya yang
+   tidak terlihat dari nama tombolnya, bukan larangan. */
+.catatanGanti {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0 0 0.85rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #e6c15a;
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: #fdf7e3;
+  color: #6a5410;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.catatanGanti svg {
+  flex: none;
+  margin-top: 0.15rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .catatanGanti {
+    border-color: #6a5410;
+    background: #2b2410;
+    color: #e6c15a;
+  }
+}
