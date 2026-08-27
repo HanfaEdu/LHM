@@ -26,6 +26,7 @@ import {
 } from '../komponen';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolLhm from '@/app/komponen/TombolLhm';
+import TombolKeluar from '@/app/komponen/TombolKeluar';
 import gaya from '../dasbor.module.css';
 
 export default function DasborWaliKelas() {
@@ -175,6 +176,7 @@ export default function DasborWaliKelas() {
                 ke tempat wali kelas benar-benar bekerja, jadi ia harus
                 terlihat tanpa perlu menggulir ke mana pun. */}
             <TombolLhm className={gaya.tombolLhm} />
+            <TombolKeluar />
             </div>
           }
         />

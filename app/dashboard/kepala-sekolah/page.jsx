@@ -46,6 +46,7 @@ import {
   TabelDistribusi,
 } from '../komponen';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
+import TombolKeluar from '@/app/komponen/TombolKeluar';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
 import gaya from '../dasbor.module.css';
 
@@ -264,6 +265,7 @@ export default function DasborKepalaSekolah() {
             <Link href="/dashboard/kepala-sekolah/tautan" className={gaya.tombolAksi}>
               Tautan Orang Tua
             </Link>
+            <TombolKeluar />
             </div>
           }
         />

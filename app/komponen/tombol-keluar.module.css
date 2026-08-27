@@ -1,0 +1,73 @@
+/* ================================================================
+   Tombol keluar akun
+   ================================================================
+   Sengaja yang paling tenang di antara seluruh kontrol pada baris
+   kepala dasbor: bergaris tipis, tanpa isian, tanpa gerak apa pun.
+   Pemilih bulan berdenyut pastel dan tombol "Input/Edit LHM" menyapu
+   cahaya karena keduanya memang ingin ditemukan; tombol ini tidak.
+   Ia perlu ADA saat dicari, bukan menarik mata saat tidak dicari.
+
+   Merahnya baru muncul saat disentuh atau disorot. Merah sejak diam
+   akan terbaca sebagai peringatan pada halaman yang sedang tenang,
+   padahal keluar akun bukan tindakan berbahaya -- masuk lagi cuma
+   satu ketukan lewat Google.
+   ================================================================ */
+.tombol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Kotaknya 40px supaya tidak menonjol di antara kontrol lain, tetapi
+     sasaran sentuhnya diperbesar ke 44px lewat @media di bawah -- di
+     bawah itu, ibu jari mudah meleset ke tombol di sebelahnya. */
+  width: 40px;
+  height: 40px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--garis);
+  border-radius: 8px;
+  background: var(--kartu);
+  color: var(--tinta-samar);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+/* Hover dikurung di balik (hover: hover): pada layar sentuh, :hover
+   "nyangkut" setelah jari diangkat -- tombol yang terakhir disentuh
+   terus tampak merah, dan terbaca seolah sedang menunggu konfirmasi. */
+@media (hover: hover) and (pointer: fine) {
+  .tombol:hover:not(:disabled) {
+    color: var(--kritis);
+    border-color: var(--kritis);
+    background: var(--surface);
+  }
+}
+
+.tombol:active:not(:disabled) {
+  color: var(--kritis);
+  border-color: var(--kritis);
+}
+
+.tombol:focus-visible {
+  outline: none;
+  border-color: var(--kritis);
+  box-shadow: 0 0 0 3px var(--pendar-fokus);
+}
+
+.tombol:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .tombol {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tombol {
+    transition: none;
+  }
+}
