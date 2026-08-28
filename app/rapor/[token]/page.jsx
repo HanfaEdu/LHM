@@ -370,6 +370,7 @@ export default function HalamanRapor({ params }) {
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
+          namaSekolah={data.sekolah?.nama}
           judul={data.anak.nama_lengkap}
           keterangan={`Kelas ${data.kelas.nama_kelas}${
             data.kelas.wali_kelas ? ` · Wali Kelas: ${data.kelas.wali_kelas}` : ''

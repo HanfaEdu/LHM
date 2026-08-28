@@ -110,13 +110,29 @@ Tabel baru `sekolah`, dengan `area` sebagai lapisan Tim Manajemen:
 
 ```
 sekolah(id, kode, nama, area, jenjang, aktif)
-   'YFK', 'SD Yaumi Fatimah Kudus', 'Pati Raya', 'SD'
-   'YFP', 'SD Yaumi Fatimah Pati',  'Pati Raya', 'SD'
+   'SDYFK', 'SD Yaumi Fatimah Kudus',  'Pati Raya',   'SD'
+   'SDYFP', 'SD Yaumi Fatimah Pati',   'Pati Raya',   'SD'
+   'SDYFJ', 'SD Yaumi Fatimah Juwana', 'Pati Raya',   'SD'
+   'TKYFJ', 'TK Yaumi Fatimah Juwana', 'Pati Raya',   'TK'
+   'SDBK',  'SD BIAS Klaten',          'Klaten-Solo', 'SD'
 ```
 
-`kode` singkat dan tidak pernah berubah; dialah yang dipakai sebagai
-awalan NIS dan sebagai bagian identitas aplikasi. `nama` boleh
-diperbaiki kapan saja tanpa merusak apa pun.
+**Kode memuat jenjang di depannya.** TK dan SD di satu kota adalah dua
+sekolah yang berbeda, dengan siswa, wali kelas, dan kepala sekolah
+sendiri-sendiri. Tanpa jenjang di dalam kodenya, kode "YFJ" akan
+terlanjur dipakai SD Juwana, dan TK Juwana yang menyusul tidak punya
+kode yang wajar lagi.
+
+**Kodenya tidak pernah diterjemahkan oleh sistem.** Tidak ada daftar di
+dalam kode program yang memetakan `SDBK` menjadi "SD BIAS Klaten" — yang
+tampil di kepala dasbor adalah kolom `nama`, apa adanya. Karena itu
+sekolah dengan penamaan seperti apa pun (Yaumi Fatimah, Ath-Thorik,
+BIAS, atau nama yang belum terpikirkan) cukup ditambahkan sebagai satu
+baris data. **Tidak akan pernah ada perombakan kode untuk menambah
+sekolah baru.**
+
+`kode` tidak boleh berubah setelah ada siswa, karena dialah awalan NIS.
+`nama` boleh diperbaiki kapan saja tanpa merusak apa pun.
 
 ### NIS diberi ruang nama
 
@@ -163,7 +179,7 @@ berhari-hari):
 
 1. Cadangkan database dari Supabase (Database → Backups).
 2. Jalankan `migrasi/001-multi-sekolah.sql` di Supabase → SQL Editor.
-3. Perbarui `sync.js` di Apps Script, isi `KODE_SEKOLAH` dan
+3. Perbarui `sync.js` di Apps Script, isi `KODE_SEKOLAH` (`SDYFK`) dan
    `NAMA_SEKOLAH` di bagian konfigurasi.
 4. Jalankan **SiPaDi → Sinkronkan Sekarang** satu kali, lalu buka satu
    tautan rapor untuk memastikan semuanya masih terbaca.

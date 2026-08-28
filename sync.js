@@ -76,11 +76,21 @@ const SYNC_SECRET = 'ISI_DENGAN_KUNCI_RAHASIA_YANG_SAMA_DENGAN_VERCEL';
  * 301 Pati. Mengubahnya sesudah data masuk sama dengan mengganti
  * kunci seluruh siswa -- token orang tua akan kehilangan siswanya.
  *
- *   Kudus  -> 'YFK', 'SD Yaumi Fatimah Kudus',  'Pati Raya'
- *   Pati   -> 'YFP', 'SD Yaumi Fatimah Pati',   'Pati Raya'
- *   Juwana -> 'YFJ', 'SD Yaumi Fatimah Juwana', 'Pati Raya'
+ * Polanya <jenjang><singkatan sekolah>, karena TK dan SD di satu kota
+ * adalah DUA sekolah berbeda dengan siswa dan wali kelas sendiri-sendiri:
+ *
+ *   SDYFK  -> 'SD Yaumi Fatimah Kudus'    area 'Pati Raya'
+ *   SDYFP  -> 'SD Yaumi Fatimah Pati'     area 'Pati Raya'
+ *   SDYFJ  -> 'SD Yaumi Fatimah Juwana'   area 'Pati Raya'
+ *   TKYFJ  -> 'TK Yaumi Fatimah Juwana'   area 'Pati Raya'
+ *   SDBK   -> 'SD BIAS Klaten'            area 'Klaten-Solo'
+ *
+ * Kodenya sendiri TIDAK diterjemahkan oleh sistem: yang tampil di kepala
+ * dasbor adalah NAMA_SEKOLAH di bawah, apa adanya. Jadi sekolah baru
+ * dengan penamaan seperti apa pun cukup mengisi dua baris ini -- tidak
+ * ada daftar di dalam kode yang perlu ikut ditambah.
  */
-const KODE_SEKOLAH = 'YFK';
+const KODE_SEKOLAH = 'SDYFK';
 const NAMA_SEKOLAH = 'SD Yaumi Fatimah Kudus';
 const AREA_SEKOLAH = 'Pati Raya';   // Tim Manajemen; boleh dikosongkan
 const JENJANG_SEKOLAH = 'SD';       // PG | TK | SD | SMP | SMA
@@ -455,7 +465,26 @@ function isiTargetKeBulanBerikutnya(nilai) {
  * nilainya tertukar, tanpa satu pun pesan galat.
  */
 function nisGlobal(nisLokal) {
-  return KODE_SEKOLAH + '-' + nisLokal;
+  return kodeSekolahRapi() + '-' + nisLokal;
+}
+
+/**
+ * Kode sekolah yang sudah dirapikan: huruf besar, tanpa spasi, hanya
+ * huruf dan angka.
+ *
+ * Kode ini menjadi bagian dari kunci setiap siswa, jadi 'sdyfk' dan
+ * 'SDYFK' tidak boleh menghasilkan dua siswa yang berbeda hanya karena
+ * beda cara mengetik saat memasang skrip di sekolah baru.
+ */
+function kodeSekolahRapi() {
+  const rapi = String(KODE_SEKOLAH || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (rapi.length < 2) {
+    throw new Error(
+      'KODE_SEKOLAH belum diisi dengan benar. Isi dengan huruf dan angka ' +
+      'saja, minimal dua karakter — misalnya SDYFK untuk SD Yaumi Fatimah Kudus.'
+    );
+  }
+  return rapi;
 }
 
 /**
@@ -469,7 +498,7 @@ function nisGlobal(nisLokal) {
  */
 function pastikanSekolah() {
   const tersimpan = kirim('sekolah', [{
-    kode: KODE_SEKOLAH,
+    kode: kodeSekolahRapi(),
     nama: NAMA_SEKOLAH,
     area: AREA_SEKOLAH || null,
     jenjang: JENJANG_SEKOLAH || 'SD',

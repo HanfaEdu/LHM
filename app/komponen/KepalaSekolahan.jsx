@@ -40,10 +40,30 @@ import gaya from './kepala-sekolahan.module.css';
  * halaman lain. Dengan aksi berada di atas penyaring, salah baca itu
  * tidak mungkin lagi terjadi.
  *
+ * `namaSekolah` datang dari tabel `sekolah` di database, bukan ditulis
+ * di dalam kode. Itulah yang membuat sekolah baru -- SD Yaumi Fatimah
+ * Pati, TK Yaumi Fatimah Juwana, SD BIAS Klaten, apa pun penamaannya --
+ * cukup ditambahkan sebagai satu baris data, tanpa satu baris kode pun
+ * yang perlu diubah.
+ *
+ * Nilai cadangannya nama sekolah pertama, supaya kepala halaman tidak
+ * pernah tampil kosong: pada saat migrasi multi-sekolah belum
+ * dijalankan, atau ketika data sekolah gagal terbaca, yang tampil tetap
+ * nama yang benar bagi satu-satunya sekolah yang ada.
+ *
  * `judul`, `keterangan`, `aksi`, dan `anak` semuanya opsional supaya
  * komponen ini tetap bisa dipakai di halaman yang belum punya konteks.
  */
-export default function KepalaSekolahan({ judul, keterangan, aksi, anak }) {
+/** Dipakai selama nama sekolah belum sampai ke halaman ini. */
+const SEKOLAH_BAWAAN = 'SD Yaumi Fatimah Kudus';
+
+export default function KepalaSekolahan({
+  namaSekolah,
+  judul,
+  keterangan,
+  aksi,
+  anak,
+}) {
   return (
     <header className={gaya.kepala}>
       <div className={gaya.identitas}>
@@ -57,7 +77,7 @@ export default function KepalaSekolahan({ judul, keterangan, aksi, anak }) {
             priority
           />
           <div>
-            <p className={gaya.namaSekolah}>SD Yaumi Fatimah Kudus</p>
+            <p className={gaya.namaSekolah}>{namaSekolah || SEKOLAH_BAWAAN}</p>
             {/* Tagline sekolah. Ditulis miring dengan warna emas tua supaya
                 terbaca sebagai kalimat identitas, bukan sebagai label data --
                 sekaligus tetap tunduk pada hierarki: nama anak di bawahnya

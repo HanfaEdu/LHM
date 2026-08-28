@@ -8,6 +8,7 @@ import {
   muatDaftarKelas,
   muatNilaiKelas,
   muatProfil,
+  muatSekolah,
   siswaDalamKelas,
   susunBulananSiswa,
 } from '@/lib/data-dasbor';
@@ -35,6 +36,7 @@ export default function DasborWaliKelas() {
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState('');
   const [profil, setProfil] = useState(null);
+  const [sekolah, setSekolah] = useState(null);
   const [daftarKelas, setDaftarKelas] = useState([]);
   const [kelasId, setKelasId] = useState('');
   const [perBulan, setPerBulan] = useState({});
@@ -61,6 +63,11 @@ export default function DasborWaliKelas() {
           return;
         }
         setProfil(p);
+
+        // Nama sekolah untuk kepala halaman. Diambil terpisah dan
+        // kegagalannya diabaikan: pada database yang belum menjalankan
+        // migrasi multi-sekolah, tabelnya memang belum ada.
+        setSekolah(await muatSekolah());
 
         const semua = await muatDaftarKelas();
         // Kepala sekolah yang membuka halaman ini tetap melihat seluruh
@@ -150,6 +157,7 @@ export default function DasborWaliKelas() {
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
+          namaSekolah={sekolah?.nama}
           judul={`Kelas ${kelas?.nama_kelas ?? ''} · ${bulan || 'belum ada data'}`}
           keterangan={`${kelas?.wali_kelas || profil?.nama || ''} · Tahun Ajaran ${
             kelas?.tahun_ajaran ?? ''

@@ -37,7 +37,19 @@ CREATE TABLE IF NOT EXISTS sekolah (
     id          BIGSERIAL    PRIMARY KEY,
     -- Singkat, huruf besar, TIDAK PERNAH BERUBAH: dipakai sebagai
     -- awalan NIS. Mengubahnya berarti mengubah kunci seluruh siswa.
-    kode        VARCHAR(10)  NOT NULL,
+    --
+    -- Pola: <jenjang><singkatan sekolah> -- SDYFK, TKYFK, SDBK, SMPBY.
+    -- Jenjang ikut masuk ke dalam kode karena TK dan SD di satu kota
+    -- adalah DUA sekolah yang berbeda, dengan siswa dan wali kelas
+    -- sendiri-sendiri. Tanpa jenjang di dalamnya, kode "YFK" akan
+    -- terlanjur dipakai SD, dan TK Kudus yang menyusul tidak punya kode
+    -- yang wajar lagi.
+    --
+    -- Hanya huruf dan angka: kode ini disambung ke nomor induk dengan
+    -- tanda hubung (SDYFK-281), jadi tanda hubung di dalam kodenya
+    -- sendiri hanya akan mengaburkan batas keduanya.
+    kode        VARCHAR(16)  NOT NULL
+                CHECK (kode ~ '^[A-Z0-9]{2,16}$'),
     nama        VARCHAR(150) NOT NULL,
     area        VARCHAR(80),
     jenjang     VARCHAR(10)  NOT NULL DEFAULT 'SD'
@@ -49,10 +61,12 @@ CREATE TABLE IF NOT EXISTS sekolah (
 );
 
 COMMENT ON COLUMN sekolah.kode IS
-    'Awalan NIS global. Tidak boleh diubah setelah ada siswa.';
+    'Awalan NIS global, pola <jenjang><singkatan>. Tidak boleh diubah setelah ada siswa.';
+COMMENT ON COLUMN sekolah.nama IS
+    'Nama yang tampil di kepala dasbor. Boleh diperbaiki kapan saja.';
 
 INSERT INTO sekolah (kode, nama, area, jenjang)
-VALUES ('YFK', 'SD Yaumi Fatimah Kudus', 'Pati Raya', 'SD')
+VALUES ('SDYFK', 'SD Yaumi Fatimah Kudus', 'Pati Raya', 'SD')
 ON CONFLICT (kode) DO NOTHING;
 
 
@@ -68,9 +82,9 @@ ALTER TABLE users_access ADD COLUMN IF NOT EXISTS sekolah_id BIGINT REFERENCES s
 -- sehingga nomor aslinya perlu tempat tersendiri untuk ditampilkan.
 ALTER TABLE siswa        ADD COLUMN IF NOT EXISTS nis_lokal VARCHAR(50);
 
-UPDATE kelas        SET sekolah_id = (SELECT id FROM sekolah WHERE kode = 'YFK') WHERE sekolah_id IS NULL;
-UPDATE siswa        SET sekolah_id = (SELECT id FROM sekolah WHERE kode = 'YFK') WHERE sekolah_id IS NULL;
-UPDATE users_access SET sekolah_id = (SELECT id FROM sekolah WHERE kode = 'YFK') WHERE sekolah_id IS NULL;
+UPDATE kelas        SET sekolah_id = (SELECT id FROM sekolah WHERE kode = 'SDYFK') WHERE sekolah_id IS NULL;
+UPDATE siswa        SET sekolah_id = (SELECT id FROM sekolah WHERE kode = 'SDYFK') WHERE sekolah_id IS NULL;
+UPDATE users_access SET sekolah_id = (SELECT id FROM sekolah WHERE kode = 'SDYFK') WHERE sekolah_id IS NULL;
 
 ALTER TABLE kelas        ALTER COLUMN sekolah_id SET NOT NULL;
 ALTER TABLE siswa        ALTER COLUMN sekolah_id SET NOT NULL;

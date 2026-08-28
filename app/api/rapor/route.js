@@ -88,6 +88,24 @@ export async function POST(request) {
   const kelas =
     daftarKelas.find((k) => k.tahun_ajaran === tahunAjaran) || daftarKelas[0];
 
+  /* Nama sekolah untuk kepala halaman rapor.
+     Query terpisah dan kegagalannya ditelan: pada database yang belum
+     menjalankan migrasi multi-sekolah, kolom kelas.sekolah_id memang
+     belum ada, dan PostgREST menjawabnya dengan galat -- bukan null.
+     Menyisipkannya sebagai relasi ke query kelas di atas berarti seluruh
+     rapor gagal dimuat hanya karena kolom yang belum sempat dibuat. */
+  let namaSekolah = null;
+  try {
+    const { data: sek } = await db
+      .from('kelas')
+      .select('sekolah:sekolah_id (nama)')
+      .eq('id', kelas.id)
+      .maybeSingle();
+    namaSekolah = sek?.sekolah?.nama ?? null;
+  } catch {
+    // Belum dimigrasi. Halaman rapor memakai nama cadangannya.
+  }
+
   // --- Nilai anak sepanjang tahun ajaran terpilih ---
   const { data: nilaiAnak } = await db
     .from('nilai_bulanan')
@@ -170,6 +188,7 @@ export async function POST(request) {
 
   return NextResponse.json({
     anak: { nama_lengkap: anak.nama_lengkap, nama_panggilan: anak.nama_panggilan },
+    sekolah: { nama: namaSekolah },
     kelas: {
       nama_kelas: kelas.nama_kelas,
       wali_kelas: kelas.wali_kelas,
