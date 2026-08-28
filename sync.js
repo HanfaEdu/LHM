@@ -72,7 +72,7 @@ const SYNC_SECRET = 'ISI_DENGAN_KUNCI_RAHASIA_YANG_SAMA_DENGAN_VERCEL';
  *
  * KODE_SEKOLAH: singkat, huruf besar, dan TIDAK BOLEH DIUBAH setelah
  * ada siswa yang tersinkron. Kode inilah yang menjadi awalan nomor
- * induk global (YFK-281), yang memisahkan siswa 301 Kudus dari siswa
+ * induk global (SDYFK-281), memisahkan siswa 301 Kudus dari siswa
  * 301 Pati. Mengubahnya sesudah data masuk sama dengan mengganti
  * kunci seluruh siswa -- token orang tua akan kehilangan siswanya.
  *
@@ -456,7 +456,7 @@ function isiTargetKeBulanBerikutnya(nilai) {
 // ===================================================================
 
 /**
- * Nomor induk global: kode sekolah + nomor lokal, mis. "YFK-281".
+ * Nomor induk global: kode sekolah + nomor lokal, mis. "SDYFK-281".
  *
  * NIS di Master Rekap adalah nomor lokal tiga digit, bukan NISN
  * nasional -- Kudus, Pati, dan Juwana hampir pasti memakai deret angka
