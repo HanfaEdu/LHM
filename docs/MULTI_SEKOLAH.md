@@ -136,7 +136,7 @@ sekolah baru.**
 
 ### NIS diberi ruang nama
 
-Kunci `siswa.nis` menjadi **global**: `<kode>-<nis lokal>` — `YFK-281`.
+Kunci `siswa.nis` menjadi **global**: `<kode>-<nis lokal>` — `SDYFK-281`.
 Nomor asli yang diketik guru tetap disimpan di kolom baru `nis_lokal`
 dan itulah yang ditampilkan.
 
