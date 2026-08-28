@@ -22,7 +22,14 @@ export const dynamic = 'force-dynamic';
  * tidak bisa dipakai menulis ke tabel sembarang.
  */
 
-const TABEL_DIIZINKAN = ['kelas', 'siswa', 'penempatan', 'nilai_bulanan', 'users_access'];
+const TABEL_DIIZINKAN = [
+  'sekolah',
+  'kelas',
+  'siswa',
+  'penempatan',
+  'nilai_bulanan',
+  'users_access',
+];
 
 export async function POST(request) {
   const kunciRahasia = request.headers.get('x-sync-secret');

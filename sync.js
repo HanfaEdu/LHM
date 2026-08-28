@@ -55,6 +55,37 @@ const APP_URL = 'https://ISI_DENGAN_DOMAIN_VERCEL_ANDA.vercel.app';
 const SYNC_SECRET = 'ISI_DENGAN_KUNCI_RAHASIA_YANG_SAMA_DENGAN_VERCEL';
 
 /**
+ * IDENTITAS SEKOLAH
+ * -----------------
+ * Satu Master Rekap melayani satu sekolah, jadi identitasnya cukup
+ * ditulis sekali di sini -- tidak perlu diulang sebagai kolom di ribuan
+ * baris spreadsheet, dan tidak bisa salah ketik di sebagian baris saja.
+ *
+ * Berlaku juga untuk sheet users_access: seluruh wali kelas dan kepala
+ * sekolah di dalamnya otomatis menjadi milik sekolah ini, jadi sheet
+ * itu pun tidak perlu kolom sekolah.
+ *
+ * (Kalau suatu saat satu Master Rekap harus melayani beberapa sekolah
+ * sekaligus -- misalnya satu Tim Manajemen mengelola tiga SD dalam satu
+ * berkas -- barulah dibutuhkan kolom "Sekolah" per baris. Belum dibuat,
+ * karena sampai sekarang tiap sekolah punya Master Rekap sendiri.)
+ *
+ * KODE_SEKOLAH: singkat, huruf besar, dan TIDAK BOLEH DIUBAH setelah
+ * ada siswa yang tersinkron. Kode inilah yang menjadi awalan nomor
+ * induk global (YFK-281), yang memisahkan siswa 301 Kudus dari siswa
+ * 301 Pati. Mengubahnya sesudah data masuk sama dengan mengganti
+ * kunci seluruh siswa -- token orang tua akan kehilangan siswanya.
+ *
+ *   Kudus  -> 'YFK', 'SD Yaumi Fatimah Kudus',  'Pati Raya'
+ *   Pati   -> 'YFP', 'SD Yaumi Fatimah Pati',   'Pati Raya'
+ *   Juwana -> 'YFJ', 'SD Yaumi Fatimah Juwana', 'Pati Raya'
+ */
+const KODE_SEKOLAH = 'YFK';
+const NAMA_SEKOLAH = 'SD Yaumi Fatimah Kudus';
+const AREA_SEKOLAH = 'Pati Raya';   // Tim Manajemen; boleh dikosongkan
+const JENJANG_SEKOLAH = 'SD';       // PG | TK | SD | SMP | SMA
+
+/**
  * KENAPA LEWAT PROXY, BUKAN LANGSUNG KE SUPABASE
  * -----------------------------------------------
  * Supabase menolak kunci sb_secret_... kalau permintaan terdeteksi
@@ -414,18 +445,62 @@ function isiTargetKeBulanBerikutnya(nilai) {
 // SINKRONISASI
 // ===================================================================
 
+/**
+ * Nomor induk global: kode sekolah + nomor lokal, mis. "YFK-281".
+ *
+ * NIS di Master Rekap adalah nomor lokal tiga digit, bukan NISN
+ * nasional -- Kudus, Pati, dan Juwana hampir pasti memakai deret angka
+ * yang sama. Tanpa awalan ini, siswa 301 Kudus dan siswa 301 Pati
+ * menjadi satu baris yang sama di database: namanya saling menimpa dan
+ * nilainya tertukar, tanpa satu pun pesan galat.
+ */
+function nisGlobal(nisLokal) {
+  return KODE_SEKOLAH + '-' + nisLokal;
+}
+
+/**
+ * Menyimpan identitas sekolah dan mengembalikan id-nya.
+ *
+ * Dipanggil oleh kedua bagian sinkronisasi (nilai dan hak akses), bukan
+ * dipanggil sekali lalu id-nya dioper. Keduanya sengaja berjalan dalam
+ * blok try terpisah supaya kegagalan yang satu tidak menjatuhkan yang
+ * lain; kalau id-nya dioper, bagian hak akses ikut mati begitu bagian
+ * nilai gagal. Menyimpan satu baris yang sama dua kali tidak berbiaya.
+ */
+function pastikanSekolah() {
+  const tersimpan = kirim('sekolah', [{
+    kode: KODE_SEKOLAH,
+    nama: NAMA_SEKOLAH,
+    area: AREA_SEKOLAH || null,
+    jenjang: JENJANG_SEKOLAH || 'SD',
+  }], 'kode', true);
+
+  if (!tersimpan.length || !tersimpan[0].id) {
+    throw new Error(
+      'Identitas sekolah gagal disimpan. Periksa KODE_SEKOLAH dan ' +
+      'NAMA_SEKOLAH di bagian konfigurasi, lalu pastikan migrasi ' +
+      'migrasi/001-multi-sekolah.sql sudah dijalankan di Supabase.'
+    );
+  }
+  return tersimpan[0].id;
+}
+
 function sinkronkanDariMaster(isi) {
+  // 0. Sekolah — identitasnya dulu, karena kelas merujuk ke id-nya.
+  const sekolahId = pastikanSekolah();
+
   // 1. Kelas — dibuat/diperbarui dulu karena baris lain merujuk ke id-nya.
   const daftarKelas = Object.keys(isi.kelasMap).map(function (k) { return isi.kelasMap[k]; });
   const kelasTersimpan = kirim('kelas', daftarKelas.map(function (k) {
     return {
+      sekolah_id: sekolahId,
       tahun_ajaran: k.tahunAjaran,
       nama_kelas: k.namaKelas,
       wali_kelas: k.waliKelas,
       target_akademik: k.targetAkademik !== null ? k.targetAkademik : 90,
       updated_at: new Date().toISOString(),
     };
-  }), 'tahun_ajaran,nama_kelas', true);
+  }), 'sekolah_id,tahun_ajaran,nama_kelas', true);
 
   const kelasIdMap = {};
   kelasTersimpan.forEach(function (row) {
@@ -437,7 +512,10 @@ function sinkronkanDariMaster(isi) {
   if (siswaValid.length) {
     kirim('siswa', siswaValid.map(function (s) {
       return {
-        nis: s.nis, nama_lengkap: s.namaLengkap, nama_panggilan: s.namaPanggilan,
+        sekolah_id: sekolahId,
+        nis: nisGlobal(s.nis),
+        nis_lokal: s.nis,
+        nama_lengkap: s.namaLengkap, nama_panggilan: s.namaPanggilan,
         updated_at: new Date().toISOString(),
       };
     }), 'nis');
@@ -455,7 +533,7 @@ function sinkronkanDariMaster(isi) {
     const key = n.nis + '|' + kelasId;
     if (penempatanTerlihat[key]) return;
     penempatanTerlihat[key] = true;
-    penempatan.push({ nis: n.nis, kelas_id: kelasId });
+    penempatan.push({ nis: nisGlobal(n.nis), kelas_id: kelasId });
   });
   if (penempatan.length) kirim('penempatan', penempatan, 'nis,kelas_id');
 
@@ -467,7 +545,7 @@ function sinkronkanDariMaster(isi) {
     .map(function (n) {
       const kelasId = kelasIdMap[n.tahun_ajaran + '|' + n.nama_kelas];
       return {
-        nis: n.nis,
+        nis: nisGlobal(n.nis),
         kelas_id: kelasId,
         bulan: n.bulan,
         urutan_bulan: n.urutan_bulan,
@@ -499,6 +577,7 @@ const PERAN_VALID = ['kepala_sekolah', 'wali_kelas'];
 
 /** Membaca sheet 'users_access' di Master Rekap. */
 function sinkronkanUserAccess() {
+  const sekolahId = pastikanSekolah();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
   if (!sheet) {
     Logger.log('Sheet "' + SHEET_USER + '" tidak ada. Sinkronisasi hak akses dilewati.');
@@ -529,6 +608,7 @@ function sinkronkanUserAccess() {
       nama:       teks(tabel[i][1]),
       role:       role,
       nama_kelas: role === 'wali_kelas' ? normalKelas(tabel[i][3]) : null,
+      sekolah_id: sekolahId,
     });
   }
 

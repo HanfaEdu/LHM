@@ -1,0 +1,221 @@
+# Menyiapkan sistem untuk lebih dari satu sekolah
+
+Dokumen ini menjelaskan bagaimana sistem rapor ini disiapkan agar bisa
+melayani beberapa sekolah dalam jaringan BIAS, dan apa yang harus
+dilakukan pada saat sekolah berikutnya benar-benar bergabung.
+
+Ditulis karena pekerjaannya membentang berminggu-minggu dan melibatkan
+orang lain (Tim Manajemen, kepala sekolah cabang). Keputusan yang tidak
+dicatat akan terlupa, lalu diambil ulang secara berbeda.
+
+---
+
+## 1. Bentuk jaringannya
+
+BIAS bukan satu sekolah dan bukan pula sekumpulan sekolah yang berdiri
+sendiri-sendiri. Ada lapisan **area / Tim Manajemen** di antaranya:
+
+```
+Yayasan Bina Anak Sholeh (pusat: Yogyakarta)
+├── Area Pati raya  — merek "BIAS Yaumi Fatimah"
+│   ├── SD Yaumi Fatimah Kudus      ← sistem ini bermula di sini
+│   ├── SD Yaumi Fatimah Pati
+│   ├── SD Yaumi Fatimah Juwana
+│   └── (Jepara — belum ada SD)
+├── Area Klaten–Solo
+├── Area Temanggung–Magelang–Muntilan
+├── Area Yogyakarta–Kaliurang–Palagan
+├── Area Cilacap–Sampang
+├── Area Gombong — merek "BIAS Ath-Thorik"
+└── ... dan seterusnya
+```
+
+Dua hal yang perlu diingat dari bentuk ini:
+
+**Areanya nyata, bukan sekadar pengelompokan di atas kertas.** Satu Tim
+Manajemen membawahi beberapa sekolah, dan direkturnya wajar ingin
+melihat ketiganya sekaligus. Justru direktur Pati raya inilah yang
+pertama tertarik pada sistem ini.
+
+**Nama sekolah tidak bisa ditebak dari polanya.** Pati raya memakai
+"Yaumi Fatimah", Gombong memakai "Ath-Thorik", area lain memakai "BIAS"
+saja. Karena itu nama sekolah harus menjadi **data**, bukan aturan yang
+ditulis di dalam kode.
+
+---
+
+## 2. Keputusan: satu sistem, bukan satu sistem per sekolah
+
+Yang dipilih: **satu basis kode, satu Supabase, satu Vercel**, dengan
+setiap baris data membawa identitas sekolahnya.
+
+Alasan yang menentukan, bukan alasan selera:
+
+| | Menggandakan proyek per sekolah | Satu sistem multi-sekolah |
+|---|---|---|
+| Perbaikan | dikerjakan N kali | sekali, langsung ke semua |
+| Batas Supabase gratis | 2 proyek aktif per organisasi — mentok di sekolah ke-3 | satu proyek |
+| Dasbor tingkat area | tidak mungkin | wajar |
+| Risiko | data mustahil bocor antar sekolah | bocor kalau RLS salah |
+
+Baris "perbaikan" itu yang paling menentukan. Sistem ini dirawat satu
+orang yang bukan programmer. Dalam beberapa hari pertama saja sudah ada
+belasan perbaikan; dikalikan tiga sekolah, itu menjadi puluhan
+penerapan manual yang tidak mungkin dijaga konsisten.
+
+Risiko kebocoran antar-sekolah nyata dan harus ditangani serius — itu
+isi bagian 4.
+
+---
+
+## 3. Yang rusak kalau sekolah kedua masuk tanpa persiapan
+
+Empat hal, dan **dua di antaranya merusak data tanpa memunculkan pesan
+galat apa pun**:
+
+### (a) Nomor induk siswa bertabrakan — PALING BERBAHAYA
+
+`siswa` memakai `nis` sebagai kunci utama. NIS di Master Rekap Kudus
+berisi angka lokal tiga digit (281, 282, 301, 316, 334, ...), bukan NISN
+nasional. Pati dan Juwana hampir pasti memakai deret angka yang sama.
+
+Akibatnya siswa 301 Kudus dan siswa 301 Pati menjadi **satu baris yang
+sama**: namanya saling menimpa, penempatan kelasnya bercampur, dan
+nilainya tertukar. Tidak ada pesan galat — sinkronisasi berjalan mulus
+dan datanya salah.
+
+### (b) Nama kelas bertabrakan
+
+`kelas` punya `UNIQUE (tahun_ajaran, nama_kelas)`. Kelas "2A" Kudus dan
+"2A" Pati dianggap kelas yang sama. Sinkronisasi keduanya saling
+menimpa.
+
+### (c) Kepala sekolah melihat seluruh jaringan
+
+`is_kepala_sekolah()` mengembalikan benar untuk kepala sekolah **mana
+pun**. Kepala sekolah Pati akan melihat seluruh data Kudus.
+
+### (d) Wali kelas melihat kelas sekolah lain
+
+`kelas_yang_diampu()` mencocokkan `nama_kelas` saja. Wali kelas 2A Kudus
+ikut melihat 2A Pati.
+
+---
+
+## 4. Rancangannya
+
+### Identitas sekolah menjadi data
+
+Tabel baru `sekolah`, dengan `area` sebagai lapisan Tim Manajemen:
+
+```
+sekolah(id, kode, nama, area, jenjang, aktif)
+   'YFK', 'SD Yaumi Fatimah Kudus', 'Pati Raya', 'SD'
+   'YFP', 'SD Yaumi Fatimah Pati',  'Pati Raya', 'SD'
+```
+
+`kode` singkat dan tidak pernah berubah; dialah yang dipakai sebagai
+awalan NIS dan sebagai bagian identitas aplikasi. `nama` boleh
+diperbaiki kapan saja tanpa merusak apa pun.
+
+### NIS diberi ruang nama
+
+Kunci `siswa.nis` menjadi **global**: `<kode>-<nis lokal>` — `YFK-281`.
+Nomor asli yang diketik guru tetap disimpan di kolom baru `nis_lokal`
+dan itulah yang ditampilkan.
+
+Cara ini dipilih daripada mengganti kunci utama menjadi gabungan
+`(sekolah_id, nis)`, karena mengganti kunci utama memaksa ketiga tabel
+anak (`penempatan`, `nilai_bulanan`, `akses_ortu`) ikut berganti bentuk
+kunci asing, dan setiap query di aplikasi yang menyebut `nis` harus ikut
+diubah. Memberi awalan hanya mengubah isinya, bukan bentuknya —
+seluruh kode aplikasi tetap berjalan apa adanya.
+
+### RLS dipersempit ke sekolah masing-masing
+
+`users_access` mendapat `sekolah_id`. Kedua fungsi bantu RLS ikut
+dipersempit sehingga kepala sekolah hanya melihat sekolahnya sendiri,
+dan wali kelas hanya melihat kelas di sekolahnya sendiri.
+
+Peran ketiga disiapkan untuk nanti: `direktur_area`, yang melihat
+seluruh sekolah dalam satu area. Perannya sudah diterima database sejak
+sekarang, tetapi dasbornya belum dibuat — supaya penambahannya kelak
+tidak menuntut migrasi lagi.
+
+---
+
+## 5. Urutan pengerjaan
+
+### Tahap 0 — asuransi (sekarang, mumpung masih satu sekolah)
+
+Inilah yang paling murah dikerjakan hari ini dan paling mahal ditunda.
+Sekarang ada 1 sekolah dan 113 siswa; migrasinya beberapa detik dan
+tidak ada yang berubah di layar siapa pun.
+
+Kalau ditunda sampai tiga sekolah berjalan sebagai sistem terpisah,
+menyatukannya berarti alamat webnya berubah — dan karena identitas
+aplikasi PWA berasal dari alamat itu, **setiap aplikasi yang sudah
+terpasang di HP orang tua akan mati** dan harus dipasang ulang satu per
+satu.
+
+Langkahnya, **berurutan dan dalam satu waktu** (jangan terpisah
+berhari-hari):
+
+1. Cadangkan database dari Supabase (Database → Backups).
+2. Jalankan `migrasi/001-multi-sekolah.sql` di Supabase → SQL Editor.
+3. Perbarui `sync.js` di Apps Script, isi `KODE_SEKOLAH` dan
+   `NAMA_SEKOLAH` di bagian konfigurasi.
+4. Jalankan **SiPaDi → Sinkronkan Sekarang** satu kali, lalu buka satu
+   tautan rapor untuk memastikan semuanya masih terbaca.
+
+Yang TIDAK berubah: tautan orang tua, token, PIN, dan aplikasi yang
+sudah terpasang. Migrasi hanya menyentuh kolom `nis`, bukan `token`.
+
+### Tahap 1 — saat Pati/Juwana benar-benar jadi
+
+1. Tambahkan barisnya di tabel `sekolah`.
+2. Salin Master Rekap dan berkas kelas untuk sekolah itu.
+3. Pasang `sync.js` di Apps Script sekolah tersebut dengan
+   `KODE_SEKOLAH` yang berbeda, `APP_URL` dan `SYNC_SECRET` yang sama.
+4. Daftarkan kepala sekolah dan wali kelasnya di `users_access` sekolah
+   itu.
+
+Tidak ada penerapan kode baru. Tidak ada proyek Vercel baru.
+
+### Tahap 2 — kalau diminta, bukan diduga
+
+- Dasbor tingkat area untuk direktur Tim Manajemen.
+- Merek per sekolah (logo dan nama di kepala halaman).
+- Jenjang PG/TK — **ini masalah yang berbeda**, lihat bagian 6.
+
+---
+
+## 6. PG dan TK bukan perkara multi-sekolah
+
+Perlu dipisahkan tegas, karena mudah tercampur.
+
+Multi-sekolah adalah soal **siapa pemilik satu baris data**. Menambah
+PG/TK adalah soal **apa yang dinilai**, dan itu jauh lebih dalam:
+tabel `nilai_bulanan` sekarang punya kolom mati `rata_b_indo`,
+`rata_mtk`, `rata_ipa`. Kalau PG/TK menilai hal lain — motorik,
+kemandirian, sosial-emosional — kolom mati itu harus berganti menjadi
+daftar mata pelajaran yang bisa diatur per jenjang. Seluruh grafik,
+tabel, dan hasil cetak ikut terpengaruh.
+
+Jangan diasumsikan datanya sama sebelum ditanyakan langsung ke guru
+PG/TK. Kalau ternyata memang hanya Tahfidz, Tahsin, dan tiga mapel,
+pekerjaannya cukup menambah baris di tabel `sekolah` dengan
+`jenjang = 'TK'`. Kalau tidak, itu proyek tersendiri.
+
+---
+
+## 7. Pertanyaan yang harus dijawab yayasan, bukan oleh kode
+
+**Siapa pemilik dan pengelola data gabungan ini?**
+
+Kalau ada sekolah yang keberatan datanya berada di database yang sama
+dengan sekolah lain, itu batasan kebijakan yang mengalahkan
+pertimbangan teknis apa pun — dan jawabannya menjadi sistem terpisah
+per area, berapa pun ongkos perawatannya.
+
+Sebaiknya disepakati sebelum sekolah ketiga bergabung, bukan sesudah.
