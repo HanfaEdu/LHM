@@ -27,6 +27,7 @@ import {
   AMBANG_KETUNTASAN,
   MAPEL,
   adaIsiBulan,
+  bulanBawaan,
   bulat,
   ketuntasan,
   narasiKelas,
@@ -125,7 +126,9 @@ export default function DasborKepalaSekolah() {
         const adaData = BULAN_AJARAN.filter((b) =>
           Object.values(hasil).some((p) => adaIsiBulan(p[b]))
         );
-        setBulan(adaData.length ? adaData[adaData.length - 1] : '');
+        // Bukan adaData terakhir, melainkan bulan yang penilaiannya sudah
+        // selesai -- lihat bulanBawaan() di lib/statistik.js.
+        setBulan(bulanBawaan(adaData, tahunAjaran));
       } catch (e) {
         if (!batal) setGalat(e.message || 'Gagal memuat nilai kelas.');
       } finally {
@@ -136,7 +139,7 @@ export default function DasborKepalaSekolah() {
     return () => {
       batal = true;
     };
-  }, [kelasTahunIni]);
+  }, [kelasTahunIni, tahunAjaran]);
 
   const tahunTersedia = useMemo(
     () => [...new Set(daftarKelas.map((k) => k.tahun_ajaran))],

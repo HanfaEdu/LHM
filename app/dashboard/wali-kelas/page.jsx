@@ -11,7 +11,7 @@ import {
   siswaDalamKelas,
   susunBulananSiswa,
 } from '@/lib/data-dasbor';
-import { MAPEL, ketuntasan, narasiKelas } from '@/lib/statistik';
+import { MAPEL, bulanBawaan, ketuntasan, narasiKelas } from '@/lib/statistik';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
@@ -87,8 +87,13 @@ export default function DasborWaliKelas() {
         if (batal) return;
         setPerBulan(hasil);
         setNisSiswa(''); // pilihan siswa milik kelas lama, tidak berlaku lagi
-        const terisi = bulanTerisi(hasil);
-        setBulan(terisi.length ? terisi[terisi.length - 1] : '');
+        // Bukan bulan terakhir yang ada datanya, melainkan bulan yang
+        // penilaiannya sudah selesai -- lihat bulanBawaan() di
+        // lib/statistik.js untuk alasannya.
+        const tahunKelasIni = daftarKelas.find(
+          (k) => String(k.id) === String(kelasId)
+        )?.tahun_ajaran;
+        setBulan(bulanBawaan(bulanTerisi(hasil), tahunKelasIni));
       } catch (e) {
         if (!batal) setGalat(e.message || 'Gagal memuat nilai kelas.');
       } finally {
@@ -99,6 +104,11 @@ export default function DasborWaliKelas() {
     return () => {
       batal = true;
     };
+    // daftarKelas sengaja tidak masuk daftar kebergantungan: isinya hanya
+    // dibaca untuk mencari tahun ajaran kelas yang baru dipilih, dan
+    // memuat ulang nilai setiap kali daftar kelas berubah rujukannya akan
+    // memicu pengambilan data yang sama berulang kali.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kelasId]);
 
   const kelas = daftarKelas.find((k) => String(k.id) === String(kelasId));

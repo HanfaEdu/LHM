@@ -16,7 +16,7 @@ import {
   YAxis,
 } from 'recharts';
 import { BULAN_AJARAN, TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
-import { bulanBerdata } from '@/lib/statistik';
+import { bulanBawaan, bulanBerdata } from '@/lib/statistik';
 import { Printer, WifiOff } from 'lucide-react';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolPasang from '@/app/komponen/TombolPasang';
@@ -481,6 +481,7 @@ export default function HalamanRapor({ params }) {
           namaAnak={data.anak.nama_panggilan}
           namaKelas={data.kelas.nama_kelas}
           targetAkademik={data.kelas.target_akademik}
+          tahunAjaran={data.kelas.tahun_ajaran}
         />
 
         <TabelBulanan bulanan={data.bulanan} />
@@ -1022,7 +1023,13 @@ function TabelBulanan({ bulanan }) {
    cara itu tidak bisa dipakai, karena mengabukan teman sekelas berarti
    menghapus pembeda antar-mapel bagi mereka.
 */
-function PerbandinganKelas({ perbandingan, namaAnak, namaKelas, targetAkademik }) {
+function PerbandinganKelas({
+  perbandingan,
+  namaAnak,
+  namaKelas,
+  targetAkademik,
+  tahunAjaran,
+}) {
   const bulanTersedia = useMemo(
     () => BULAN_AJARAN.filter((b) => perbandingan[b]?.length),
     [perbandingan]
@@ -1032,9 +1039,14 @@ function PerbandinganKelas({ perbandingan, namaAnak, namaKelas, targetAkademik }
 
   useEffect(() => {
     if (bulanTersedia.length && !bulan) {
-      setBulan(bulanTersedia[bulanTersedia.length - 1]);
+      // Bukan bulan terakhir yang ada datanya, melainkan bulan yang
+      // penilaiannya sudah selesai -- lihat bulanBawaan() di
+      // lib/statistik.js. Orang tua yang membuka rapor tanggal 2 Agustus
+      // seharusnya melihat Juli yang lengkap, bukan Agustus yang baru
+      // terisi satu-dua nilai.
+      setBulan(bulanBawaan(bulanTersedia, tahunAjaran));
     }
-  }, [bulanTersedia, bulan]);
+  }, [bulanTersedia, bulan, tahunAjaran]);
 
   if (!bulanTersedia.length) return null;
 
