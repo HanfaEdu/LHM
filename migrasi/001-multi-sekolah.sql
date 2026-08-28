@@ -51,6 +51,13 @@ CREATE TABLE IF NOT EXISTS sekolah (
     kode        VARCHAR(16)  NOT NULL
                 CHECK (kode ~ '^[A-Z0-9]{2,16}$'),
     nama        VARCHAR(150) NOT NULL,
+    -- Alamat aplikasi input nilai (LHM) milik sekolah ini. Tiap sekolah
+    -- punya aplikasinya sendiri, jadi tombol "Input/Edit LHM" di dasbor
+    -- wali kelas membaca kolom ini -- bukan alamat yang dipatok di
+    -- dalam kode. Boleh NULL: tombolnya tidak ditampilkan sama sekali,
+    -- yang lebih baik daripada mengarahkan wali kelas ke aplikasi
+    -- sekolah lain. Diisi dan diperbarui oleh Apps Script (LINK_LHM).
+    link_lhm    VARCHAR(300),
     area        VARCHAR(80),
     jenjang     VARCHAR(10)  NOT NULL DEFAULT 'SD'
                 CHECK (jenjang IN ('PG', 'TK', 'SD', 'SMP', 'SMA')),
@@ -65,8 +72,13 @@ COMMENT ON COLUMN sekolah.kode IS
 COMMENT ON COLUMN sekolah.nama IS
     'Nama yang tampil di kepala dasbor. Boleh diperbaiki kapan saja.';
 
-INSERT INTO sekolah (kode, nama, area, jenjang)
-VALUES ('SDYFK', 'SD Yaumi Fatimah Kudus', 'Pati Raya', 'SD')
+-- Untuk basis data yang tabel sekolahnya sudah terbentuk sebelum kolom
+-- ini ada (migrasi ini dijalankan ulang setelah diperbarui).
+ALTER TABLE sekolah ADD COLUMN IF NOT EXISTS link_lhm VARCHAR(300);
+
+INSERT INTO sekolah (kode, nama, area, jenjang, link_lhm)
+VALUES ('SDYFK', 'SD Yaumi Fatimah Kudus', 'Pati Raya', 'SD',
+        'https://laporan-akademik.vercel.app/')
 ON CONFLICT (kode) DO NOTHING;
 
 

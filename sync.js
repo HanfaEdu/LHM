@@ -96,6 +96,24 @@ const AREA_SEKOLAH = 'Pati Raya';   // Tim Manajemen; boleh dikosongkan
 const JENJANG_SEKOLAH = 'SD';       // PG | TK | SD | SMP | SMA
 
 /**
+ * Alamat tempat wali kelas sekolah INI mengisi dan menyunting nilai.
+ *
+ * Tiap sekolah punya aplikasi input LHM sendiri, jadi alamatnya ikut
+ * dikirim bersama identitas sekolah -- bukan dipatok di dalam kode
+ * dasbor. Tombol "Input/Edit LHM" di kepala dasbor wali kelas membaca
+ * alamat inilah, sehingga wali kelas Pati menuju aplikasi Pati tanpa
+ * ada satu baris pun yang perlu diubah di aplikasi dasbor.
+ *
+ * Boleh dikosongkan (''): tombolnya tidak akan muncul sama sekali,
+ * yang jauh lebih baik daripada muncul lalu membawa wali kelas ke
+ * aplikasi milik sekolah lain.
+ *
+ * Harus diawali https:// -- alamat http biasa ditolak oleh peramban HP
+ * ketika dibuka dari halaman yang sudah https.
+ */
+const LINK_LHM = 'https://laporan-akademik.vercel.app/';
+
+/**
  * KENAPA LEWAT PROXY, BUKAN LANGSUNG KE SUPABASE
  * -----------------------------------------------
  * Supabase menolak kunci sb_secret_... kalau permintaan terdeteksi
@@ -208,11 +226,13 @@ function sinkronkanSemua() {
  * sinkronisasi.
  */
 function identitasSekolah() {
+  const link = linkLhmRapi();
   return (
     'SEKOLAH: ' + NAMA_SEKOLAH + '  (kode ' + kodeSekolahRapi() + ')\n' +
-    'Pastikan ini benar sebelum melanjutkan. Kalau berkas ini salinan\n' +
-    'dari sekolah lain, ubah dulu KODE_SEKOLAH dan NAMA_SEKOLAH di\n' +
-    'bagian konfigurasi paling atas skrip.'
+    'Input LHM: ' + (link || '(belum diisi — tombolnya tidak ditampilkan)') + '\n' +
+    'Pastikan ketiganya benar sebelum melanjutkan. Kalau berkas ini\n' +
+    'salinan dari sekolah lain, ubah dulu KODE_SEKOLAH, NAMA_SEKOLAH,\n' +
+    'dan LINK_LHM di bagian konfigurasi paling atas skrip.'
   );
 }
 
@@ -519,6 +539,31 @@ function kodeSekolahRapi() {
 }
 
 /**
+ * Alamat input LHM yang sudah diperiksa.
+ *
+ * Diperiksa di sini, bukan di dasbor, karena di sinilah orang
+ * mengetiknya -- dan kesalahan ketiknya ketahuan saat sinkronisasi,
+ * bukan berminggu-minggu kemudian ketika seorang wali kelas menekan
+ * tombol yang ternyata mati.
+ *
+ * Alamat kosong dikembalikan sebagai null, bukan galat: sekolah yang
+ * belum punya aplikasi input LHM tetap boleh memakai dasbornya.
+ */
+function linkLhmRapi() {
+  const rapi = String(LINK_LHM || '').trim();
+  if (!rapi) return null;
+
+  if (!/^https:\/\/\S+$/.test(rapi)) {
+    throw new Error(
+      'LINK_LHM harus berupa alamat lengkap yang diawali https:// dan ' +
+      'tanpa spasi — misalnya https://laporan-akademik.vercel.app/. ' +
+      'Kosongkan (\'\') kalau sekolah ini belum punya aplikasi input LHM.'
+    );
+  }
+  return rapi;
+}
+
+/**
  * Menyimpan identitas sekolah dan mengembalikan id-nya.
  *
  * Dipanggil oleh kedua bagian sinkronisasi (nilai dan hak akses), bukan
@@ -533,6 +578,7 @@ function pastikanSekolah() {
     nama: NAMA_SEKOLAH,
     area: AREA_SEKOLAH || null,
     jenjang: JENJANG_SEKOLAH || 'SD',
+    link_lhm: linkLhmRapi(),
   }], 'kode', true);
 
   if (!tersimpan.length || !tersimpan[0].id) {

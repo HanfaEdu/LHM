@@ -7,10 +7,25 @@
    antara kontrol lain -- bukan demi hiasan, melainkan karena inilah
    yang paling sering dicari dan paling merugikan kalau terlewat.
 
-   Bentuk, ukuran, dan geraknya sama di kedua tempat pemakaiannya;
-   yang berbeda hanya warnanya, lewat variabel di .terang dan .gelap.
+   Sekarang hanya dipakai di satu tempat: kepala dasbor wali kelas.
+   Varian gelap yang dulu berdiri di bawah kartu login ikut dihapus
+   bersama tombolnya -- alamat input LHM berbeda tiap sekolah, dan di
+   halaman login belum diketahui siapa yang datang, jadi belum
+   diketahui pula alamat mana yang benar untuknya.
    ================================================================ */
 .tombol {
+  /* Biru aksen aplikasi, sama dengan tombol "Tautan Orang Tua" di
+     dasbor kepala sekolah: keduanya sama-sama "pergi ke tempat lain",
+     jadi memberi mereka dua warna berbeda hanya akan menyiratkan
+     perbedaan arti yang tidak ada. */
+  --latar-lhm: var(--seri-1);
+  --tepi-lhm: transparent;
+  --tinta-lhm: #ffffff;
+  --kilau-lhm: rgb(255 255 255 / 42%);
+  --bayang-lhm: 0 2px 8px rgb(42 120 214 / 28%);
+  --bayang-lhm-sorot: 0 6px 16px rgb(42 120 214 / 38%);
+  --fokus-lhm: var(--pendar-fokus, rgb(42 120 214 / 35%));
+
   /* position + overflow menampung sapuan kilau di bawah. overflow
      hidden tidak memotong cincin fokus: cincin itu box-shadow milik
      elemen ini sendiri, bukan anaknya. */
@@ -150,43 +165,4 @@
     animation: none;
     transition: none;
   }
-}
-
-/* ================================================================
-   Varian terang — kepala dasbor wali kelas
-   ================================================================
-   Memakai biru aksen aplikasi, sama dengan tombol "Tautan Orang Tua"
-   di dasbor kepala sekolah: keduanya sama-sama "pergi ke tempat
-   lain", jadi memberi mereka dua warna berbeda hanya akan menyiratkan
-   perbedaan arti yang tidak ada. */
-.terang {
-  --latar-lhm: var(--seri-1);
-  --tepi-lhm: transparent;
-  --tinta-lhm: #ffffff;
-  --kilau-lhm: rgb(255 255 255 / 42%);
-  --bayang-lhm: 0 2px 8px rgb(42 120 214 / 28%);
-  --bayang-lhm-sorot: 0 6px 16px rgb(42 120 214 / 38%);
-  --fokus-lhm: var(--pendar-fokus, rgb(42 120 214 / 35%));
-}
-
-/* ================================================================
-   Varian gelap — di bawah kartu login
-   ================================================================
-   Sengaja BUKAN gradien tosca seperti tombol "Masuk dengan Akun
-   Google" di dalam kartu. Di halaman login, masuk adalah tindakan
-   utama; tombol ini pelengkap. Kalau keduanya sama pekatnya,
-   pengguna yang datang untuk login harus memilih lebih dulu antara
-   dua tombol yang tampak sama pentingnya.
-
-   Maka bentuknya bergaris tepi dengan isian tipis: jelas terbaca
-   sebagai tombol, tetapi satu tingkat lebih tenang -- dan sapuan
-   cahayanya yang memastikan ia tetap ditemukan. */
-.gelap {
-  --latar-lhm: rgb(255 255 255 / 6%);
-  --tepi-lhm: rgb(0 245 212 / 45%);
-  --tinta-lhm: #a9f5e6;
-  --kilau-lhm: rgb(0 245 212 / 22%);
-  --bayang-lhm: 0 2px 12px rgb(0 245 212 / 10%);
-  --bayang-lhm-sorot: 0 6px 18px rgb(0 245 212 / 22%);
-  --fokus-lhm: rgb(0 245 212 / 40%);
 }

@@ -195,7 +195,7 @@ Anda isi. Jadi seluruhnya dikerjakan dari spreadsheet, tanpa menyentuh
 Supabase sama sekali.
 
 1. Salin Master Rekap dan berkas kelas untuk sekolah itu.
-2. Buka **Ekstensi → Apps Script** pada salinannya, lalu ubah **empat
+2. Buka **Ekstensi → Apps Script** pada salinannya, lalu ubah **lima
    baris** di bagian konfigurasi paling atas:
 
    ```js
@@ -203,28 +203,41 @@ Supabase sama sekali.
    const NAMA_SEKOLAH    = 'SD Yaumi Fatimah Pati';    // tampil di dasbor
    const AREA_SEKOLAH    = 'Pati Raya';
    const JENJANG_SEKOLAH = 'SD';
+   const LINK_LHM        = 'https://lhm-pati.vercel.app/';  // aplikasi input sekolah ini
    ```
+
+   `LINK_LHM` adalah alamat aplikasi input nilai milik sekolah itu;
+   dari sinilah tombol **Input/Edit LHM** di kepala dasbor wali kelas
+   mengambil tujuannya. Kalau dikosongkan (`''`), tombolnya tidak
+   ditampilkan — jauh lebih baik daripada mengarahkan wali kelas ke
+   aplikasi sekolah lain.
 
    `APP_URL` dan `SYNC_SECRET` **tetap sama** — satu penerapan Vercel
    melayani semua sekolah.
 
-3. Jalankan **SiPaDi → Cek Kesehatan Data** lebih dulu. Baris paling
-   atas laporannya menyebut sekolah yang akan disinkronkan. **Baca baris
-   itu.** Kalau masih tertulis sekolah asal salinan, berarti langkah 2
+3. Jalankan **SiPaDi → Cek Kesehatan Data** lebih dulu. Dua baris
+   paling atas laporannya menyebut sekolah yang akan disinkronkan
+   berikut alamat input LHM-nya. **Baca kedua baris itu.** Kalau masih tertulis sekolah asal salinan, berarti langkah 2
    terlewat — dan melanjutkan berarti menimpa data sekolah itu.
 4. Jalankan **SiPaDi → Sinkronkan Sekarang**. Baris sekolah, kelas,
    siswa, dan nilai terbentuk sendiri.
 5. Daftarkan kepala sekolah dan wali kelasnya di sheet `users_access`
    milik Master Rekap itu. Mereka otomatis menjadi milik sekolah
    tersebut — sheet itu tidak perlu kolom sekolah.
-6. **Ganti satu baris di `lib/sekolah.js`** menjadi nama netral
-   (`'Sekolah BIAS'`). Nilai itu hanya dipakai sebagai cadangan saat
-   nama sekolah gagal terbaca, dan sejak ada sekolah kedua ia menjadi
-   salah bagi semua sekolah selain Kudus — yang paling merugikan
-   pratinjau WhatsApp dan kaki lembar cetak, karena keduanya dibaca
-   orang tua.
+6. **Ganti dua baris di `lib/sekolah.js`.** Keduanya nilai cadangan
+   yang hanya dipakai saat data sekolah gagal terbaca, dan sejak ada
+   sekolah kedua keduanya menjadi salah bagi semua sekolah selain
+   Kudus:
 
-Tidak ada penerapan kode baru selain satu baris itu. Tidak ada proyek
+   - `SEKOLAH_BAWAAN` → nama netral (`'Sekolah BIAS'`). Yang paling
+     merugikan adalah pratinjau WhatsApp dan kaki lembar cetak, karena
+     keduanya dibaca orang tua.
+   - `LINK_LHM_BAWAAN` → dikosongkan (`''`). Kalau dibiarkan, wali
+     kelas sekolah lain yang alamatnya belum tersinkron akan diantar ke
+     aplikasi input milik Kudus, dan nilai bisa terisi di tempat yang
+     salah tanpa peringatan apa pun.
+
+Tidak ada penerapan kode baru selain dua baris itu. Tidak ada proyek
 Vercel baru, tidak ada Supabase baru, tidak ada domain baru.
 
 Nama sekolah sudah dibaca dari data di seluruh tempat yang terlihat

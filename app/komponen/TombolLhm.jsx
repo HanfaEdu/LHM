@@ -1,34 +1,39 @@
 import { ArrowUpRight } from 'lucide-react';
+import { LINK_LHM_BAWAAN } from '@/lib/sekolah';
 import gaya from './tombol-lhm.module.css';
 
-/** Spreadsheet tempat wali kelas mengisi dan menyunting nilai. */
-const ALAMAT_LHM = 'https://laporan-akademik.vercel.app/';
-
 /**
- * Tombol menuju halaman input nilai (LHM).
+ * Tombol menuju aplikasi input nilai (LHM) milik sekolah ini.
  *
- * Dipakai di dua tempat dengan latar yang berlawanan: di bawah kartu
- * login (latar biru tua tetap) dan di kepala dasbor wali kelas (latar
- * terang, atau gelap kalau perangkatnya bermode gelap). Karena itu
- * warnanya tidak dipatok di sini melainkan lewat `varian`, sementara
- * bentuk, ukuran, dan geraknya tetap sama di keduanya -- tombol yang
- * sama seharusnya terasa sebagai benda yang sama, di halaman mana pun
- * wali kelas menemuinya.
+ * Alamatnya DATA, bukan tetapan: tiap sekolah di jaringan punya
+ * aplikasi input LHM sendiri, dan alamatnya dikirim Apps Script
+ * bersama identitas sekolah (kolom `link_lhm`). Karena itu tombol ini
+ * menerima `alamat` dari pemanggilnya alih-alih menyimpannya sendiri --
+ * satu berkas dasbor yang sama melayani sekolah mana pun.
+ *
+ * Kalau alamatnya belum ada, tombolnya TIDAK ditampilkan. Tombol yang
+ * hilang membuat wali kelas bertanya; tombol yang mengarah ke aplikasi
+ * sekolah lain membuat mereka mengisi nilai di tempat yang salah dan
+ * baru ketahuan berminggu-minggu kemudian.
  *
  * Membuka tab baru, bukan menggantikan halaman ini: wali kelas yang
  * selesai mengisi nilai umumnya ingin kembali melihat dasbornya, dan
  * pada peramban HP tombol "kembali" setelah pindah domain sering
  * membawa mereka ke halaman login lagi, bukan ke tempat semula.
  */
-export default function TombolLhm({ varian = 'terang', className = '' }) {
+export default function TombolLhm({ alamat, className = '' }) {
+  // Cadangan dipakai selama masa peralihan: sebelum migrasi dijalankan
+  // dan sebelum sinkronisasi pertama, database belum punya alamat apa
+  // pun. Lihat catatan kedaluwarsanya di lib/sekolah.js.
+  const tujuan = alamat || LINK_LHM_BAWAAN;
+  if (!tujuan) return null;
+
   return (
     <a
-      href={ALAMAT_LHM}
+      href={tujuan}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${gaya.tombol} ${
-        varian === 'gelap' ? gaya.gelap : gaya.terang
-      } ${className}`}
+      className={`${gaya.tombol} ${className}`}
     >
       Input/Edit LHM
       {/* Panah serong: penanda baku bahwa tautan ini keluar dari aplikasi

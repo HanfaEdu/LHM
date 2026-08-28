@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LogIn } from 'lucide-react';
 import LogoBerbintang from './LogoBerbintang';
-import TombolLhm from '@/app/komponen/TombolLhm';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -123,11 +122,12 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Jalan pintas bagi wali kelas yang datang ke sini semata-mata
-          untuk mengisi nilai. Sebelumnya mereka harus masuk dulu, lalu
-          mencari tautannya di dalam dasbor -- padahal mengisi nilai
-          tidak membutuhkan sesi login sama sekali. */}
-      <TombolLhm varian="gelap" />
+      {/* Tombol "Input/Edit LHM" pernah berdiri di sini sebagai jalan
+          pintas. Dihapus setelah sistem menampung banyak sekolah:
+          alamat input LHM berbeda tiap sekolah, sedangkan di halaman
+          ini belum diketahui siapa yang datang -- jadi belum diketahui
+          pula alamat mana yang benar untuknya. Tombolnya kini hanya di
+          kepala dasbor wali kelas, setelah sekolahnya dikenali. */}
     </div>
   );
 }

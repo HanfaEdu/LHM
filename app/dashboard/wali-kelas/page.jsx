@@ -164,7 +164,7 @@ export default function DasborWaliKelas() {
           }${baris.length ? ` · ${baris.length} siswa` : ''}`}
           aksi={
             <>
-              <TombolLhm />
+              <TombolLhm alamat={sekolah?.link_lhm} />
               <TombolKeluar />
             </>
           }
