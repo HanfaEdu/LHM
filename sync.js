@@ -185,9 +185,35 @@ function sinkronkanSemua() {
   }
 
   const durasi = Math.round((new Date() - mulai) / 1000);
-  const ringkasan = catatan.join('\n') + '\n\nSelesai dalam ' + durasi + ' detik.';
+  const ringkasan =
+    identitasSekolah() + '\n\n' +
+    catatan.join('\n') + '\n\nSelesai dalam ' + durasi + ' detik.';
   Logger.log(ringkasan);
   return ringkasan;
+}
+
+/**
+ * Baris identitas sekolah, ditampilkan di ATAS setiap laporan.
+ *
+ * Bukan hiasan. Cara paling wajar menyiapkan sekolah baru adalah
+ * menyalin Master Rekap yang sudah jadi, dan salinan itu ikut membawa
+ * skrip ini lengkap dengan KODE_SEKOLAH sekolah asalnya. Kalau
+ * penyalinnya lupa menggantinya, seluruh siswa sekolah baru akan
+ * dikirim dengan awalan sekolah lama -- dan siswa bernomor sama di
+ * kedua sekolah akan saling menimpa TANPA satu pun pesan galat.
+ *
+ * Justru karena kegagalannya senyap, satu-satunya penjaga yang masuk
+ * akal adalah membuat identitasnya mustahil terlewat: ia baris pertama
+ * yang terbaca, baik pada Cek Kesehatan Data maupun pada ringkasan
+ * sinkronisasi.
+ */
+function identitasSekolah() {
+  return (
+    'SEKOLAH: ' + NAMA_SEKOLAH + '  (kode ' + kodeSekolahRapi() + ')\n' +
+    'Pastikan ini benar sebelum melanjutkan. Kalau berkas ini salinan\n' +
+    'dari sekolah lain, ubah dulu KODE_SEKOLAH dan NAMA_SEKOLAH di\n' +
+    'bagian konfigurasi paling atas skrip.'
+  );
 }
 
 /**
@@ -271,9 +297,14 @@ function cekKesehatanData() {
 }
 
 function laporkanKesehatan(temuan) {
-  const laporan = temuan.length
+  const isi = temuan.length
     ? 'Ditemukan ' + temuan.length + ' hal yang perlu diperiksa:\n\n' + temuan.join('\n')
     : 'Tidak ada masalah terdeteksi. Data siap disinkronkan.';
+
+  // Identitas sekolah di paling atas, sebelum apa pun yang lain: inilah
+  // satu-satunya kesempatan menangkap Master Rekap salinan yang lupa
+  // diganti kode sekolahnya, sebelum satu baris pun terkirim.
+  const laporan = identitasSekolah() + '\n\n' + isi;
   Logger.log(laporan);
   try {
     SpreadsheetApp.getUi().alert('Cek Kesehatan Data', laporan, SpreadsheetApp.getUi().ButtonSet.OK);

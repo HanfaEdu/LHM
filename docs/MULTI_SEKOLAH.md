@@ -189,13 +189,35 @@ sudah terpasang. Migrasi hanya menyentuh kolom `nis`, bukan `token`.
 
 ### Tahap 1 — saat Pati/Juwana benar-benar jadi
 
-1. Tambahkan barisnya di tabel `sekolah`.
-2. Salin Master Rekap dan berkas kelas untuk sekolah itu.
-3. Pasang `sync.js` di Apps Script sekolah tersebut dengan
-   `KODE_SEKOLAH` yang berbeda, `APP_URL` dan `SYNC_SECRET` yang sama.
-4. Daftarkan kepala sekolah dan wali kelasnya di `users_access` sekolah
-   itu.
-5. **Ganti satu baris di `lib/sekolah.js`** menjadi nama netral
+Barisnya **tidak perlu ditambahkan sendiri** ke tabel `sekolah`: skrip
+sinkronisasi membuatnya otomatis dari KODE_SEKOLAH dan NAMA_SEKOLAH yang
+Anda isi. Jadi seluruhnya dikerjakan dari spreadsheet, tanpa menyentuh
+Supabase sama sekali.
+
+1. Salin Master Rekap dan berkas kelas untuk sekolah itu.
+2. Buka **Ekstensi → Apps Script** pada salinannya, lalu ubah **empat
+   baris** di bagian konfigurasi paling atas:
+
+   ```js
+   const KODE_SEKOLAH    = 'SDYFP';                    // wajib berbeda
+   const NAMA_SEKOLAH    = 'SD Yaumi Fatimah Pati';    // tampil di dasbor
+   const AREA_SEKOLAH    = 'Pati Raya';
+   const JENJANG_SEKOLAH = 'SD';
+   ```
+
+   `APP_URL` dan `SYNC_SECRET` **tetap sama** — satu penerapan Vercel
+   melayani semua sekolah.
+
+3. Jalankan **SiPaDi → Cek Kesehatan Data** lebih dulu. Baris paling
+   atas laporannya menyebut sekolah yang akan disinkronkan. **Baca baris
+   itu.** Kalau masih tertulis sekolah asal salinan, berarti langkah 2
+   terlewat — dan melanjutkan berarti menimpa data sekolah itu.
+4. Jalankan **SiPaDi → Sinkronkan Sekarang**. Baris sekolah, kelas,
+   siswa, dan nilai terbentuk sendiri.
+5. Daftarkan kepala sekolah dan wali kelasnya di sheet `users_access`
+   milik Master Rekap itu. Mereka otomatis menjadi milik sekolah
+   tersebut — sheet itu tidak perlu kolom sekolah.
+6. **Ganti satu baris di `lib/sekolah.js`** menjadi nama netral
    (`'Sekolah BIAS'`). Nilai itu hanya dipakai sebagai cadangan saat
    nama sekolah gagal terbaca, dan sejak ada sekolah kedua ia menjadi
    salah bagi semua sekolah selain Kudus — yang paling merugikan
