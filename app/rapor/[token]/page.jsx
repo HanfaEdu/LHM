@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { BULAN_AJARAN, TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
 import { bulanBawaan, bulanBerdata } from '@/lib/statistik';
+import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import { Printer, WifiOff } from 'lucide-react';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolPasang from '@/app/komponen/TombolPasang';
@@ -499,7 +500,7 @@ export default function HalamanRapor({ params }) {
           {tahunTampil ? ` · T.A. ${tahunTampil}` : ''}
         </span>
         <span>
-          SD Yaumi Fatimah Kudus
+          {data.sekolah?.nama || SEKOLAH_BAWAAN}
           {tanggalCetak ? ` · dicetak ${tanggalCetak}` : ''}
         </span>
       </footer>

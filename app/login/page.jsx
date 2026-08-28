@@ -90,7 +90,7 @@ export default function LoginPage() {
           SiPaDi
         </h1>
         <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '10px' }}>
-          Sistem Perkembangan Akademik Digital Terintegrasi SD Yaumi Fatimah Kudus
+          Sistem Perkembangan Akademik Digital Terintegrasi Sekolah BIAS
         </p>
         {/* Tagline sekolah. Di halaman gelap ini emas cerah justru yang
             terbaca; emas tua yang dipakai di dasbor akan tenggelam. */}
@@ -119,7 +119,7 @@ export default function LoginPage() {
         </button>
 
         <div style={{ marginTop: '32px', fontSize: '0.8rem', color: '#64748b' }}>
-          <p>© 2026 SD Yaumi Fatimah Kudus. All rights reserved.</p>
+          <p>© 2026 Sekolah BIAS. All rights reserved.</p>
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import { supabaseServer } from '@/lib/supabase-server';
+import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 
 /**
  * Manifest aplikasi milik SATU siswa.
@@ -41,7 +42,7 @@ export const dynamic = 'force-dynamic';
 function manifestNetral(token) {
   return {
     id: `/rapor/${token}`,
-    name: 'Rapor — SD Yaumi Fatimah Kudus',
+    name: 'Rapor — Sekolah BIAS',
     short_name: 'Rapor',
     lang: 'id',
     start_url: `/rapor/${token}`,
@@ -92,6 +93,22 @@ export async function GET(_permintaan, { params }) {
         .eq('nis', akses.nis)
         .maybeSingle();
 
+      /* Nama sekolah dari data: keterangan aplikasi milik orang tua
+         Pati tidak boleh berbunyi "SD Yaumi Fatimah Kudus". Query
+         terpisah dan kegagalannya ditelan, karena kolom sekolah_id
+         belum ada sebelum migrasi multi-sekolah dijalankan. */
+      let namaSekolah = SEKOLAH_BAWAAN;
+      try {
+        const { data: sek } = await db
+          .from('siswa')
+          .select('sekolah:sekolah_id (nama)')
+          .eq('nis', akses.nis)
+          .maybeSingle();
+        if (sek?.sekolah?.nama) namaSekolah = sek.sekolah.nama;
+      } catch {
+        // Belum dimigrasi.
+      }
+
       const nama = siswa?.nama_panggilan?.trim();
       if (nama) {
         const awal = nama[0].toUpperCase();
@@ -104,7 +121,7 @@ export async function GET(_permintaan, { params }) {
           // daripada "Naira", "Aksara", "Fatih".
           name: nama,
           short_name: nama,
-          description: `Rapor ${nama} — SD Yaumi Fatimah Kudus. Personalized Education.`,
+          description: `Rapor ${nama} — ${namaSekolah}. Personalized Education.`,
           icons: berkasIkon(/^[A-Z]$/.test(awal) ? awal : null),
         };
       }

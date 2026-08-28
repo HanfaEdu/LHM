@@ -18,7 +18,12 @@ export default function manifest() {
     // eksplisit supaya aplikasi yang sudah terpasang tidak berubah
     // identitas kalau suatu saat start_url digeser.
     id: '/',
-    name: 'SiPaDi — SD Yaumi Fatimah Kudus',
+    /* Tanpa nama sekolah: satu aplikasi ini dipasang wali kelas dan
+       kepala sekolah dari sekolah mana pun di jaringan, dan nama
+       sekolahnya masing-masing sudah tampil di kepala dasbor setelah
+       mereka masuk. Menyebut satu sekolah di sini justru keliru bagi
+       semua yang lain. */
+    name: 'SiPaDi — Dasbor Akademik',
     short_name: 'SiPaDi',
     description:
       'Dasbor capaian akademik, Tahfidz, dan Tahsin untuk wali kelas dan kepala sekolah.',

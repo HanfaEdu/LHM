@@ -76,7 +76,7 @@ export default function LogoBerbintang() {
       </div>
       <Image
         src="/logo.png"
-        alt="Logo SD Yaumi Fatimah Kudus"
+        alt="Logo Sekolah BIAS"
         width={96}
         height={96}
         className={gaya.logo}

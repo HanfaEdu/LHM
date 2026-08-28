@@ -21,25 +21,30 @@ import PendaftarSW from './komponen/PendaftarSW';
 
 const alamatResmi = process.env.NEXT_PUBLIC_SITE_URL || 'https://akademik-sdyaumi.vercel.app';
 
+/* Judul dan keterangan di sini adalah cadangan untuk halaman yang tidak
+   punya metadata sendiri (halaman masuk, halaman pengalihan). Sengaja
+   TIDAK menyebut satu sekolah tertentu: satu penerapan ini melayani
+   seluruh jaringan, dan halaman rapor tiap siswa sudah menimpanya
+   dengan nama sekolahnya masing-masing. */
 export const metadata = {
   // metadataBase membuat /logo.png di bawah menjadi alamat lengkap;
   // WhatsApp mengabaikan gambar pratinjau yang alamatnya relatif.
   metadataBase: new URL(alamatResmi),
-  title: 'Akademik — SD Yaumi Fatimah Kudus',
+  title: 'Akademik — Sekolah BIAS',
   description:
-    'Capaian akademik, Tahfidz, dan Tahsin siswa SD Yaumi Fatimah Kudus.',
+    'Capaian akademik, Tahfidz, dan Tahsin siswa Sekolah BIAS.',
   /* Safari mengambil nama ikon layar utama dari meta ini, bukan dari
      short_name di manifest. Halaman rapor menimpanya dengan nama anak
      masing-masing (lihat app/rapor/[token]/layout.jsx). */
   appleWebApp: { capable: true, title: 'SiPaDi', statusBarStyle: 'default' },
   openGraph: {
-    title: 'Akademik — SD Yaumi Fatimah Kudus',
+    title: 'Akademik — Sekolah BIAS',
     description:
-      'Capaian akademik, Tahfidz, dan Tahsin siswa SD Yaumi Fatimah Kudus.',
-    siteName: 'SD Yaumi Fatimah Kudus',
+      'Capaian akademik, Tahfidz, dan Tahsin siswa Sekolah BIAS.',
+    siteName: 'Sekolah BIAS',
     locale: 'id_ID',
     type: 'website',
-    images: [{ url: '/logo.png', width: 256, height: 256, alt: 'Logo SD Yaumi Fatimah Kudus' }],
+    images: [{ url: '/logo.png', width: 256, height: 256, alt: 'Logo Sekolah BIAS' }],
   },
 };
 

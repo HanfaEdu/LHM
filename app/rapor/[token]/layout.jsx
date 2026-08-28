@@ -1,4 +1,6 @@
 import { supabaseServer } from '@/lib/supabase-server';
+import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
+
 
 /**
  * Judul dan pratinjau tautan khusus halaman rapor satu siswa.
@@ -31,7 +33,7 @@ export async function generateMetadata({ params }) {
   // aplikasi tersendiri, dan isinya (nama anak, ikon) disusun di
   // manifest.webmanifest/route.js.
   const bawaan = {
-    title: 'Akademik — SD Yaumi Fatimah Kudus',
+    title: 'Akademik — Sekolah BIAS',
     manifest: `/rapor/${params.token}/manifest.webmanifest`,
     appleWebApp: { capable: true, title: 'Rapor', statusBarStyle: 'default' },
     robots: { index: false, follow: false },
@@ -58,7 +60,27 @@ export async function generateMetadata({ params }) {
 
     if (!siswa?.nama_panggilan) return bawaan;
 
-    const judul = `Rapor ${siswa.nama_panggilan} — SD Yaumi Fatimah Kudus`;
+    /* Nama sekolah diambil dari data, bukan ditulis di sini: begitu
+       sekolah kedua bergabung, pratinjau WhatsApp milik orang tua Pati
+       tidak boleh berbunyi "SD Yaumi Fatimah Kudus".
+
+       Query terpisah dan kegagalannya ditelan -- pada database yang
+       belum menjalankan migrasi multi-sekolah, kolom siswa.sekolah_id
+       memang belum ada dan PostgREST menjawabnya dengan galat. */
+    let namaSekolah = SEKOLAH_BAWAAN;
+    try {
+      const { data: sek } = await db
+        .from('siswa')
+        .select('sekolah:sekolah_id (nama)')
+        .eq('nis', akses.nis)
+        .maybeSingle();
+      if (sek?.sekolah?.nama) namaSekolah = sek.sekolah.nama;
+    } catch {
+      // Belum dimigrasi -- nama cadangan sudah benar selama baru ada
+      // satu sekolah.
+    }
+
+    const judul = `Rapor ${siswa.nama_panggilan} — ${namaSekolah}`;
     const keterangan =
       'Capaian akademik, Tahfidz, dan Tahsin. Personalized Education.';
 
@@ -78,11 +100,11 @@ export async function generateMetadata({ params }) {
       openGraph: {
         title: judul,
         description: keterangan,
-        siteName: 'SD Yaumi Fatimah Kudus',
+        siteName: namaSekolah,
         locale: 'id_ID',
         type: 'website',
         images: [
-          { url: '/logo.png', width: 256, height: 256, alt: 'Logo SD Yaumi Fatimah Kudus' },
+          { url: '/logo.png', width: 256, height: 256, alt: `Logo ${namaSekolah}` },
         ],
       },
     };

@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import gaya from './kepala-sekolahan.module.css';
 
 /**
@@ -54,9 +55,6 @@ import gaya from './kepala-sekolahan.module.css';
  * `judul`, `keterangan`, `aksi`, dan `anak` semuanya opsional supaya
  * komponen ini tetap bisa dipakai di halaman yang belum punya konteks.
  */
-/** Dipakai selama nama sekolah belum sampai ke halaman ini. */
-const SEKOLAH_BAWAAN = 'SD Yaumi Fatimah Kudus';
-
 export default function KepalaSekolahan({
   namaSekolah,
   judul,

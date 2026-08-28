@@ -195,8 +195,21 @@ sudah terpasang. Migrasi hanya menyentuh kolom `nis`, bukan `token`.
    `KODE_SEKOLAH` yang berbeda, `APP_URL` dan `SYNC_SECRET` yang sama.
 4. Daftarkan kepala sekolah dan wali kelasnya di `users_access` sekolah
    itu.
+5. **Ganti satu baris di `lib/sekolah.js`** menjadi nama netral
+   (`'Sekolah BIAS'`). Nilai itu hanya dipakai sebagai cadangan saat
+   nama sekolah gagal terbaca, dan sejak ada sekolah kedua ia menjadi
+   salah bagi semua sekolah selain Kudus — yang paling merugikan
+   pratinjau WhatsApp dan kaki lembar cetak, karena keduanya dibaca
+   orang tua.
 
-Tidak ada penerapan kode baru. Tidak ada proyek Vercel baru.
+Tidak ada penerapan kode baru selain satu baris itu. Tidak ada proyek
+Vercel baru, tidak ada Supabase baru, tidak ada domain baru.
+
+Nama sekolah sudah dibaca dari data di seluruh tempat yang terlihat
+orang tua maupun guru: kepala dasbor, judul tab, pratinjau tautan
+WhatsApp, keterangan aplikasi PWA, dan kaki lembar cetak PDF. Diuji
+dengan dua token dari dua sekolah berbeda pada satu penerapan yang
+sama — keduanya menampilkan nama sekolahnya masing-masing.
 
 ### Tahap 2 — kalau diminta, bukan diduga
 
