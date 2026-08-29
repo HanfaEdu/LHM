@@ -178,14 +178,49 @@ Langkahnya, **berurutan dan dalam satu waktu** (jangan terpisah
 berhari-hari):
 
 1. Cadangkan database dari Supabase (Database → Backups).
-2. Jalankan `migrasi/001-multi-sekolah.sql` di Supabase → SQL Editor.
-3. Perbarui `sync.js` di Apps Script, isi `KODE_SEKOLAH` (`SDYFK`) dan
-   `NAMA_SEKOLAH` di bagian konfigurasi.
-4. Jalankan **SiPaDi → Sinkronkan Sekarang** satu kali, lalu buka satu
+2. **Ganti seluruh isi Apps Script** dengan `sync.js` yang terbaru, lalu
+   isi kembali `APP_URL` dan `SYNC_SECRET` (keduanya sengaja tidak ikut
+   tersimpan di repositori). Periksa juga kelima baris konfigurasi
+   sekolah — untuk Kudus nilainya sudah benar apa adanya.
+3. Jalankan `migrasi/001-multi-sekolah.sql` di Supabase → SQL Editor.
+4. Jalankan **SiPaDi → Cek Kesehatan Data**, baca dua baris teratasnya.
+5. Jalankan **SiPaDi → Sinkronkan Sekarang** satu kali, lalu buka satu
    tautan rapor untuk memastikan semuanya masih terbaca.
+
+**Kode Apps Script diganti SEBELUM migrasi, bukan sesudahnya.** Urutan
+ini dipilih karena kedua urutan punya celah, tetapi celahnya tidak sama
+besar:
+
+- Kode baru + database lama (celah dari urutan ini): sinkronisasi
+  berhenti di langkah pertama karena tabel `sekolah` belum ada, dengan
+  pesan yang menyebut migrasinya. Tidak ada satu baris pun yang tertulis.
+- Kode lama + database baru (celah dari urutan sebaliknya): baris
+  `users_access` bisa tertulis tanpa `sekolah_id`, dan pemiliknya
+  terkunci dari dasbornya sendiri sampai sinkronisasi diulang.
+
+Yang pertama gagal dengan bersih; yang kedua merusak sesuatu yang baru
+terasa saat seorang guru mencoba masuk. Kalau pemicu tengah malam sudah
+terpasang, celah itu bisa terbuka sendiri tanpa ada yang menyentuh
+apa pun — jadi arahnya dipilih supaya kalaupun terbuka, tidak apa-apa.
 
 Yang TIDAK berubah: tautan orang tua, token, PIN, dan aplikasi yang
 sudah terpasang. Migrasi hanya menyentuh kolom `nis`, bukan `token`.
+
+### Pemicu harian
+
+Sesudah sinkronisasi pertama berhasil, pasang pemicu di Apps Script →
+**Triggers → Add Trigger**: fungsi `sinkronkanSemua`, sumber
+*Time-driven*, *Day timer*, tengah malam.
+
+Setel **Failure notification settings** ke **Notify me immediately**.
+Sejak versi ini, `sinkronkanSemua()` melempar galat kalau ada bagian
+yang gagal — dan surel pemberitahuan bawaan Apps Script itulah yang
+memberi tahu Anda, lengkap dengan ringkasan penyebabnya. Tanpa setelan
+itu, sinkronisasi bisa mati berhari-hari sementara dasbor tetap
+menampilkan angka lama seolah masih segar.
+
+Hanya `sinkronkanSemua` yang perlu dijadwalkan. `cekKesehatanData`
+dijalankan manual saat dibutuhkan; ia tidak mengirim apa pun.
 
 ### Tahap 1 — saat Pati/Juwana benar-benar jadi
 

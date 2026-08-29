@@ -207,7 +207,53 @@ function sinkronkanSemua() {
     identitasSekolah() + '\n\n' +
     catatan.join('\n') + '\n\nSelesai dalam ' + durasi + ' detik.';
   Logger.log(ringkasan);
+  tampilkanRingkasan(ringkasan);
+
+  // Kedua bagian di atas sengaja memakai try/catch terpisah supaya
+  // kegagalan yang satu tidak menjatuhkan yang lain. Efek sampingnya:
+  // fungsi ini SELESAI DENGAN WAJAR walau seluruh isinya gagal -- dan
+  // bagi pemicu tengah malam itu berarti Apps Script menganggapnya
+  // sukses dan tidak mengirim pemberitahuan apa pun. Sinkronisasi bisa
+  // mati berminggu-minggu tanpa ada yang tahu, sementara dasbor tetap
+  // menampilkan angka lama seolah-olah masih segar.
+  //
+  // Karena itu kegagalan dilempar kembali di sini, sesudah ringkasannya
+  // dicatat dan ditampilkan. Pesannya berisi ringkasan utuh, jadi surel
+  // pemberitahuan bawaan Apps Script langsung memuat penyebabnya --
+  // tanpa perlu MailApp, tanpa izin tambahan, dan tanpa alamat surel
+  // yang harus ditulis di dalam skrip.
+  //
+  // Atur "Failure notification settings" pemicunya ke "Notify me
+  // immediately" saat memasang pemicu.
+  const adaGagal = catatan.some(function (baris) {
+    return baris.indexOf('[GAGAL]') === 0;
+  });
+  if (adaGagal) throw new Error(ringkasan);
+
   return ringkasan;
+}
+
+/**
+ * Menampilkan ringkasan sinkronisasi sebagai dialog.
+ *
+ * Sebelumnya ringkasan ini hanya masuk ke Logger, jadi orang yang
+ * menekan "Sinkronkan Sekarang" dari menu tidak melihat apa-apa: tidak
+ * tahu berapa siswa terkirim, tidak tahu kalau separuhnya gagal, dan
+ * tidak membaca baris identitas sekolah yang justru ditaruh di paling
+ * atas untuk dibaca.
+ *
+ * Saat dijalankan oleh pemicu tengah malam tidak ada antarmuka sama
+ * sekali dan getUi() melempar galat; itu ditelan di sini, karena
+ * ringkasannya toh sudah tercatat di Logger.
+ */
+function tampilkanRingkasan(ringkasan) {
+  try {
+    SpreadsheetApp.getUi().alert(
+      'Sinkronisasi selesai', ringkasan, SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  } catch (e) {
+    // Dipanggil dari pemicu, bukan dari menu.
+  }
 }
 
 /**
