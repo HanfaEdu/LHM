@@ -9,6 +9,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -205,7 +206,6 @@ export default function DasborKepalaSekolah() {
       'B. Indonesia': r.perMapel[0]?.persen ?? null,
       Matematika: r.perMapel[1]?.persen ?? null,
       IPA: r.perMapel[2]?.persen ?? null,
-      ambang: AMBANG_KETUNTASAN,
     }));
 
   const kelasFokus = ringkasan.find((r) => String(r.kelas.id) === String(fokus));
@@ -644,19 +644,40 @@ function GrafikKetuntasanKelas({ data }) {
             }}
             formatter={(v, n) => [v === null ? 'belum dinilai' : `${bulat(v, 1)}%`, n]}
           />
-          <Legend content={<LegendaGrafik />} />
-          {/* Sebagai seri, bukan ReferenceLine, supaya simbol garis
-              merah putus-putusnya ikut muncul di legenda. */}
-          <Line
-            isAnimationActive={!ukuran.cetak}
-            dataKey="ambang"
-            name={`Ambang ${AMBANG_KETUNTASAN}%`}
+          <Legend
+            content={
+              <LegendaGrafik
+                tambahanDepan={[
+                  {
+                    kunci: 'ambang',
+                    label: `Ambang ${AMBANG_KETUNTASAN}%`,
+                    jenis: 'garis',
+                    warna: 'var(--target)',
+                    putusPutus: true,
+                  },
+                ]}
+              />
+            }
+          />
+          {/* ReferenceLine, bukan seri Line.
+
+              Ambang ketuntasan satu angka tetap, sama untuk semua kelas --
+              ia garis batas, bukan data per kelas. Sebagai seri, garisnya
+              hanya membentang dari titik tengah kelompok batang pertama ke
+              titik tengah kelompok terakhir, sehingga menggantung tidak
+              sampai ke kedua tepi bidang gambar. Di grafik ini selisihnya
+              paling mencolok karena kategorinya sedikit (tujuh kelas):
+              hampir separuh lebar satu kelompok batang di masing-masing
+              ujung dibiarkan kosong.
+
+              ReferenceLine tidak pernah muncul di legenda karena ia bukan
+              seri, jadi keterangannya disisipkan sendiri lewat
+              tambahanDepan di atas -- di posisi yang sama seperti dulu. */}
+          <ReferenceLine
+            y={AMBANG_KETUNTASAN}
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
-            dot={false}
-            activeDot={false}
-            connectNulls
           />
           <Bar isAnimationActive={!ukuran.cetak} dataKey="B. Indonesia" fill="var(--seri-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
           <Bar isAnimationActive={!ukuran.cetak} dataKey="Matematika" fill="var(--seri-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />

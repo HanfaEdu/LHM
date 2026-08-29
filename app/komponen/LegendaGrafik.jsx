@@ -75,18 +75,48 @@ function Ikon({ warna, warnaTepi, putusPutus, jenis, bulatanTarget }) {
 }
 
 /**
- * `tambahan` menyisipkan keterangan yang tidak berasal dari seri Recharts
- * mana pun -- dipakai untuk status yang dibawa oleh tampilan batang, bukan
- * oleh seri tersendiri. Contohnya "Di bawah target" pada grafik Tahfidz
- * dan Tahsin: batangnya seri yang sama persis, hanya garis tepinya merah.
+ * `tambahan` dan `tambahanDepan` menyisipkan keterangan yang tidak berasal
+ * dari seri Recharts mana pun. Dua hal memakainya:
+ *
+ *   - status yang dibawa oleh tampilan batang, bukan oleh seri tersendiri.
+ *     Contohnya "Di bawah target" pada grafik Tahfidz dan Tahsin: batangnya
+ *     seri yang sama persis, hanya garis tepinya merah.
+ *   - garis ambang yang digambar sebagai ReferenceLine. ReferenceLine
+ *     membentang penuh dari tepi kiri ke tepi kanan bidang gambar --
+ *     itulah yang dibutuhkan sebuah ambang -- tetapi ia bukan seri,
+ *     sehingga tidak pernah muncul sendiri di legenda. Keterangannya
+ *     disisipkan lewat `tambahanDepan` supaya urutannya tetap sama seperti
+ *     ketika ambang itu masih berupa seri: ambang dulu, baru datanya.
  *
  * Ditaruh di legenda, bukan sebagai kalimat di bawah judul kartu, karena
  * baris legenda memang sudah ada di tiap grafik -- keterangannya jadi
  * tidak menambah tinggi halaman sedikit pun, dan ikut ke mana pun
  * grafiknya dipakai tanpa perlu didaftarkan ulang di tiap dasbor.
  */
-export default function LegendaGrafik({ payload, bulatanTarget = false, tambahan }) {
-  if (!payload?.length) return null;
+export default function LegendaGrafik({
+  payload,
+  bulatanTarget = false,
+  tambahan,
+  tambahanDepan,
+}) {
+  // payload boleh kosong selama masih ada keterangan sisipan: grafik yang
+  // seluruh garisnya ReferenceLine memang tidak punya seri sama sekali.
+  if (!payload?.length && !tambahanDepan?.length && !tambahan?.length) return null;
+
+  const sisipan = (t) => (
+    <li
+      key={t.kunci}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+    >
+      <Ikon
+        jenis={t.jenis || 'rect'}
+        warna={t.warna}
+        warnaTepi={t.warnaTepi}
+        putusPutus={t.putusPutus}
+      />
+      <span style={{ color: 'var(--tinta-lembut)' }}>{t.label}</span>
+    </li>
+  );
 
   return (
     <ul
@@ -101,7 +131,9 @@ export default function LegendaGrafik({ payload, bulatanTarget = false, tambahan
         fontSize: 12,
       }}
     >
-      {payload.map((seri) => (
+      {tambahanDepan?.map(sisipan)}
+
+      {payload?.map((seri) => (
         <li
           key={seri.dataKey ?? seri.value}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
@@ -119,15 +151,7 @@ export default function LegendaGrafik({ payload, bulatanTarget = false, tambahan
         </li>
       ))}
 
-      {tambahan?.map((t) => (
-        <li
-          key={t.kunci}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-        >
-          <Ikon jenis="rect" warna={t.warna} warnaTepi={t.warnaTepi} />
-          <span style={{ color: 'var(--tinta-lembut)' }}>{t.label}</span>
-        </li>
-      ))}
+      {tambahan?.map(sisipan)}
     </ul>
   );
 }

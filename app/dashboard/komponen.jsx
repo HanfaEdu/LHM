@@ -7,6 +7,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -133,10 +134,13 @@ export function MeterKetuntasan({ label, hasil }) {
 export function GrafikKelasAkademik({ baris, target, anonim }) {
   const ukuran = useUkuranGrafikDasbor();
 
+  // `target` tidak lagi diikutkan ke tiap baris data: sejak digambar
+  // sebagai ReferenceLine, ia bukan lagi seri yang perlu punya nilai per
+  // siswa -- dan membiarkannya di sini hanya menambah satu baris "Target
+  // 90" yang sama di setiap tooltip.
   const data = baris.map((b) => ({
     nama: anonim ? b.label : b.nama_panggilan,
     ...b,
-    target,
   }));
 
   const adaIsi = data.some((b) => MAPEL.some((m) => b[m.kunci] !== null));
@@ -172,22 +176,40 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
             contentStyle={kotakTooltip}
             formatter={(v, n) => [v === null ? 'belum dinilai' : bulat(v, 1), n]}
           />
-          <Legend content={<LegendaGrafik />} />
-          {/* Target digambar sebagai seri, bukan ReferenceLine: hanya seri
-              yang ikut muncul di legenda, dan legenda itulah tempat pembaca
-              mengetahui arti garis merah putus-putus ini. Bentuk ikonnya
-              ditentukan LegendaGrafik dari strokeDasharray di bawah, jadi
-              tidak ada tipe ikon yang perlu didaftarkan di sini. */}
-          <Line
-            isAnimationActive={!ukuran.cetak}
-            dataKey="target"
-            name="Target"
+          <Legend
+            content={
+              <LegendaGrafik
+                tambahanDepan={[
+                  {
+                    kunci: 'target',
+                    label: 'Target',
+                    jenis: 'garis',
+                    warna: 'var(--target)',
+                    putusPutus: true,
+                  },
+                ]}
+              />
+            }
+          />
+          {/* ReferenceLine, bukan seri Line.
+             
+              Target kelas satu angka yang sama untuk seluruh siswa -- ia
+              ambang, bukan data per siswa. Digambar sebagai seri, garisnya
+              hanya membentang dari titik tengah batang pertama ke titik
+              tengah batang terakhir, sehingga menggantung tidak sampai ke
+              kedua tepi bidang gambar. Pada kelas berisi 24 siswa selisih
+              itu kecil dan nyaris tak terlihat; pada grafik berkategori
+              sedikit ia langsung terbaca sebagai garis yang kurang
+              panjang.
+             
+              Konsekuensinya ReferenceLine tidak pernah muncul di legenda
+              (ia bukan seri), jadi keterangannya disisipkan sendiri lewat
+              tambahanDepan di atas -- di posisi yang sama seperti dulu. */}
+          <ReferenceLine
+            y={target}
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
-            dot={false}
-            activeDot={false}
-            connectNulls
           />
           {/* Batang, bukan garis. Sumbu X di sini adalah nama siswa --
               kategori yang tidak berurutan. Garis akan menyambungkan Aksara

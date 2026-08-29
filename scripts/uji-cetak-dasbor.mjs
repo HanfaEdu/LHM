@@ -282,8 +282,26 @@ async function ukurCetak(page, label) {
           })
           .filter(Boolean);
 
+        /* Garis ambang (ReferenceLine) harus membentang PENUH dari tepi
+           kiri ke tepi kanan bidang gambar. Kalau suatu saat ia kembali
+           digambar sebagai seri Line, ujungnya akan berhenti di titik
+           tengah kategori pertama dan terakhir -- menggantung, dan pada
+           grafik berkategori sedikit (tujuh kelas) selisih itu langsung
+           terbaca sebagai garis yang kurang panjang. */
+        const celahAmbang = [...document.querySelectorAll('.recharts-surface')]
+          .flatMap((svg) => {
+            const ref = svg.querySelector('.recharts-reference-line line');
+            const kisi = svg.querySelector('.recharts-cartesian-grid-horizontal line');
+            if (!ref || !kisi) return [];
+            const r = ref.getBoundingClientRect();
+            const k = kisi.getBoundingClientRect();
+            return [Math.round(Math.max(r.left - k.left, k.right - r.right))];
+          });
+
         return {
           jumlahGrafik: perGrafik.length,
+          adaAmbang: celahAmbang.length,
+          celahAmbangTerbesar: celahAmbang.length ? Math.max(...celahAmbang) : 0,
           tembusTerjauh: Math.round(Math.max(0, ...perGrafik.map((g) => g.tembus))),
           /* Grafik berseri batang yang tidak menggambar apa pun, atau
              yang batang tertingginya belum mencapai seperempat bidang
@@ -369,6 +387,9 @@ try {
     periksa('tombol tidak ikut tercetak', !h.adaTombol);
     periksa('batang grafik tidak menembus garis dasar (menimpa nama siswa)',
       h.tembusTerjauh <= 2, `tembus ${h.tembusTerjauh}px ke bawah garis`);
+    periksa('garis ambang membentang penuh ke kedua tepi bidang gambar',
+      h.adaAmbang > 0 && h.celahAmbangTerbesar <= 2,
+      `${h.adaAmbang} garis ambang, celah terbesar ${h.celahAmbangTerbesar}px`);
     periksa('tidak ada grafik yang keluar kosong',
       h.jumlahGrafik > 0 && h.grafikKosong === 0,
       `${h.jumlahGrafik} grafik → ${h.rincianGrafik}`);
