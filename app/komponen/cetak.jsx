@@ -31,12 +31,23 @@ export const KonteksCetak = createContext(false);
  *
  * Satu-satunya jalan keluar adalah memberi tahu angkanya secara eksplisit
  * sebelum halaman dipotret; itulah yang dilakukan konteks ini.
+ *
+ * `cetak` di dalam hasilnya WAJIB dipakai untuk mematikan animasi tiap
+ * seri (isAnimationActive={!ukuran.cetak}). Alasannya bukan penghematan:
+ * Recharts MENGANIMASIKAN batangnya dari ukuran lama ke ukuran baru
+ * setiap kali grafik berganti ukuran, sementara peramban memotret
+ * halaman dalam bingkai yang sama begitu penangan beforeprint selesai.
+ * Yang terpotret adalah bingkai PERTAMA animasi itu: sumbu sudah memakai
+ * tinggi kertas, sedangkan batangnya masih setinggi ukuran layar --
+ * sehingga batang menembus garis dasar dan menimpa nama siswa di
+ * bawahnya. Tidak ada galat apa pun yang muncul; kerusakannya hanya
+ * terlihat di PDF yang sudah terlanjur dicetak.
  */
 export function useUkuranGrafik(lebarCetak, tinggiCetak) {
   const sedangDicetak = useContext(KonteksCetak);
   return sedangDicetak
-    ? { width: lebarCetak, height: tinggiCetak }
-    : { width: '100%', height: '100%' };
+    ? { width: lebarCetak, height: tinggiCetak, cetak: true }
+    : { width: '100%', height: '100%', cetak: false };
 }
 
 /**

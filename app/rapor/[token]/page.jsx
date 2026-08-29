@@ -69,6 +69,27 @@ function useUkuranGrafik() {
   return ukuranGrafikCetak(LEBAR_GRAFIK_CETAK, TINGGI_GRAFIK_CETAK);
 }
 
+/* Pemakaiannya WAJIB disertai dua hal, dan keduanya sudah dibuktikan
+   perlu dengan membandingkan PDF sungguhan:
+
+     key={ukuranGrafik.cetak ? 'cetak' : 'layar'} pada
+     ResponsiveContainer -- memaksa grafik dibangun ULANG pada ukuran
+     kertas. Tanpa ini Recharts MENGANIMASIKAN batangnya dari ukuran
+     layar ke ukuran kertas, sementara peramban memotret halaman jauh
+     sebelum animasi itu selesai: sumbu sudah memakai tinggi kertas,
+     batangnya masih memakai tinggi layar, sehingga batang menembus
+     garis dasar dan menutupi nama bulan di bawahnya. Paling parah saat
+     dicetak dari PC, tempat selisih lebar layar dan lebar kertas paling
+     besar -- di HP nyaris tidak terlihat, itulah kenapa lama tidak
+     ketahuan.
+
+     isAnimationActive={!ukuranGrafik.cetak} pada tiap seri --
+     mematikan animasi MASUK pada bangunan ulang itu. Dengan key saja,
+     batangnya tumbuh dari nol dan yang terpotret grafik nyaris kosong.
+
+   Dijaga oleh scripts/uji-cetak-rapor.mjs (jalankan juga dengan
+   argumen 1280 untuk keadaan cetak dari PC). */
+
 export default function HalamanRapor({ params }) {
   // Next.js 14: params adalah objek biasa, bukan Promise.
   const token = params.token;
@@ -417,7 +438,11 @@ function GrafikAkademik({ bulanan, target }) {
 
       {adaIsi ? (
         <div className={gaya.grafik}>
-          <ResponsiveContainer {...ukuranGrafik}>
+          <ResponsiveContainer
+            key={ukuranGrafik.cetak ? 'cetak' : 'layar'}
+            width={ukuranGrafik.width}
+            height={ukuranGrafik.height}
+          >
             <LineChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
               <CartesianGrid stroke="var(--garis)" vertical={false} />
               <XAxis
@@ -447,6 +472,7 @@ function GrafikAkademik({ bulanan, target }) {
                   tempat pembaca bisa tahu garis merah putus-putus ini artinya
                   apa setelah keterangan panjangnya dihapus. */}
               <Line
+                isAnimationActive={!ukuranGrafik.cetak}
                 dataKey="target_akademik"
                 name="Target"
                 stroke={WARNA.target}
@@ -459,6 +485,7 @@ function GrafikAkademik({ bulanan, target }) {
               {/* connectNulls dibiarkan false: bulan tanpa nilai harus memutus
                   garis, bukan disambung seolah-olah nilainya berpindah halus. */}
               <Line
+                isAnimationActive={!ukuranGrafik.cetak}
                 type="monotone"
                 dataKey="rata_b_indo"
                 name="B. Indonesia"
@@ -468,6 +495,7 @@ function GrafikAkademik({ bulanan, target }) {
                 connectNulls={false}
               />
               <Line
+                isAnimationActive={!ukuranGrafik.cetak}
                 type="monotone"
                 dataKey="rata_mtk"
                 name="Matematika"
@@ -477,6 +505,7 @@ function GrafikAkademik({ bulanan, target }) {
                 connectNulls={false}
               />
               <Line
+                isAnimationActive={!ukuranGrafik.cetak}
                 type="monotone"
                 dataKey="rata_ipa"
                 name="IPA"
@@ -520,7 +549,11 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
 
       {adaIsi ? (
         <div className={gaya.grafik}>
-          <ResponsiveContainer {...ukuranGrafik}>
+          <ResponsiveContainer
+            key={ukuranGrafik.cetak ? 'cetak' : 'layar'}
+            width={ukuranGrafik.width}
+            height={ukuranGrafik.height}
+          >
             <ComposedChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
               <CartesianGrid stroke="var(--garis)" vertical={false} />
               <XAxis
@@ -548,6 +581,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
               />
               <Legend content={<LegendaGrafik bulatanTarget />} />
               <Bar
+                isAnimationActive={!ukuranGrafik.cetak}
                 dataKey={kolomCapaian}
                 name="Capaian"
                 fill={warna}
@@ -555,6 +589,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
                 maxBarSize={34}
               />
               <Line
+                isAnimationActive={!ukuranGrafik.cetak}
                 dataKey={kolomTarget}
                 name="Target"
                 stroke={WARNA.target}
@@ -1032,7 +1067,11 @@ function GrafikSatuUkuran({
       <h3 className={gaya.judulUkuran}>{nama}</h3>
 
       <div className={gaya.grafik}>
-        <ResponsiveContainer {...ukuranGrafik}>
+        <ResponsiveContainer
+          key={ukuranGrafik.cetak ? 'cetak' : 'layar'}
+          width={ukuranGrafik.width}
+          height={ukuranGrafik.height}
+        >
           <ComposedChart
             data={baris.map((r) => ({ ...r, target }))}
             margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
@@ -1069,6 +1108,7 @@ function GrafikSatuUkuran({
                 digambar hitam dan tidak cocok dengan batang mana pun. Cell
                 di bawahnya tetap menimpa warna per siswa. */}
             <Bar
+              isAnimationActive={!ukuranGrafik.cetak}
               dataKey={kunci}
               name={nama}
               fill="var(--seri-2)"
@@ -1087,6 +1127,7 @@ function GrafikSatuUkuran({
                 bukan tertimbun di belakangnya. */}
             {target !== null && (
               <Line
+                isAnimationActive={!ukuranGrafik.cetak}
                 dataKey="target"
                 name="Target"
                 stroke={WARNA.target}

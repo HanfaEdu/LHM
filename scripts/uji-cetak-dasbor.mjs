@@ -186,11 +186,19 @@ async function siapkanHalaman(konteks, peran) {
 
 async function ukurCetak(page, label) {
   await page.emulateMedia({ media: 'print' });
-  // Mode cetak dinyalakan lewat jalur yang sama dengan Ctrl+P.
-  await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
-  await page.waitForTimeout(400);
 
+  /* Dinyalakan dan DIUKUR DALAM SATU evaluate yang sama, tanpa jeda
+     sedikit pun.
+     
+     Ini bukan kerewelan: peramban memotret halaman SEGERA setelah
+     penangan beforeprint selesai, dalam bingkai yang sama. Versi
+     sebelumnya menunggu 400ms lebih dulu, dan jeda itu memberi Recharts
+     waktu menyelesaikan animasi batangnya -- sehingga uji ini lolos
+     sementara hasil cetak sungguhan di PC keluar dengan batang yang
+     menembus garis dasar dan menutupi nama siswa. Jeda pada uji cetak
+     menguji halaman yang tidak pernah dicetak siapa pun. */
   const hasil = await page.evaluate(() => {
+    window.dispatchEvent(new Event('beforeprint'));
     const svg = [...document.querySelectorAll('.recharts-surface')];
     const tabel = [...document.querySelectorAll('table')];
     const lebarBadan = document.body.scrollWidth;
@@ -212,6 +220,82 @@ async function ukurCetak(page, label) {
       adaSelect: [...document.querySelectorAll('select')].some(terlihat),
       adaTombol: [...document.querySelectorAll('button, a[href]')].some(terlihat),
       teks: document.body.innerText,
+
+      /* Dua cara grafik bisa rusak saat dicetak, keduanya tanpa galat
+         apa pun, dan keduanya hanya terlihat di PDF yang sudah
+         terlanjur dikirim.
+
+         1. tembusTerjauh -- batang menembus ke BAWAH garis dasar sumbu
+            X. Di situlah nama siswa ditulis, jadi batang yang
+            melewatinya menutupi nama. Terjadi kalau grafik dibiarkan
+            MENGANIMASIKAN dirinya dari ukuran layar ke ukuran kertas.
+
+         2. batangKerdil -- batang tergambar setinggi hampir nol karena
+            terpotret di tengah animasi MASUK. Grafiknya praktis kosong,
+            tetapi pemeriksaan (1) tetap lolos: batang setinggi nol
+            memang tidak menutupi nama siapa pun. */
+      /* Tiga cara grafik bisa rusak saat dicetak, semuanya tanpa galat
+         apa pun, dan semuanya hanya terlihat di PDF yang sudah
+         terlanjur dikirim.
+
+         1. tembusTerjauh -- batang menembus ke BAWAH garis dasar sumbu
+            X. Di situlah nama siswa ditulis, jadi batang yang
+            melewatinya menutupi nama. Terjadi kalau grafik dibiarkan
+            MENGANIMASIKAN dirinya dari ukuran layar ke ukuran kertas.
+
+         2. grafikKosong -- ada grafik yang batangnya tidak tergambar
+            sama sekali, atau tergambar setinggi hampir nol karena
+            terpotret di tengah animasi MASUK. Pemeriksaan (1) tetap
+            lolos untuk kasus ini: batang setinggi nol memang tidak
+            menutupi nama siapa pun.
+
+         DIUKUR PER GRAFIK, bukan digabung. Versi sebelumnya menjumlahkan
+         seluruh grafik pada halaman, sehingga satu grafik akademik yang
+         batangnya tinggi menutupi kenyataan bahwa grafik Tahfidz dan
+         Tahsin di bawahnya keluar kosong melompong. */
+      ...(() => {
+        const perGrafik = [...document.querySelectorAll('.recharts-surface')]
+          .map((svg) => {
+            const garis = svg.querySelector('.recharts-xAxis .recharts-cartesian-axis-line');
+            if (!garis) return null;
+            const dasar = garis.getBoundingClientRect().bottom;
+            const tinggiPlot = dasar - svg.getBoundingClientRect().top;
+            const batang = [...svg.querySelectorAll(
+              '.recharts-bar-rectangle path, .recharts-bar-rectangle rect'
+            )].map((b) => b.getBoundingClientRect());
+            /* Apakah grafik ini MEMANG punya seri batang. Diambil dari
+               lapisan .recharts-bar, bukan dari ada-tidaknya persegi:
+               grafik yang batangnya lenyap tetap punya lapisannya, dan
+               justru itulah yang hendak ditangkap. Tidak boleh diambil
+               dari "ada garis seri atau tidak" -- grafik Tahfidz dan
+               Tahsin punya garis target, dan aturan itu membuat
+               keduanya terkecuali dari pemeriksaan padahal merekalah
+               yang paling sering keluar kosong. */
+            const punyaSeriBatang = svg.querySelectorAll('.recharts-bar').length > 0;
+            return {
+              batang: batang.length,
+              punyaSeriBatang,
+              tertinggi: Math.max(0, ...batang.map((r) => r.height)),
+              tembus: Math.max(0, ...batang.map((r) => r.bottom - dasar)),
+              tinggiPlot,
+            };
+          })
+          .filter(Boolean);
+
+        return {
+          jumlahGrafik: perGrafik.length,
+          tembusTerjauh: Math.round(Math.max(0, ...perGrafik.map((g) => g.tembus))),
+          /* Grafik berseri batang yang tidak menggambar apa pun, atau
+             yang batang tertingginya belum mencapai seperempat bidang
+             gambarnya sendiri. */
+          grafikKosong: perGrafik.filter(
+            (g) => g.punyaSeriBatang && (g.batang === 0 || g.tertinggi < g.tinggiPlot * 0.25)
+          ).length,
+          rincianGrafik: perGrafik
+            .map((g) => `${g.batang}b/${Math.round(g.tertinggi)}px`)
+            .join(' '),
+        };
+      })(),
     };
   });
 
@@ -283,6 +367,11 @@ try {
       h.kananTerjauh <= BATAS + 1, `tepi terjauh ${h.kananTerjauh}px`);
     periksa('dropdown tidak ikut tercetak', !h.adaSelect);
     periksa('tombol tidak ikut tercetak', !h.adaTombol);
+    periksa('batang grafik tidak menembus garis dasar (menimpa nama siswa)',
+      h.tembusTerjauh <= 2, `tembus ${h.tembusTerjauh}px ke bawah garis`);
+    periksa('tidak ada grafik yang keluar kosong',
+      h.jumlahGrafik > 0 && h.grafikKosong === 0,
+      `${h.jumlahGrafik} grafik → ${h.rincianGrafik}`);
     periksa('judul dokumen tercetak', h.teks.includes('Laporan Bulanan'));
     periksa('kaki mencantumkan nama sekolah',
       h.teks.includes('SD Yaumi Fatimah Kudus'));

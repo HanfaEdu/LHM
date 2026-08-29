@@ -144,7 +144,11 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
+      <ResponsiveContainer
+        key={ukuran.cetak ? 'cetak' : 'layar'}
+        width={ukuran.width}
+        height={ukuran.height}
+      >
         <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
@@ -175,6 +179,7 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
               ditentukan LegendaGrafik dari strokeDasharray di bawah, jadi
               tidak ada tipe ikon yang perlu didaftarkan di sini. */}
           <Line
+            isAnimationActive={!ukuran.cetak}
             dataKey="target"
             name="Target"
             stroke="var(--target)"
@@ -191,11 +196,11 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
               keduanya; kemiringannya lalu terbaca sebagai tren yang tidak
               ada. Garis tetap dipakai pada grafik per-siswa sepanjang tahun,
               di mana sumbu X-nya bulan dan tren memang bermakna. */}
-          <Bar dataKey="rata_b_indo" name="B. Indonesia" fill="var(--seri-1)"
+          <Bar isAnimationActive={!ukuran.cetak} dataKey="rata_b_indo" name="B. Indonesia" fill="var(--seri-1)"
                radius={[3, 3, 0, 0]} maxBarSize={18} />
-          <Bar dataKey="rata_mtk" name="Matematika" fill="var(--seri-2)"
+          <Bar isAnimationActive={!ukuran.cetak} dataKey="rata_mtk" name="Matematika" fill="var(--seri-2)"
                radius={[3, 3, 0, 0]} maxBarSize={18} />
-          <Bar dataKey="rata_ipa" name="IPA" fill="var(--seri-3)"
+          <Bar isAnimationActive={!ukuran.cetak} dataKey="rata_ipa" name="IPA" fill="var(--seri-3)"
                radius={[3, 3, 0, 0]} maxBarSize={18} />
         </ComposedChart>
       </ResponsiveContainer>
@@ -227,7 +232,11 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
+      <ResponsiveContainer
+        key={ukuran.cetak ? 'cetak' : 'layar'}
+        width={ukuran.width}
+        height={ukuran.height}
+      >
         <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
@@ -291,6 +300,7 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
               fill dipasang di Bar agar kotak legenda ikut berwarna; Cell
               di bawahnya menimpanya per siswa. */}
           <Bar
+            isAnimationActive={!ukuran.cetak}
             dataKey={kCapaian}
             name="Capaian"
             fill={warna}
@@ -313,6 +323,7 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
             })}
           </Bar>
           <Line
+            isAnimationActive={!ukuran.cetak}
             dataKey={kTarget}
             name="Target"
             stroke="var(--target)"
@@ -616,7 +627,11 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
+      <ResponsiveContainer
+        key={ukuran.cetak ? 'cetak' : 'layar'}
+        width={ukuran.width}
+        height={ukuran.height}
+      >
         <ComposedChart
           data={bulanan.map((b) => ({ ...b, target }))}
           margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
@@ -645,6 +660,7 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
           />
           <Legend content={<LegendaGrafik />} />
           <Line
+            isAnimationActive={!ukuran.cetak}
             dataKey="target"
             name="Target"
             stroke="var(--target)"
@@ -654,11 +670,11 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
             activeDot={false}
             connectNulls
           />
-          <Line dataKey="rata_b_indo" name="B. Indonesia" stroke="var(--seri-1)"
+          <Line isAnimationActive={!ukuran.cetak} dataKey="rata_b_indo" name="B. Indonesia" stroke="var(--seri-1)"
                 strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
-          <Line dataKey="rata_mtk" name="Matematika" stroke="var(--seri-2)"
+          <Line isAnimationActive={!ukuran.cetak} dataKey="rata_mtk" name="Matematika" stroke="var(--seri-2)"
                 strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
-          <Line dataKey="rata_ipa" name="IPA" stroke="var(--seri-3)"
+          <Line isAnimationActive={!ukuran.cetak} dataKey="rata_ipa" name="IPA" stroke="var(--seri-3)"
                 strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
         </ComposedChart>
       </ResponsiveContainer>
@@ -678,7 +694,11 @@ export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
+      <ResponsiveContainer
+        key={ukuran.cetak ? 'cetak' : 'layar'}
+        width={ukuran.width}
+        height={ukuran.height}
+      >
         <ComposedChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
@@ -706,8 +726,9 @@ export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
             }
           />
           <Legend content={<LegendaGrafik bulatanTarget />} />
-          <Bar dataKey={kCapaian} name="Capaian" fill={warna} radius={[4, 4, 0, 0]} maxBarSize={34} />
+          <Bar isAnimationActive={!ukuran.cetak} dataKey={kCapaian} name="Capaian" fill={warna} radius={[4, 4, 0, 0]} maxBarSize={34} />
           <Line
+            isAnimationActive={!ukuran.cetak}
             dataKey={kTarget}
             name="Target"
             stroke="var(--target)"

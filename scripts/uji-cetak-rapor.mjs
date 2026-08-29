@@ -37,7 +37,7 @@ try {
   }
 }
 
-const PORT = 3993;
+const PORT = 3993 + (Number(process.argv[2]) ? 1 : 0);
 const anak = spawn('./node_modules/.bin/next', ['start','-p',String(PORT)], { cwd: process.cwd(), stdio:['ignore','pipe','pipe'] });
 await new Promise(r => anak.stdout.on('data', d => String(d).includes('Ready') && r()));
 
@@ -68,7 +68,12 @@ const JAWABAN = {
 };
 
 const b = await chromium.launch();
-const c = await b.newContext({ viewport:{ width:390, height:780 } });
+/* Lebar layar diambil dari argumen supaya kedua keadaan nyata teruji:
+   orang tua membuka di HP, wali kelas dan kepala sekolah mencetak dari
+   PC. Selisih antara lebar layar dan lebar kertas paling besar justru
+   di PC, dan di situlah grafik paling mudah tercetak salah. */
+const LEBAR = Number(process.argv[2]) || 390;
+const c = await b.newContext({ viewport:{ width: LEBAR, height: 900 } });
 const p = await c.newPage();
 p.on('pageerror', e => console.log('  [pageerror]', String(e).slice(0,300)));
 await p.route('**/api/rapor', r => r.fulfill({ status:200, contentType:'application/json', body: JSON.stringify(JAWABAN) }));
@@ -82,19 +87,61 @@ const isi = await p.locator('body').innerText();
 periksa('halaman rapor termuat', !isi.includes('Application error') && isi.includes('Aisyah'));
 
 await p.emulateMedia({ media:'print' });
+/* Dinyalakan dan diukur tanpa jeda: peramban memotret halaman dalam
+   bingkai yang sama begitu penangan beforeprint selesai. Jeda di sini
+   memberi Recharts waktu menyelesaikan animasinya, dan itu menguji
+   halaman yang tidak pernah dicetak siapa pun. */
 await p.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
-await p.waitForTimeout(500);
 
 const h = await p.evaluate(() => ({
   lebarSvg: [...document.querySelectorAll('.recharts-surface')].map(s => Math.round(s.getBoundingClientRect().width)),
   lipatanTerbuka: [...document.querySelectorAll('details')].every(d => d.open),
   jumlahLipatan: document.querySelectorAll('details').length,
   teks: document.body.innerText,
+  /* Diukur PER GRAFIK, bukan digabung: satu grafik yang batangnya
+     tinggi akan menutupi kenyataan bahwa grafik di bawahnya keluar
+     kosong. Apakah sebuah grafik memang berseri batang diambil dari
+     lapisan .recharts-bar -- bukan dari ada-tidaknya garis seri, sebab
+     grafik Tahfidz dan Tahsin punya garis target dan aturan itu akan
+     mengecualikan justru yang paling sering rusak. */
+  ...(() => {
+    const perGrafik = [...document.querySelectorAll('.recharts-surface')]
+      .map((svg) => {
+        const garis = svg.querySelector('.recharts-xAxis .recharts-cartesian-axis-line');
+        if (!garis) return null;
+        const dasar = garis.getBoundingClientRect().bottom;
+        const tinggiPlot = dasar - svg.getBoundingClientRect().top;
+        const batang = [...svg.querySelectorAll(
+          '.recharts-bar-rectangle path, .recharts-bar-rectangle rect'
+        )].map((b) => b.getBoundingClientRect());
+        return {
+          punyaSeriBatang: svg.querySelectorAll('.recharts-bar').length > 0,
+          batang: batang.length,
+          tertinggi: Math.max(0, ...batang.map((r) => r.height)),
+          tembus: Math.max(0, ...batang.map((r) => r.bottom - dasar)),
+          tinggiPlot,
+        };
+      })
+      .filter(Boolean);
+    return {
+      tembus: Math.round(Math.max(0, ...perGrafik.map((g) => g.tembus))),
+      jumlahGrafik: perGrafik.length,
+      grafikKosong: perGrafik.filter(
+        (g) => g.punyaSeriBatang && (g.batang === 0 || g.tertinggi < g.tinggiPlot * 0.25)
+      ).length,
+      rincianGrafik: perGrafik.map((g) => `${g.batang}b/${Math.round(g.tertinggi)}px`).join(' '),
+    };
+  })(),
 }));
 periksa('grafik memakai lebar kertas', h.lebarSvg.length>0 && h.lebarSvg.every(l => l>600 && l<=703),
   `lebar: ${[...new Set(h.lebarSvg)].join(', ')}`);
 periksa('seluruh lipatan dibuka untuk dicetak', h.lipatanTerbuka, `${h.jumlahLipatan} lipatan`);
 periksa('keterangan poin ikut tercetak', /Al Falaq|Al Ikhlas|Fathah/.test(h.teks));
+periksa('batang tidak menembus garis dasar (menimpa nama bulan)',
+  h.tembus <= 2, `tembus ${h.tembus}px`);
+periksa('tidak ada grafik yang keluar kosong',
+  h.jumlahGrafik > 0 && h.grafikKosong === 0,
+  `${h.jumlahGrafik} grafik → ${h.rincianGrafik}`);
 periksa('kaki cetak memuat nama sekolah dan siswa',
   h.teks.includes('SD Yaumi Fatimah Kudus') && h.teks.includes('Aisyah Nur Fadhilah'));
 
@@ -106,10 +153,10 @@ const setelah = await p.evaluate(() => ({
   adaDitandai: document.querySelectorAll('details[data-dibuka-untuk-cetak]').length,
 }));
 periksa('grafik kembali ke lebar layar sesudah cetak',
-  setelah.lebarSvg.every(l => l < 500), `lebar: ${[...new Set(setelah.lebarSvg)].join(', ')}`);
+  setelah.lebarSvg.every(l => l !== 696), `lebar: ${[...new Set(setelah.lebarSvg)].join(', ')}`);
 periksa('lipatan yang dibuka paksa ditutup kembali', setelah.adaDitandai === 0);
 
 await p.pdf({ path: join(tmpdir(), 'rapor-uji.pdf'), format:'A4', printBackground:true, preferCSSPageSize:true });
 await b.close(); anak.kill('SIGTERM');
-console.log(gagal ? `\n${gagal} GAGAL\n` : '\nRapor orang tua aman.\n');
+console.log(gagal ? `\n${gagal} GAGAL (lebar layar ${LEBAR}px)\n` : `\nRapor orang tua aman pada lebar layar ${LEBAR}px.\n`);
 process.exit(gagal?1:0);

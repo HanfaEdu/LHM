@@ -614,7 +614,11 @@ function GrafikKetuntasanKelas({ data }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
+      <ResponsiveContainer
+        key={ukuran.cetak ? 'cetak' : 'layar'}
+        width={ukuran.width}
+        height={ukuran.height}
+      >
         <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
@@ -644,6 +648,7 @@ function GrafikKetuntasanKelas({ data }) {
           {/* Sebagai seri, bukan ReferenceLine, supaya simbol garis
               merah putus-putusnya ikut muncul di legenda. */}
           <Line
+            isAnimationActive={!ukuran.cetak}
             dataKey="ambang"
             name={`Ambang ${AMBANG_KETUNTASAN}%`}
             stroke="var(--target)"
@@ -653,9 +658,9 @@ function GrafikKetuntasanKelas({ data }) {
             activeDot={false}
             connectNulls
           />
-          <Bar dataKey="B. Indonesia" fill="var(--seri-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-          <Bar dataKey="Matematika" fill="var(--seri-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-          <Bar dataKey="IPA" fill="var(--seri-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar isAnimationActive={!ukuran.cetak} dataKey="B. Indonesia" fill="var(--seri-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar isAnimationActive={!ukuran.cetak} dataKey="Matematika" fill="var(--seri-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar isAnimationActive={!ukuran.cetak} dataKey="IPA" fill="var(--seri-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
