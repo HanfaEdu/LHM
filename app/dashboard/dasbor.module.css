@@ -13,8 +13,39 @@
   --seri-3: #1baf7a;
   --target: #d03b3b;
 
+  /* ----------------------------------------------------------------
+     Empat tingkat meter ketuntasan
+     ----------------------------------------------------------------
+       90-100  hijau    Baik
+       75-89   oranye   Perlu dipantau
+       60-74   kuning   Perlu perhatian
+       0-59    merah    Perlu tindakan
+
+     Dua nilai per tingkat, dan itu bukan pemborosan. Busur meter setebal
+     11px boleh memakai warna cerah supaya keempat tingkat terbedakan
+     sekilas. Angka persennya teks setinggi 1,6rem, dan kuning cerah di
+     atas kartu putih hanya mencapai kontras sekitar 1,8:1 -- jauh di
+     bawah 3:1 yang dibutuhkan teks sebesar ini. Versi -teks adalah rona
+     yang sama namun lebih tua; keempatnya di atas 5:1 terhadap kartu
+     putih, jadi tetap terbaca di layar HP di bawah sinar matahari.
+
+     Rona kuning dan oranye sengaja dijauhkan (emas vs jingga bata), bukan
+     dua tingkat kepekatan dari warna yang sama: keduanya bertetangga di
+     roda warna dan paling mudah tertukar, justru pada pembaca yang sulit
+     membedakan merah-hijau. */
   --baik: #0ca30c;
-  --waspada: #fab219;
+  --baik-teks: #0f7a26;
+  --dipantau: #f07f1a;
+  --dipantau-teks: #b8500d;
+  --perhatian: #f5c518;
+  --perhatian-teks: #8a6a12;
+  --tindakan: #d03b3b;
+  --tindakan-teks: #b62c2c;
+
+  /* Merah umum: dipakai di luar meter juga (garis tepi batang di bawah
+     target, aksen kartu "Perlu Pendampingan", tombol keluar). Dibiarkan
+     terpisah dari --tindakan supaya rentang meter bisa diubah tanpa ikut
+     mengubah arti merah di tempat lain. */
   --kritis: #d03b3b;
   --pendar-diam: rgb(42 120 214 / 0%);
   --pendar-nyala: rgb(42 120 214 / 13%);
@@ -44,7 +75,13 @@
     --target: #e66767;
 
     --baik: #2fbb2f;
-    --waspada: #fab219;
+    --baik-teks: #4ecb63;
+    --dipantau: #f59440;
+    --dipantau-teks: #f0a45f;
+    --perhatian: #f5c518;
+    --perhatian-teks: #e6c15a;
+    --tindakan: #e66767;
+    --tindakan-teks: #f08a8a;
     --kritis: #e66767;
     --pendar-diam: rgb(57 135 229 / 0%);
     --pendar-nyala: rgb(57 135 229 / 20%);
@@ -1012,8 +1049,18 @@
     --seri-2: #c04f21;
     --seri-3: #12805a;
     --target: #b62c2c;
+    /* Di atas kertas busurnya ikut ditua-kan: warna cerah boros tinta dan
+       sering keluar sebagai pucat. Oranye dijaga tetap jingga (bukan
+       merah bata) supaya tidak tertukar dengan tingkat merah di
+       sebelahnya saat dicetak hitam-putih pun. */
     --baik: #0a7d0a;
-    --waspada: #a8760a;
+    --baik-teks: #0a7d0a;
+    --dipantau: #d2691e;
+    --dipantau-teks: #a8500d;
+    --perhatian: #c79408;
+    --perhatian-teks: #8a6a12;
+    --tindakan: #b62c2c;
+    --tindakan-teks: #b62c2c;
     --kritis: #b62c2c;
     --zebra: rgb(0 0 0 / 4%);
     --emas: #8a6a12;

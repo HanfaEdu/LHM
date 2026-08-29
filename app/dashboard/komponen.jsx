@@ -78,18 +78,40 @@ export function MeterKetuntasan({ label, hasil }) {
     );
   }
 
-  const persen = hasil.persen;
+  /* Rentang warna meter ketuntasan, ditetapkan sekolah:
 
-  // Ambang mengikuti kalimat rekap di rapor PDF: di bawah 80% berarti
-  // perlu perhatian khusus.
-  const status =
-    persen >= 90 ? 'baik' : persen >= 80 ? 'waspada' : 'kritis';
-  const warna = { baik: 'var(--baik)', waspada: 'var(--waspada)', kritis: 'var(--kritis)' }[
-    status
+       90-100  hijau    Baik
+       75-89   oranye   Perlu dipantau
+       60-74   kuning   Perlu perhatian
+       0-59    merah    Perlu tindakan
+
+     Digolongkan dari angka yang DITAMPILKAN, bukan dari nilai mentahnya.
+     Ketuntasan 89,6% ditulis "90%" oleh pembulatan; kalau penggolongannya
+     memakai nilai mentah, meter itu akan terbaca "90% - Perlu dipantau"
+     dan tampak seperti kesalahan program. Dengan membulatkan lebih dulu,
+     angka dan warnanya tidak pernah bisa saling bertentangan. */
+  const persen = Number(bulat(hasil.persen));
+
+  const TINGKAT = [
+    { batas: 90, kunci: 'baik', nama: 'Baik' },
+    { batas: 75, kunci: 'dipantau', nama: 'Perlu dipantau' },
+    { batas: 60, kunci: 'perhatian', nama: 'Perlu perhatian' },
+    { batas: 0, kunci: 'tindakan', nama: 'Perlu tindakan' },
   ];
-  const namaStatus = { baik: 'Baik', waspada: 'Perlu dipantau', kritis: 'Perlu perhatian' }[
-    status
-  ];
+  const tingkat = TINGKAT.find((t) => persen >= t.batas);
+
+  /* Busur dan angka memakai warna BERBEDA dari rona yang sama.
+
+     Busurnya setebal 11px, jadi ia boleh memakai warna cerah yang mudah
+     dibedakan sekilas -- itulah gunanya meter ini. Angka persennya teks,
+     dan kuning cerah di atas kartu putih hanya mencapai rasio kontras
+     sekitar 1,8:1 -- jauh di bawah 3:1 yang dibutuhkan teks sebesar ini,
+     dan di layar HP di bawah sinar matahari praktis lenyap. Karena itu
+     angkanya memakai versi yang lebih tua dari rona yang sama: warnanya
+     tetap terbaca sebagai kuning, tetapi bisa dibaca. */
+  const warnaBusur = `var(--${tingkat.kunci})`;
+  const warnaAngka = `var(--${tingkat.kunci}-teks)`;
+  const namaStatus = tingkat.nama;
 
   // Busur setengah lingkaran, jari-jari 52, dari kiri ke kanan.
   const r = 52;
@@ -99,7 +121,7 @@ export function MeterKetuntasan({ label, hasil }) {
   return (
     <div className={gaya.meter}>
       <svg viewBox="0 0 130 76" width="100%" height="76" role="img"
-           aria-label={`${label}: ketuntasan ${bulat(persen)} persen`}>
+           aria-label={`${label}: ketuntasan ${persen} persen, ${namaStatus}`}>
         <path
           d={`M 13 65 A ${r} ${r} 0 0 1 117 65`}
           fill="none"
@@ -110,14 +132,14 @@ export function MeterKetuntasan({ label, hasil }) {
         <path
           d={`M 13 65 A ${r} ${r} 0 0 1 117 65`}
           fill="none"
-          stroke={warna}
+          stroke={warnaBusur}
           strokeWidth="11"
           strokeLinecap="round"
           strokeDasharray={`${terisi} ${keliling}`}
         />
       </svg>
-      <p className={gaya.meterAngka} style={{ color: warna }}>
-        {bulat(persen)}%
+      <p className={gaya.meterAngka} style={{ color: warnaAngka }}>
+        {persen}%
       </p>
       <p className={gaya.meterLabel}>{label}</p>
       {/* Status tidak disandarkan pada warna semata — ada teksnya. */}
