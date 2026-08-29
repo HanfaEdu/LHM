@@ -81,9 +81,15 @@ export function MeterKetuntasan({ label, hasil }) {
   /* Rentang warna meter ketuntasan, ditetapkan sekolah:
 
        90-100  hijau    Baik
-       75-89   oranye   Perlu dipantau
-       60-74   kuning   Perlu perhatian
+       75-89   kuning   Perlu dipantau
+       60-74   oranye   Perlu perhatian
        0-59    merah    Perlu tindakan
+
+     Warnanya menanjak searah dengan tingkat kegentingannya: hijau,
+     kuning, oranye, merah. Urutan itu penting, bukan selera -- oranye
+     terbaca lebih mendesak daripada kuning, jadi memasangnya pada
+     rentang yang justru lebih baik akan membuat kelas 80% tampak lebih
+     buruk daripada kelas 65%.
 
      Digolongkan dari angka yang DITAMPILKAN, bukan dari nilai mentahnya.
      Ketuntasan 89,6% ditulis "90%" oleh pembulatan; kalau penggolongannya

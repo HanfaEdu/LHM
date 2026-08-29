@@ -17,9 +17,13 @@
      Empat tingkat meter ketuntasan
      ----------------------------------------------------------------
        90-100  hijau    Baik
-       75-89   oranye   Perlu dipantau
-       60-74   kuning   Perlu perhatian
+       75-89   kuning   Perlu dipantau
+       60-74   oranye   Perlu perhatian
        0-59    merah    Perlu tindakan
+
+     Warnanya menanjak searah dengan tingkat kegentingannya: hijau,
+     kuning, oranye, merah -- oranye terbaca lebih mendesak daripada
+     kuning, jadi ia dipasang pada rentang yang memang lebih rendah.
 
      Dua nilai per tingkat, dan itu bukan pemborosan. Busur meter setebal
      11px boleh memakai warna cerah supaya keempat tingkat terbedakan
@@ -35,10 +39,10 @@
      membedakan merah-hijau. */
   --baik: #0ca30c;
   --baik-teks: #0f7a26;
-  --dipantau: #f07f1a;
-  --dipantau-teks: #b8500d;
-  --perhatian: #f5c518;
-  --perhatian-teks: #8a6a12;
+  --dipantau: #f5c518;
+  --dipantau-teks: #8a6a12;
+  --perhatian: #f07f1a;
+  --perhatian-teks: #b8500d;
   --tindakan: #d03b3b;
   --tindakan-teks: #b62c2c;
 
@@ -76,10 +80,10 @@
 
     --baik: #2fbb2f;
     --baik-teks: #4ecb63;
-    --dipantau: #f59440;
-    --dipantau-teks: #f0a45f;
-    --perhatian: #f5c518;
-    --perhatian-teks: #e6c15a;
+    --dipantau: #f5c518;
+    --dipantau-teks: #e6c15a;
+    --perhatian: #f59440;
+    --perhatian-teks: #f0a45f;
     --tindakan: #e66767;
     --tindakan-teks: #f08a8a;
     --kritis: #e66767;
@@ -1050,15 +1054,16 @@
     --seri-3: #12805a;
     --target: #b62c2c;
     /* Di atas kertas busurnya ikut ditua-kan: warna cerah boros tinta dan
-       sering keluar sebagai pucat. Oranye dijaga tetap jingga (bukan
-       merah bata) supaya tidak tertukar dengan tingkat merah di
-       sebelahnya saat dicetak hitam-putih pun. */
+       sering keluar sebagai pucat. Oranye dijaga tetap jingga terang,
+       bukan merah bata: ia kini bertetangga LANGSUNG dengan tingkat
+       merah di bawahnya, dan dua warna bata berdampingan tidak bisa
+       dibedakan lagi begitu lembarnya dicetak hitam-putih. */
     --baik: #0a7d0a;
     --baik-teks: #0a7d0a;
-    --dipantau: #d2691e;
-    --dipantau-teks: #a8500d;
-    --perhatian: #c79408;
-    --perhatian-teks: #8a6a12;
+    --dipantau: #c79408;
+    --dipantau-teks: #8a6a12;
+    --perhatian: #d2691e;
+    --perhatian-teks: #a8500d;
     --tindakan: #b62c2c;
     --tindakan-teks: #b62c2c;
     --kritis: #b62c2c;
