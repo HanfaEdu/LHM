@@ -45,12 +45,18 @@ import {
   MeterKetuntasan,
   PeringatanDini,
   RekapQuran,
+  TabelBulananSiswa,
   TabelDistribusi,
+  useUkuranGrafikDasbor,
 } from '../komponen';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
+import TombolLhm from '@/app/komponen/TombolLhm';
+import TombolCetak from '@/app/komponen/TombolCetak';
 import TombolKeluar from '@/app/komponen/TombolKeluar';
 import TombolPasang from '@/app/komponen/TombolPasang';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
+import { KonteksCetak, usePersiapanCetak } from '@/app/komponen/cetak';
+import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import gaya from '../dasbor.module.css';
 
 export default function DasborKepalaSekolah() {
@@ -66,6 +72,18 @@ export default function DasborKepalaSekolah() {
   const [fokus, setFokus] = useState(''); // kelasId yang sedang ditelusuri
   const [kelasSiswa, setKelasSiswa] = useState(''); // kelasId untuk telusur per siswa
   const [nisSiswa, setNisSiswa] = useState('');
+
+  const { modeCetak, cetak } = usePersiapanCetak();
+
+  /* Tanggal cetak diisi setelah komponen terpasang, bukan saat render:
+     new Date() di badan render menghasilkan nilai yang berbeda antara
+     server dan peramban, dan React menolak hasil render yang tidak cocok. */
+  const [tanggalCetak, setTanggalCetak] = useState('');
+  useEffect(() => {
+    setTanggalCetak(
+      new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date())
+    );
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -226,6 +244,7 @@ export default function DasborKepalaSekolah() {
   }
 
   return (
+    <KonteksCetak.Provider value={modeCetak}>
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
@@ -234,10 +253,19 @@ export default function DasborKepalaSekolah() {
           keterangan={`${profil?.nama ?? ''} · ${kelasTahunIni.length} kelas`}
           aksi={
             <>
-              <Link href="/dashboard/kepala-sekolah/tautan" className={gaya.tombolAksi}>
-                Tautan Orang Tua
-              </Link>
-              <TombolKeluar />
+              {/* Kepala sekolah ikut membuka aplikasi input LHM: saat
+                  meninjau angka satu kelas dan menemukan yang janggal,
+                  yang dituju berikutnya adalah lembar isian kelas itu.
+                  Alamatnya sama untuk seluruh sekolah ini, dibaca dari
+                  data sekolah -- bukan dipatok di dalam kode. */}
+              <TombolLhm alamat={sekolah?.link_lhm} />
+              <div className={gaya.aksiKecil}>
+                <Link href="/dashboard/kepala-sekolah/tautan" className={gaya.tombolAksi}>
+                  Tautan Orang Tua
+                </Link>
+                <TombolCetak onClick={cetak} />
+                <TombolKeluar />
+              </div>
             </>
           }
           anak={
@@ -286,6 +314,19 @@ export default function DasborKepalaSekolah() {
           }
         />
 
+        {/* Judul dokumen, hanya di atas kertas. Lembar yang sampai ke
+            direktur area harus menyebut sendiri sekolah, bulan, dan tahun
+            ajarannya -- pengirimnya tidak ada di sebelahnya untuk
+            menjelaskan. */}
+        <div className={gaya.judulCetak} aria-hidden="true">
+          <span className={gaya.judulCetakUtama}>
+            Laporan Bulanan Sekolah · {bulan || '–'}
+          </span>
+          <span className={gaya.judulCetakSisi}>
+            {tanggalCetak ? `Dicetak ${tanggalCetak}` : ''}
+          </span>
+        </div>
+
         <TombolPasang />
 
         <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
@@ -297,52 +338,7 @@ export default function DasborKepalaSekolah() {
           </p>
 
           {grafikKelas.length ? (
-            <div className={gaya.grafik}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={grafikKelas} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
-                  <CartesianGrid stroke="var(--garis)" vertical={false} />
-                  <XAxis
-                    dataKey="nama"
-                    tick={{ fontSize: 12, fill: 'var(--tinta-lembut)' }}
-                    tickLine={false}
-                    axisLine={{ stroke: 'var(--garis)' }}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    unit="%"
-                    tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--kartu)',
-                      border: '1px solid var(--garis)',
-                      borderRadius: 8,
-                      fontSize: 12,
-                      color: 'var(--tinta)',
-                    }}
-                    formatter={(v, n) => [v === null ? 'belum dinilai' : `${bulat(v, 1)}%`, n]}
-                  />
-                  <Legend content={<LegendaGrafik />} />
-                  {/* Sebagai seri, bukan ReferenceLine, supaya simbol garis
-                      merah putus-putusnya ikut muncul di legenda. */}
-                  <Line
-                    dataKey="ambang"
-                    name={`Ambang ${AMBANG_KETUNTASAN}%`}
-                    stroke="var(--target)"
-                    strokeWidth={2}
-                    strokeDasharray="6 4"
-                    dot={false}
-                    activeDot={false}
-                    connectNulls
-                  />
-                  <Bar dataKey="B. Indonesia" fill="var(--seri-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                  <Bar dataKey="Matematika" fill="var(--seri-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                  <Bar dataKey="IPA" fill="var(--seri-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
+            <GrafikKetuntasanKelas data={grafikKelas} />
           ) : (
             <p className={gaya.kosong}>Belum ada nilai untuk bulan ini.</p>
           )}
@@ -416,7 +412,11 @@ export default function DasborKepalaSekolah() {
             sudah terpilih -- artinya tidak pernah bisa dipakai untuk memilih
             kelas yang pertama. */}
         <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
-          <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
+          {/* .kepalaAlat, bukan .penyaring: .penyaring hilang seluruhnya
+              saat mencetak, dan bersamanya ikut hilang judul yang
+              menyebutkan KELAS MANA yang sedang dirinci -- padahal
+              itulah kepala bagian utama laporan ini. */}
+          <div className={gaya.kepalaAlat}>
             <div>
               <h2 className={gaya.judulKartu}>
                 Rincian Per Kelas
@@ -563,10 +563,101 @@ export default function DasborKepalaSekolah() {
                   <KeteranganQuran jenis="tahsin" />
                 </div>
               </div>
+
+              {/* Angka pastinya di bawah grafik yang memperlihatkan
+                  bentuknya. Susunannya sama persis dengan yang dibaca
+                  orang tua, supaya tidak ada dua versi rekap yang sama
+                  untuk siswa yang sama. */}
+              <h3 className={gaya.subJudulKartu} style={{ marginTop: '1.25rem' }}>
+                Rincian Bulanan
+              </h3>
+              <TabelBulananSiswa bulanan={bulananSiswa} target={targetSiswa} />
             </>
           )}
         </section>
+
+        {/* Kaki berulang di tiap halaman cetakan: laporan sekolah
+            berjumlah beberapa lembar, dan halaman kedua dan seterusnya
+            tidak boleh sampai berisi grafik tanpa keterangan milik
+            sekolah dan bulan mana. */}
+        <footer className={gaya.kakiCetak} aria-hidden="true">
+          <span>
+            Laporan Bulanan · {bulan || '–'}
+            {tahunAjaran ? ` · T.A. ${tahunAjaran}` : ''}
+          </span>
+          <span>
+            {sekolah?.nama || SEKOLAH_BAWAAN}
+            {tanggalCetak ? ` · dicetak ${tanggalCetak}` : ''}
+          </span>
+        </footer>
       </div>
+    </div>
+    </KonteksCetak.Provider>
+  );
+}
+
+
+/* ================================================================
+   Ketuntasan antar kelas
+   ================================================================
+   Berdiri sebagai komponen tersendiri, bukan ditulis sebaris di dalam
+   halaman, karena satu alasan yang tidak kelihatan dari bentuknya:
+   useUkuranGrafik() membaca KonteksCetak, sementara <Provider>-nya
+   dipasang oleh komponen halaman itu sendiri. Sebuah komponen tidak
+   bisa membaca konteks yang disediakannya sendiri -- ia hanya akan
+   menerima nilai bawaannya. Ditulis sebaris, grafik ini akan selalu
+   mengira dirinya sedang di layar dan tercetak selebar HP di tengah
+   kertas A4, tanpa satu pun galat yang memberi tahu.
+   ================================================================ */
+function GrafikKetuntasanKelas({ data }) {
+  const ukuran = useUkuranGrafikDasbor();
+
+  return (
+    <div className={gaya.grafik}>
+      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
+        <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
+          <CartesianGrid stroke="var(--garis)" vertical={false} />
+          <XAxis
+            dataKey="nama"
+            tick={{ fontSize: 12, fill: 'var(--tinta-lembut)' }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--garis)' }}
+          />
+          <YAxis
+            domain={[0, 100]}
+            unit="%"
+            tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <Tooltip
+            contentStyle={{
+              background: 'var(--kartu)',
+              border: '1px solid var(--garis)',
+              borderRadius: 8,
+              fontSize: 12,
+              color: 'var(--tinta)',
+            }}
+            formatter={(v, n) => [v === null ? 'belum dinilai' : `${bulat(v, 1)}%`, n]}
+          />
+          <Legend content={<LegendaGrafik />} />
+          {/* Sebagai seri, bukan ReferenceLine, supaya simbol garis
+              merah putus-putusnya ikut muncul di legenda. */}
+          <Line
+            dataKey="ambang"
+            name={`Ambang ${AMBANG_KETUNTASAN}%`}
+            stroke="var(--target)"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            dot={false}
+            activeDot={false}
+            connectNulls
+          />
+          <Bar dataKey="B. Indonesia" fill="var(--seri-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar dataKey="Matematika" fill="var(--seri-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar dataKey="IPA" fill="var(--seri-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+        </ComposedChart>
+      </ResponsiveContainer>
     </div>
   );
 }

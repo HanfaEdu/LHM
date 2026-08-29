@@ -279,6 +279,31 @@
   }
 }
 
+/* ================================================================
+   Tabel rincian bulanan satu siswa
+   ================================================================
+   Sepuluh kolom, dua di antaranya berisi nama surah yang panjang
+   ("Al-Baqarah 1-20"). Lebar minimumnya lebih besar daripada tabel
+   dasbor lain, jadi dipisahkan -- kalau memakai 620px milik .tabel,
+   kolom Tahfidz dan Tahsin dimampatkan sampai tiap namanya patah
+   menjadi tiga baris. */
+.tabelBulanan {
+  min-width: 860px;
+  font-size: 0.8rem;
+}
+
+.tabelBulanan th,
+.tabelBulanan td {
+  padding: 0.36rem 0.5rem;
+}
+
+/* Baris rata-rata di kaki tabel: ditebalkan dan diberi latar supaya
+   terbaca sebagai kesimpulan, bukan sebagai bulan ketiga belas. */
+.barisRata {
+  font-weight: 700;
+  background: var(--surface);
+}
+
 .kiri {
   text-align: left !important;
 }
@@ -402,6 +427,98 @@
 /* ================================================================
    Halaman pengelolaan tautan orang tua
    ================================================================ */
+/* ================================================================
+   Kepala bagian yang punya kontrolnya sendiri
+   ================================================================
+   Judul di kiri, dropdownnya di kanan. Dipisahkan dari .penyaring
+   dengan sengaja: .penyaring seluruhnya disembunyikan saat mencetak,
+   dan ketika judul ikut berada di dalamnya, judul itu -- berikut nama
+   siswa atau nama kelas yang sedang ditelusuri -- ikut lenyap dari
+   kertas. Lembar setahun penuh tanpa nama siapa pun di atasnya adalah
+   cacat yang baru ketahuan setelah dicetak. */
+.kepalaAlat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.kepalaAlat > :first-child {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+/* Judul dokumen dan kaki berulang: keduanya hanya ada di atas kertas.
+   Aturan yang memunculkannya berada di blok cetak paling bawah berkas
+   ini. */
+.judulCetak,
+.kakiCetak {
+  display: none;
+}
+
+/* ================================================================
+   Baris tindakan kecil di kepala dasbor
+   ================================================================
+   Tindakan yang jarang dipakai -- simpan PDF, keluar, dan (di dasbor
+   kepala sekolah) tautan orang tua -- dijejerkan mendatar di bawah
+   tombol "Input/Edit LHM", bukan ditumpuk menurun bersamanya.
+
+   Alasannya tinggi. Tiga tombol bertumpuk menambah sekitar 100px pada
+   kepala halaman, bagian yang dibaca lebih dulu daripada apa pun di
+   dasbor ini. Mendatar, ketiganya muat dalam satu baris setinggi 40px
+   dan hierarkinya tetap terbaca: satu tombol pekat di atas, sisanya
+   tenang di bawahnya. */
+.aksiKecil {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Di dalam baris ini "Tautan Orang Tua" ikut menenang: biru pekatnya
+   dipakai saat ia berdiri sendiri sebagai tindakan utama, tetapi di
+   sebelah "Input/Edit LHM" yang juga biru pekat, keduanya berebut
+   perhatian dan tidak ada yang menang. */
+.aksiKecil .tombolAksi {
+  background: var(--kartu);
+  color: var(--tinta);
+  border: 1px solid var(--garis);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.85rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aksiKecil .tombolAksi:hover {
+    border-color: var(--seri-1);
+    background: var(--surface);
+    filter: none;
+  }
+}
+
+/* Di layar sempit baris ini berada di bawah tombol utama yang selebar
+   penuh, jadi ia dirapatkan ke kanan dan dibiarkan melipat sendiri
+   kalau isinya tidak muat -- dasbor kepala sekolah memuat tiga kontrol
+   di sini, wali kelas dua. Melipat rata kanan terbaca sebagai susunan
+   yang disengaja; memaksanya satu baris membuat tulisannya terpotong. */
+@media (max-width: 640px) {
+  .aksiKecil {
+    justify-content: flex-end;
+    width: 100%;
+    /* Dirapatkan supaya ketiga kontrol dasbor kepala sekolah muat dalam
+       satu baris pada layar 390px: bidang isi kartu di situ 331px,
+       sementara "Tautan Orang Tua" + "Simpan PDF" + tombol keluar
+       pada jarak 0,5rem berjumlah sekitar 338px -- meleset tipis, dan
+       tombol keluar jatuh sendirian ke baris ketiga. */
+    gap: 0.35rem;
+  }
+
+  .aksiKecil .tombolAksi {
+    padding: 0.5rem 0.65rem;
+  }
+}
+
 .tombolAksi {
   /* inline-flex + text-decoration:none karena kelas ini juga dipakai pada
      <a> ("Tautan Orang Tua" di kepala dasbor kepala sekolah). Tanpa
@@ -794,15 +911,6 @@
   }
 }
 
-/* Di atas kertas tidak ada yang bisa diklik. */
-@media print {
-  .penyaring select,
-  .pilih {
-    animation: none;
-    box-shadow: none;
-  }
-}
-
 /* Jumlah poin di label lipatan keterangan: penanda kecil bergaya lencana
    supaya terbaca sebagai keterangan tentang tombolnya, bukan bagian dari
    kalimat ajakan di sebelahnya. */
@@ -850,5 +958,281 @@
     border-color: #6a5410;
     background: #2b2410;
     color: #e6c15a;
+  }
+}
+
+/* ================================================================
+   CETAK / SIMPAN PDF  —  BLOK INI HARUS TETAP PALING BAWAH
+   ================================================================
+   Seluruh aturan cetak dikumpulkan di sini, bukan diselipkan di dekat
+   komponennya masing-masing. Alasannya bukan kerapian: @media print
+   tidak menambah kekhususan (specificity) sedikit pun, sehingga aturan
+   layar yang kebetulan ditulis LEBIH BAWAH akan menang atas aturan
+   cetak yang ditulis di atasnya. Persis itu yang pernah terjadi di
+   rapor.module.css -- judul hilang dari PDF sementara tombol yang
+   seharusnya disembunyikan justru ikut tercetak.
+
+   JANGAN menambah aturan apa pun di bawah blok ini.
+
+   Dua lapis penjaga ukuran kertas:
+     1. @page menetapkan A4 tegak. Kalau yang terpasang di dialog
+        ternyata Letter, F4/Folio, atau Legal, peramban menskalakan
+        halaman A4 ini utuh ke kertas tersebut -- mengecil atau
+        membesar bersama-sama, tanpa ada yang berpindah baris.
+     2. .wadah dikunci pada lebar isi A4 (210mm - margin 12mm kiri
+        kanan = 186mm). Jadi kalaupun peramban mengabaikan @page dan
+        memakai kertas lebih lebar, isinya tetap disusun pada lebar
+        yang sama dan hanya tepinya yang bertambah lega.
+
+   Lebar grafik (LEBAR_GRAFIK_CETAK di komponen.jsx) dipatok pada angka
+   yang aman di dalam 186mm itu. Kalau margin di sini diubah, angka di
+   sana perlu ikut disesuaikan.
+   ================================================================ */
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+@media print {
+  /* ----------------------------------------------------------------
+     Palet
+     ----------------------------------------------------------------
+     Dasbor mengikuti mode gelap perangkat. Di atas kertas itu selalu
+     salah: tintanya boros dan hasilnya keluar sebagai kotak kelabu.
+     Seluruh palet dipaksa kembali ke mode terang, apa pun setelan
+     perangkat yang dipakai guru saat menekan tombolnya. */
+  .halaman {
+    --surface: #ffffff;
+    --kartu: #ffffff;
+    --garis: #c9c7c1;
+    --tinta: #000000;
+    --tinta-lembut: #333333;
+    --tinta-samar: #666666;
+    --seri-1: #1c5fae;
+    --seri-2: #c04f21;
+    --seri-3: #12805a;
+    --target: #b62c2c;
+    --baik: #0a7d0a;
+    --waspada: #a8760a;
+    --kritis: #b62c2c;
+    --zebra: rgb(0 0 0 / 4%);
+    --emas: #8a6a12;
+
+    min-height: 0;
+    padding: 0;
+    /* Ruang untuk kaki berulang di bawah; kaki itu position:fixed
+       sehingga tidak menyisakan tempatnya sendiri. */
+    padding-bottom: 13mm;
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .wadah {
+    max-width: 186mm;
+    margin: 0;
+  }
+
+  /* ----------------------------------------------------------------
+     Kartu
+     ----------------------------------------------------------------
+     Bingkainya dipertahankan -- berbeda dari rapor orang tua, yang
+     kartunya dilucuti. Lembar ini laporan resmi yang dibaca kepala
+     sekolah dan direktur area, dan garis tipis itulah yang memisahkan
+     satu bagian dari bagian berikutnya ketika keduanya jatuh pada
+     halaman yang sama. Yang dibuang hanya bayangannya, karena bayangan
+     selalu tercetak sebagai kotor kelabu. */
+  .kartu {
+    border: 1px solid var(--garis);
+    border-radius: 6px;
+    padding: 0.6rem 0.7rem;
+    margin-bottom: 0.7rem;
+    box-shadow: none;
+    /* Satu bagian tidak boleh terbelah dua halaman: grafik yang
+       kepalanya di halaman 2 dan batangnya di halaman 3 tidak bisa
+       dibaca sebagai satu hal. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Judul tidak boleh tertinggal sendirian di kaki halaman sementara
+     isinya pindah ke halaman berikutnya. */
+  .judulKartu,
+  .subJudulKartu {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .judulKartu {
+    font-size: 11pt;
+    margin-bottom: 0.15rem;
+  }
+
+  .ketKartu {
+    font-size: 8pt;
+    margin-bottom: 0.5rem;
+  }
+
+  .subJudulKartu {
+    font-size: 9.5pt;
+    color: #000000;
+  }
+
+  /* Tinggi diserahkan pada SVG yang sudah digambar Recharts memakai
+     TINGGI_GRAFIK_CETAK; tinggi tetap 320px di sini justru menyisakan
+     pita kosong di bawah tiap grafik. */
+  .grafik {
+    width: auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Dua lajur berdampingan menyisakan sekitar 330px untuk tiap grafik,
+     dan satu kelas berisi 24 batang di lebar itu terbaca sebagai pagar.
+     Di atas kertas keduanya ditumpuk supaya masing-masing mendapat
+     lebar penuh. */
+  .tumpuk2 {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .barisMeter {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .meterAngka {
+    font-size: 1.3rem;
+  }
+
+  .narasi {
+    margin-top: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 8.5pt;
+    background: #f4f4f2;
+  }
+
+  /* ----------------------------------------------------------------
+     Tabel
+     ---------------------------------------------------------------- */
+  .tabel {
+    min-width: 0;
+    width: 100%;
+    font-size: 7.5pt;
+  }
+
+  .tabel th,
+  .tabel td {
+    padding: 0.2rem 0.3rem;
+  }
+
+  /* Tiga belas baris muat utuh di satu halaman mana pun, jadi lebih
+     baik ia berpindah seluruhnya daripada terbelah dan menyisakan
+     delapan baris sendirian di halaman berikutnya. */
+  .tabelBulanan {
+    min-width: 0;
+    font-size: 7pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .tabelBulanan th,
+  .tabelBulanan td {
+    padding: 0.18rem 0.22rem;
+  }
+
+  /* Wadah gulir mendatar tidak punya arti di atas kertas: yang berada
+     di luar layar tidak akan pernah bisa digeser masuk oleh pembacanya,
+     ia hanya terpotong. */
+  .gulir {
+    overflow: visible;
+  }
+
+  .tabel tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ----------------------------------------------------------------
+     Yang tidak ikut tercetak
+     ----------------------------------------------------------------
+     Semua kontrol: di atas kertas tidak ada yang bisa dipilih atau
+     ditekan, dan dropdown yang tercetak justru menyesatkan karena
+     terlihat seperti isian yang belum diisi. */
+  .penyaring,
+  .aksiKecil,
+  .tombolAksi,
+  .tombolKecil,
+  .kepalaAlat label {
+    display: none !important;
+  }
+
+  /* Daftar keterangan poin Tahfidz/Tahsin. Di rapor orang tua daftar
+     ini WAJIB ikut tercetak -- pembacanya tidak bisa membukanya sendiri
+     di atas kertas, dan tanpa daftar itu angka pada grafik tidak bisa
+     diterjemahkan. Di sini justru sebaliknya: pembacanya guru dan
+     kepala sekolah yang sudah hafal pemetaannya, sementara daftarnya
+     berisi puluhan baris yang akan menambah beberapa halaman penuh
+     pada tiap laporan bulanan. Lagipula nama surahnya sudah tertulis
+     lengkap di tabel rincian. */
+  .keterangan {
+    display: none !important;
+  }
+
+  /* ----------------------------------------------------------------
+     Judul dokumen dan kaki berulang
+     ----------------------------------------------------------------
+     Keduanya kebalikan dari yang lain: tidak pernah tampil di layar,
+     hanya ada di atas kertas. Di layar, apa yang sedang dilihat sudah
+     dijelaskan oleh kepala halaman dan oleh dropdown yang baru saja
+     disentuh; di atas kertas keduanya hilang. */
+  .judulCetak {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin: 0 0 0.7rem;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .judulCetakUtama {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #000000;
+  }
+
+  .judulCetakSisi {
+    flex: none;
+    font-size: 8pt;
+    color: var(--tinta-samar);
+  }
+
+  /* position:fixed dipakai karena elemen berposisi tetap diulang oleh
+     peramban di setiap halaman cetakan; ruangnya sudah disisakan lewat
+     padding-bottom pada .halaman di atas. */
+  .kakiCetak {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 3px;
+    border-top: 1px solid var(--garis);
+    font-size: 8pt;
+    line-height: 1.3;
+    color: var(--tinta-samar);
+  }
+
+  /* Sisi kanan (nama sekolah dan tanggal) panjangnya tetap, jadi ia
+     yang dijaga tidak patah; sisi kiri dibiarkan membungkus. */
+  .kakiCetak span:last-child {
+    flex: none;
+    text-align: right;
+  }
+
+  .kakiCetak span:first-child {
+    min-width: 0;
   }
 }

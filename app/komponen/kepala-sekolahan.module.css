@@ -170,29 +170,29 @@
   /* ----------------------------------------------------------------
      Zona aksi di layar sempit
      ----------------------------------------------------------------
-     Berbaris menyamping dan rata kanan, bukan ditumpuk menurun seperti
-     di layar lebar. Alasannya ukuran: pada layar 390px, bidang isi
-     kartu tinggal sekitar 331px -- cukup untuk "Input/Edit LHM" (197px)
-     bersama tombol keluar (44px) dalam satu baris, sementara menumpuk
-     keduanya menambah 52px tinggi pada kepala yang sudah dibaca lebih
-     dulu daripada apa pun di halaman ini.
+     Ditumpuk menurun: tombol utama selebar penuh, sisanya rata kanan
+     di bawahnya.
 
-     Pojok kanan atas yang sesungguhnya tidak mungkin di lebar ini:
-     disandingkan dengan "SD YAUMI FATIMAH KUDUS", yang tersisa untuk
-     nama sekolah hanya 82px. Yang dipertahankan adalah maksudnya --
-     aksi tetap berada DI ATAS pemilih bulan, sehingga tidak ada lagi
-     tombol yang menggantung di bawah dropdown seperti tombol kirim. */
+     Dulu ketiganya diadu dalam satu baris, dan itu benar selama zona
+     ini hanya berisi dua tombol -- "Input/Edit LHM" (197px) bersama
+     tombol keluar (44px) pas di dalam 331px bidang isi kartu pada
+     layar 390px. Sejak "Simpan PDF" masuk, dan di dasbor kepala
+     sekolah juga "Tautan Orang Tua", jumlahnya melewati lebar itu:
+     barisnya melimpah dan tulisan "Input/Edit LHM" terpotong di tepi
+     kiri kartu.
+
+     Menumpuk memang menambah tinggi kepala halaman, tetapi tumpukan
+     yang disengaja lebih pendek daripada baris melimpah yang patah
+     sendiri menjadi tiga tingkat -- dan tidak ada yang terpotong.
+
+     Maksud susunannya tetap dijaga: zona aksi berada DI ATAS penyaring,
+     sehingga tidak ada tombol yang menggantung di bawah dropdown dan
+     terbaca sebagai tombol kirim. */
   .aksiUtama {
-    flex-direction: row;
-    justify-content: flex-end;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     width: 100%;
-  }
-
-  /* Tombol utama mengisi sisa ruang, tombol keluar tetap sekecil
-     lambangnya. */
-  .aksiUtama > :first-child {
-    flex: 1 1 auto;
+    gap: 0.5rem;
   }
 }
 

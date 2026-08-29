@@ -23,12 +23,16 @@ import {
   MeterKetuntasan,
   PeringatanDini,
   RekapQuran,
+  TabelBulananSiswa,
   TabelDistribusi,
 } from '../komponen';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolLhm from '@/app/komponen/TombolLhm';
+import TombolCetak from '@/app/komponen/TombolCetak';
 import TombolKeluar from '@/app/komponen/TombolKeluar';
 import TombolPasang from '@/app/komponen/TombolPasang';
+import { KonteksCetak, usePersiapanCetak } from '@/app/komponen/cetak';
+import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import gaya from '../dasbor.module.css';
 
 export default function DasborWaliKelas() {
@@ -42,6 +46,19 @@ export default function DasborWaliKelas() {
   const [perBulan, setPerBulan] = useState({});
   const [bulan, setBulan] = useState('');
   const [nisSiswa, setNisSiswa] = useState('');
+
+  const { modeCetak, cetak } = usePersiapanCetak();
+
+  /* Tanggal cetak diisi setelah komponen terpasang, bukan saat render.
+     new Date() di badan render menghasilkan nilai yang berbeda antara
+     server dan peramban, dan React menolak hasil render yang tidak
+     cocok itu. */
+  const [tanggalCetak, setTanggalCetak] = useState('');
+  useEffect(() => {
+    setTanggalCetak(
+      new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date())
+    );
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -154,6 +171,7 @@ export default function DasborWaliKelas() {
   }
 
   return (
+    <KonteksCetak.Provider value={modeCetak}>
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
@@ -165,7 +183,10 @@ export default function DasborWaliKelas() {
           aksi={
             <>
               <TombolLhm alamat={sekolah?.link_lhm} />
-              <TombolKeluar />
+              <div className={gaya.aksiKecil}>
+                <TombolCetak onClick={cetak} />
+                <TombolKeluar />
+              </div>
             </>
           }
           anak={
@@ -203,6 +224,20 @@ export default function DasborWaliKelas() {
             </div>
           }
         />
+
+        {/* Judul dokumen. Hanya muncul di atas kertas: di layar, apa yang
+            sedang dilihat sudah jelas dari kepala halaman dan dari kedua
+            dropdown yang baru saja disentuh. Di atas kertas keduanya
+            hilang, dan lembar tanpa keterangan bulan tidak ada gunanya
+            bagi siapa pun yang menerimanya seminggu kemudian. */}
+        <div className={gaya.judulCetak} aria-hidden="true">
+          <span className={gaya.judulCetakUtama}>
+            Laporan Bulanan Kelas {kelas?.nama_kelas ?? ''} · {bulan || '–'}
+          </span>
+          <span className={gaya.judulCetakSisi}>
+            {tanggalCetak ? `Dicetak ${tanggalCetak}` : ''}
+          </span>
+        </div>
 
         <TombolPasang />
 
@@ -291,7 +326,12 @@ export default function DasborWaliKelas() {
             orang tua saat mereka bertanya. */}
         {daftarSiswa.length > 0 && (
           <section className={`${gaya.kartu} ${gaya.kartuAlat}`}>
-            <div className={gaya.penyaring} style={{ justifyContent: 'space-between' }}>
+            {/* .kepalaAlat, bukan .penyaring: seluruh isi .penyaring
+                disembunyikan saat mencetak, dan judul beserta NAMA SISWA
+                yang dulu berada di dalamnya ikut lenyap dari kertas --
+                menyisakan lembar setahun penuh tanpa keterangan milik
+                siapa. Di sini hanya dropdownnya yang disembunyikan. */}
+            <div className={gaya.kepalaAlat}>
               <div>
                 <h2 className={gaya.judulKartu}>Telusur Satu Siswa</h2>
                 <p className={gaya.ketKartu} style={{ margin: 0 }}>
@@ -340,11 +380,40 @@ export default function DasborWaliKelas() {
                     <KeteranganQuran jenis="tahsin" />
                   </div>
                 </div>
+
+                {/* Angka pastinya, di bawah grafik yang memperlihatkan
+                    bentuknya. Grafik menjawab "naik atau turun"; yang
+                    ditanyakan orang tua saat duduk berhadapan dengan wali
+                    kelas justru "Oktober berapa, dan surahnya sampai
+                    mana" -- dan itu hanya terjawab oleh tabel. Susunannya
+                    sengaja sama persis dengan yang dibaca orang tua di
+                    HP-nya. */}
+                <h3 className={gaya.subJudulKartu} style={{ marginTop: '1.25rem' }}>
+                  Rincian Bulanan
+                </h3>
+                <TabelBulananSiswa bulanan={bulananSiswa} target={target} />
               </>
             )}
           </section>
         )}
+
+        {/* Kaki berulang di tiap halaman cetakan. Laporan bulanan satu
+            kelas berjumlah beberapa lembar, dan tanpa penanda ini halaman
+            kedua dan seterusnya hanya berisi grafik tanpa keterangan
+            milik kelas mana -- masalah nyata begitu lembarnya tercetak
+            dan tertumpuk bersama laporan kelas lain. */}
+        <footer className={gaya.kakiCetak} aria-hidden="true">
+          <span>
+            Kelas {kelas?.nama_kelas ?? ''} · {bulan || '–'}
+            {kelas?.tahun_ajaran ? ` · T.A. ${kelas.tahun_ajaran}` : ''}
+          </span>
+          <span>
+            {sekolah?.nama || SEKOLAH_BAWAAN}
+            {tanggalCetak ? ` · dicetak ${tanggalCetak}` : ''}
+          </span>
+        </footer>
       </div>
     </div>
+    </KonteksCetak.Provider>
   );
 }

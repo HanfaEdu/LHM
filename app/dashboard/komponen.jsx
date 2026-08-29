@@ -15,6 +15,7 @@ import {
 import { TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
 import {
   MAPEL,
+  bulanBerdata,
   bulat,
   capaianTerbaik,
   distribusi,
@@ -24,7 +25,36 @@ import {
   rekapQuran,
 } from '@/lib/statistik';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
+import { useUkuranGrafik } from '@/app/komponen/cetak';
 import gaya from './dasbor.module.css';
+
+/* ================================================================
+   Ukuran grafik di atas kertas
+   ================================================================
+   Recharts mematok lebar SVG dari hasil pengukuran wadahnya di layar
+   dan tidak pernah mengukur ulang saat halaman dicetak -- grafik yang
+   lahir di layar HP tetap tergambar 390px di tengah kertas A4. Karena
+   itu lebarnya diambil alih selama proses cetak.
+
+   664px dipilih dari bidang isi A4: 210mm dikurangi margin @page 12mm
+   kiri-kanan = 186mm (~703px pada 96dpi), dikurangi lagi bingkai dan
+   bantalan kartu pada mode cetak (~2 + 20px), lalu disisakan beberapa
+   piksel supaya pembulatan peramban tidak pernah membuatnya melewati
+   tepi. Kalau margin @page di dasbor.module.css diubah, angka ini
+   perlu ikut disesuaikan.
+
+   250px tinggi, bukan 320px seperti di layar: sebuah laporan bulanan
+   berisi lima grafik, dan pada tinggi layar kelimanya sendirian sudah
+   menghabiskan empat halaman kertas. */
+const LEBAR_GRAFIK_CETAK = 664;
+const TINGGI_GRAFIK_CETAK = 250;
+
+/* Diekspor karena dasbor kepala sekolah menggambar satu grafik langsung
+   di halamannya sendiri (ketuntasan antar kelas), bukan lewat komponen
+   di berkas ini -- dan grafik itu harus memakai lebar kertas yang sama. */
+export function useUkuranGrafikDasbor() {
+  return useUkuranGrafik(LEBAR_GRAFIK_CETAK, TINGGI_GRAFIK_CETAK);
+}
 
 const kotakTooltip = {
   background: 'var(--kartu)',
@@ -101,6 +131,8 @@ export function MeterKetuntasan({ label, hasil }) {
    Grafik capaian per siswa dalam satu bulan
    ================================================================ */
 export function GrafikKelasAkademik({ baris, target, anonim }) {
+  const ukuran = useUkuranGrafikDasbor();
+
   const data = baris.map((b) => ({
     nama: anonim ? b.label : b.nama_panggilan,
     ...b,
@@ -112,7 +144,7 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
         <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
@@ -175,6 +207,8 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
    Grafik Tahfidz / Tahsin satu kelas dalam satu bulan
    ================================================================ */
 export function GrafikKelasQuran({ jenis, baris, anonim }) {
+  const ukuran = useUkuranGrafikDasbor();
+
   const kCapaian = jenis === 'tahfidz' ? 'capaian_tahfidz' : 'capaian_tahsin';
   const kTarget = jenis === 'tahfidz' ? 'target_tahfidz' : 'target_tahsin';
   const warna = jenis === 'tahfidz' ? 'var(--seri-1)' : 'var(--seri-3)';
@@ -193,7 +227,7 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
         <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
@@ -457,6 +491,111 @@ export function KeteranganQuran({ jenis }) {
 }
 
 /* ================================================================
+   Rincian bulanan satu siswa
+   ================================================================
+   Salinan tabel yang sama dengan yang dibaca orang tua di
+   app/rapor/[token]. Disediakan juga di dasbor staf karena grafik saja
+   tidak menjawab pertanyaan yang paling sering muncul saat wali kelas
+   dan orang tua duduk berhadapan: "bulan Oktober nilainya berapa persis,
+   dan surah apa yang sudah selesai?". Angka pastinya hanya ada di sini.
+
+   Sengaja dibuat identik dengan tampilan orang tua, bukan versi ringkas
+   tersendiri: kalau keduanya berbeda susunan, wali kelas harus
+   menerjemahkan dulu apa yang sedang dilihat orang tua di layar HP-nya.
+   ================================================================ */
+export function TabelBulananSiswa({ bulanan, target }) {
+  const rata = (kolom) => {
+    const angka = bulanan.map((b) => b[kolom]).filter((v) => v !== null);
+    if (!angka.length) return null;
+    return angka.reduce((a, b) => a + b, 0) / angka.length;
+  };
+
+  const tampil = (nilai) => {
+    if (nilai === null || nilai === undefined) {
+      return <span className={gaya.kosong}>–</span>;
+    }
+    return Number(nilai).toFixed(nilai % 1 === 0 ? 0 : 1);
+  };
+
+  /* Poin Qur'an selalu disertai nama surah/materinya. Angka 12 sendirian
+     tidak berarti apa-apa bagi siapa pun yang tidak hafal pemetaannya --
+     termasuk kepala sekolah yang sedang menyusun laporan. */
+  const tampilPoin = (poin, jenis) => {
+    if (poin === null || poin === undefined) {
+      return <span className={gaya.kosong}>–</span>;
+    }
+    return `${poin} · ${getQuranLevelName(jenis, poin)}`;
+  };
+
+  return (
+    <div className={gaya.gulir}>
+      <table className={`${gaya.tabel} ${gaya.tabelBulanan}`}>
+        {/* Kepala dua tingkat: tanpa pengelompokan ini, kolom "Tahfidz"
+            dan "Tahsin" tidak menjelaskan apakah isinya capaian atau
+            target -- dan keduanya memang berdampingan. */}
+        <thead>
+          <tr>
+            <th rowSpan={2}>No</th>
+            <th rowSpan={2}>Bulan</th>
+            <th colSpan={4}>Nilai Rata-Rata</th>
+            <th colSpan={2}>Tahfidz</th>
+            <th colSpan={2}>Tahsin</th>
+          </tr>
+          <tr>
+            <th>B. Indonesia</th>
+            <th>Matematika</th>
+            <th>IPA</th>
+            <th>Target</th>
+            <th>Capaian</th>
+            <th>Target</th>
+            <th>Capaian</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          {bulanan.map((b, i) => {
+            /* Target akademik hanya bermakna untuk bulan yang sudah
+               berjalan. Menampilkan "90" di dua belas baris membuat bulan
+               yang belum dimulai terlihat seolah sudah punya patokan. */
+            const berjalan = bulanBerdata(b);
+            return (
+              <tr key={b.bulan}>
+                <td>{i + 1}</td>
+                <td className={gaya.kiri}>{b.bulan}</td>
+                <td>{tampil(b.rata_b_indo)}</td>
+                <td>{tampil(b.rata_mtk)}</td>
+                <td>{tampil(b.rata_ipa)}</td>
+                <td>{berjalan ? target : <span className={gaya.kosong}>–</span>}</td>
+                <td>{tampilPoin(b.capaian_tahfidz, 'tahfidz')}</td>
+                <td>{tampilPoin(b.target_tahfidz, 'tahfidz')}</td>
+                <td>{tampilPoin(b.capaian_tahsin, 'tahsin')}</td>
+                <td>{tampilPoin(b.target_tahsin, 'tahsin')}</td>
+              </tr>
+            );
+          })}
+          <tr className={gaya.barisRata}>
+            <td colSpan={2}>Rata-Rata</td>
+            <td>{tampil(rata('rata_b_indo'))}</td>
+            <td>{tampil(rata('rata_mtk'))}</td>
+            <td>{tampil(rata('rata_ipa'))}</td>
+            {/* Lima kolom sisanya sengaja tidak dirata-ratakan: target
+                akademik sama sepanjang tahun, sedangkan Tahfidz dan Tahsin
+                bersifat kumulatif -- rata-rata poinnya tidak berarti
+                apa-apa. Diisi tanda hubung, bukan dibiarkan kosong, supaya
+                barisnya tidak terlihat seperti tabel yang gagal termuat. */}
+            {[0, 1, 2, 3, 4].map((i) => (
+              <td key={i}>
+                <span className={gaya.kosong}>–</span>
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ================================================================
    Grafik satu siswa sepanjang tahun ajaran
    ================================================================
    Berbeda dari GrafikKelasAkademik/GrafikKelasQuran di atas (satu bulan,
@@ -466,6 +605,8 @@ export function KeteranganQuran({ jenis }) {
    dilihat orang tua di app/rapor/[token].
    ================================================================ */
 export function GrafikTahunanAkademik({ bulanan, target }) {
+  const ukuran = useUkuranGrafikDasbor();
+
   const adaIsi = bulanan.some(
     (b) => b.rata_b_indo !== null || b.rata_mtk !== null || b.rata_ipa !== null
   );
@@ -475,7 +616,7 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
         <ComposedChart
           data={bulanan.map((b) => ({ ...b, target }))}
           margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
@@ -526,6 +667,8 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
 }
 
 export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
+  const ukuran = useUkuranGrafikDasbor();
+
   const kCapaian = jenis === 'tahfidz' ? 'capaian_tahfidz' : 'capaian_tahsin';
   const kTarget = jenis === 'tahfidz' ? 'target_tahfidz' : 'target_tahsin';
   const adaIsi = bulanan.some((b) => b[kCapaian] !== null && b[kCapaian] !== undefined);
@@ -535,7 +678,7 @@ export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
 
   return (
     <div className={gaya.grafik}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width={ukuran.width} height={ukuran.height}>
         <ComposedChart data={bulanan} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis

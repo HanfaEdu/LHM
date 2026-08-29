@@ -71,3 +71,10 @@
     transition: none;
   }
 }
+
+/* Tidak ikut tercetak: tidak ada yang bisa keluar dari selembar kertas. */
+@media print {
+  .tombol {
+    display: none;
+  }
+}

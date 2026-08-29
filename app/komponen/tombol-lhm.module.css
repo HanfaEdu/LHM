@@ -166,3 +166,12 @@
     transition: none;
   }
 }
+
+/* Tidak ikut tercetak. Di atas kertas tidak ada yang bisa diklik, dan
+   tombol biru pekat selebar ini akan terbaca sebagai bagian dari
+   laporan -- bukan sebagai kontrol yang kebetulan tertinggal. */
+@media print {
+  .tombol {
+    display: none;
+  }
+}

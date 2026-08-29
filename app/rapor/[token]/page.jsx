@@ -1,7 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -22,6 +21,11 @@ import { Printer, WifiOff } from 'lucide-react';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolPasang from '@/app/komponen/TombolPasang';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
+import {
+  KonteksCetak,
+  usePersiapanCetak,
+  useUkuranGrafik as ukuranGrafikCetak,
+} from '@/app/komponen/cetak';
 import gaya from './rapor.module.css';
 
 const WARNA = {
@@ -57,13 +61,12 @@ const WARNA = {
 const LEBAR_GRAFIK_CETAK = 696;
 const TINGGI_GRAFIK_CETAK = 300;
 
-const KonteksCetak = createContext(false);
-
+/* Mesin cetaknya sendiri (konteks, beforeprint, flushSync) dipakai
+   bersama dasbor staf dan tinggal di app/komponen/cetak.jsx. Yang tetap
+   milik halaman ini hanya kedua angka di atas: lebar bidang isinya
+   berbeda dari dasbor. */
 function useUkuranGrafik() {
-  const sedangDicetak = useContext(KonteksCetak);
-  return sedangDicetak
-    ? { width: LEBAR_GRAFIK_CETAK, height: TINGGI_GRAFIK_CETAK }
-    : { width: '100%', height: '100%' };
+  return ukuranGrafikCetak(LEBAR_GRAFIK_CETAK, TINGGI_GRAFIK_CETAK);
 }
 
 export default function HalamanRapor({ params }) {
@@ -79,7 +82,7 @@ export default function HalamanRapor({ params }) {
 
   /* Menyala hanya selagi halaman disiapkan untuk dicetak; dipakai grafik
      lewat KonteksCetak untuk menggambar diri pada lebar kertas. */
-  const [modeCetak, setModeCetak] = useState(false);
+  const { modeCetak, cetak } = usePersiapanCetak();
 
   /* Tanggal cetak diisi setelah komponen terpasang, bukan saat render.
      new Date() di badan render menghasilkan nilai yang berbeda antara
@@ -198,116 +201,6 @@ export default function HalamanRapor({ params }) {
     ambilData(undefined, undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-
-  /**
-   * Membuka seluruh lipatan sebelum dicetak, lalu menutupnya kembali.
-   *
-   * CSS saja tidak cukup: isi <details> yang tertutup disembunyikan
-   * peramban lewat mekanisme internalnya sendiri, bukan sekadar
-   * display:none yang bisa ditimpa aturan @media print. Akibatnya
-   * keterangan poin Tahfidz/Tahsin tidak ikut tercetak sama sekali --
-   * padahal justru di atas kertas pembacanya tidak bisa membukanya
-   * sendiri, dan tanpa daftar itu angka pada grafik tidak bisa
-   * diterjemahkan.
-   */
-  const sedangCetak = useRef(false);
-
-  const bukaLipatan = () => {
-    document.querySelectorAll('details:not([open])').forEach((d) => {
-      d.dataset.dibukaUntukCetak = 'ya';
-      d.open = true;
-    });
-  };
-
-  /**
-   * Menyiapkan halaman untuk dipotret peramban: lipatan dibuka dan grafik
-   * digambar ulang pada lebar kertas.
-   *
-   * flushSync dipakai, bukan setState biasa, karena jalur Ctrl+P memanggil
-   * ini dari dalam beforeprint -- peramban memotret halaman segera setelah
-   * penanganya selesai, sementara render React yang biasa baru dikerjakan
-   * setelahnya. Tanpa flushSync, grafik pada jalur itu tetap tercetak
-   * selebar layar.
-   */
-  const siapkanCetak = () => {
-    sedangCetak.current = true;
-    flushSync(() => setModeCetak(true));
-    bukaLipatan();
-  };
-
-  const kembalikanLipatan = () => {
-    document.querySelectorAll('details[data-dibuka-untuk-cetak]').forEach((d) => {
-      d.open = false;
-      delete d.dataset.dibukaUntukCetak;
-    });
-    setModeCetak(false);
-    sedangCetak.current = false;
-  };
-
-  useEffect(() => {
-    const sebelum = () => {
-      siapkanCetak();
-    };
-
-    /**
-     * Di HP, pratinjau cetak adalah layar tersendiri dan afterprint sering
-     * tidak pernah terpicu. Kembalinya fokus ke halaman adalah tanda yang
-     * jauh lebih bisa diandalkan bahwa pratinjaunya sudah ditutup -- entah
-     * karena dicetak, dibatalkan, atau tertutup tanpa sengaja.
-     */
-    const saatKembali = () => {
-      if (sedangCetak.current && document.visibilityState === 'visible') {
-        kembalikanLipatan();
-      }
-    };
-
-    window.addEventListener('beforeprint', sebelum);
-    window.addEventListener('afterprint', kembalikanLipatan);
-    window.addEventListener('focus', saatKembali);
-    document.addEventListener('visibilitychange', saatKembali);
-
-    return () => {
-      window.removeEventListener('beforeprint', sebelum);
-      window.removeEventListener('afterprint', kembalikanLipatan);
-      window.removeEventListener('focus', saatKembali);
-      document.removeEventListener('visibilitychange', saatKembali);
-    };
-    // Pendengar sengaja didaftarkan sekali saja; fungsi di dalamnya hanya
-    // menyentuh DOM, ref, dan penyetel state -- semuanya tidak berubah
-    // perilakunya antar-render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /**
-   * Sebagian peramban HP tidak memicu beforeprint saat mencetak lewat menu
-   * bagikan, jadi lipatannya dibuka langsung di sini.
-   *
-   * Dua penggambaran ditunggu sebelum window.print(): di HP, print()
-   * kembali seketika sementara pratinjaunya disiapkan belakangan, sehingga
-   * lipatan yang baru saja dibuka belum tentu sudah tergambar saat halaman
-   * dipotret. Menunggu satu frame saja belum cukup pada perangkat lambat.
-   *
-   * Pengembalian lipatan TIDAK lagi memakai pewaktu. Pewaktu bisa habis
-   * selagi pratinjau masih disiapkan, menutup lipatannya kembali, dan
-   * justru menghapus keterangan poin dari PDF yang dihasilkan -- persis
-   * masalah yang hendak diperbaiki. Sekarang menunggu fokus kembali ke
-   * halaman.
-   */
-  function cetak() {
-    siapkanCetak();
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        try {
-          window.print();
-        } catch {
-          // Peramban yang menolak print() tidak boleh meninggalkan
-          // lipatan dalam keadaan terbuka.
-          kembalikanLipatan();
-        }
-      });
-    });
-  }
 
   if (butuhPin && !data) {
     return (
