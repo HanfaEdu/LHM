@@ -241,6 +241,12 @@ Supabase sama sekali.
    const LINK_LHM        = 'https://lhm-pati.vercel.app/';  // aplikasi input sekolah ini
    ```
 
+   Selain kelima baris itu, sesuaikan juga `KELAS_DIHARAPKAN` dengan
+   nama kelas sekolah tersebut. Nama kelas dibaca apa adanya dari
+   spreadsheet — tidak pernah dianggap angka — jadi `['Kumbang',
+   'Capung']` atau `['PG Kecil', 'PG Besar']` sama sahnya dengan
+   `['1', '2A', ...]`. Batasnya 20 karakter per nama.
+
    `JENJANG_SEKOLAH` bukan sekadar keterangan: ia menentukan mata
    pelajaran yang ditampilkan. Playgroup tidak menilai IPA, jadi sekolah
    ber-jenjang `PG` otomatis kehilangan meteran, grafik, dan kolom IPA

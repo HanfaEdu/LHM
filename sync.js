@@ -128,9 +128,33 @@ const LINK_LHM = 'https://laporan-akademik.vercel.app/';
  * ke Supabase dengan kunci sb_secret_... yang sebenarnya.
  */
 
-/** Kelas yang seharusnya selalu ada di Master Rekap. Dipakai untuk
- *  mendeteksi kalau IMPORTRANGE salah satu kelas berhenti mengalir. */
+/**
+ * Kelas yang seharusnya selalu ada di Master Rekap sekolah INI.
+ *
+ * Dipakai Cek Kesehatan Data untuk mendeteksi kalau IMPORTRANGE salah
+ * satu kelas berhenti mengalir: kalau izin berbagi file sumber berubah,
+ * blok kelas itu diam-diam kosong -- bukan galat keras -- dan tanpa
+ * daftar ini, data lompong akan ikut tersinkron tanpa ada yang tahu.
+ *
+ * WAJIB DISESUAIKAN TIAP SEKOLAH. Isinya harus ditulis SAMA PERSIS
+ * dengan yang ada di Master Rekap, termasuk besar-kecil hurufnya. Nama
+ * kelas bebas -- sistem membacanya apa adanya, tidak pernah menganggapnya
+ * angka:
+ *
+ *   SD  : ['1', '2A', '2B', '3', '4', '5', '6']
+ *   PG  : ['Kumbang', 'Capung']   atau  ['PG Kecil', 'PG Besar']
+ *
+ * Batas 20 karakter per nama, mengikuti kolom kelas.nama_kelas di
+ * database. Nama yang lebih panjang DITOLAK database dan menggagalkan
+ * sinkronisasi -- Cek Kesehatan Data memperingatkannya lebih dulu.
+ *
+ * Boleh dikosongkan ([]) kalau daftar kelasnya belum tetap: pemeriksaan
+ * IMPORTRANGE dilewati, pemeriksaan lain tetap berjalan.
+ */
 const KELAS_DIHARAPKAN = ['1', '2A', '2B', '3', '4', '5', '6'];
+
+/** Batas panjang nama kelas, mengikuti kolom kelas.nama_kelas. */
+const MAKS_NAMA_KELAS = 20;
 
 /**
  * Penyelamat untuk target yang terlanjur ditulis sebagai teks DAN
@@ -328,6 +352,41 @@ function cekKesehatanData() {
       );
     }
   });
+
+  /* 2b. Nama kelas yang terlalu panjang.
+     
+     Kolom kelas.nama_kelas dibatasi 20 karakter, dan database MENOLAK
+     nilai yang lebih panjang -- bukan memotongnya. Tanpa peringatan ini,
+     sekolah yang memakai nama panjang ("Kelompok Bermain Kumbang", 24
+     karakter) baru mengetahuinya sebagai galat mentah di tengah
+     sinkronisasi, tanpa petunjuk kelas mana penyebabnya. */
+  Object.keys(kelasDitemukan).forEach(function (k) {
+    if (k && k.length > MAKS_NAMA_KELAS) {
+      temuan.push(
+        'Nama kelas "' + k + '" terlalu panjang (' + k.length + ' karakter, ' +
+        'maksimal ' + MAKS_NAMA_KELAS + '). Sinkronisasi akan ditolak ' +
+        'database. Persingkat namanya di Master Rekap.'
+      );
+    }
+  });
+
+  /* 2c. Kelas yang ADA di Master Rekap tapi tidak terdaftar di
+     KELAS_DIHARAPKAN. Bukan kesalahan, tetapi hampir selalu berarti
+     daftar di konfigurasi belum disesuaikan -- dan selama belum
+     disesuaikan, pemeriksaan IMPORTRANGE tidak menjaga kelas itu sama
+     sekali. */
+  if (KELAS_DIHARAPKAN.length) {
+    const tidakTerdaftar = Object.keys(kelasDitemukan).filter(function (k) {
+      return k && KELAS_DIHARAPKAN.indexOf(k) === -1;
+    });
+    if (tidakTerdaftar.length) {
+      temuan.push(
+        'Kelas ini ada di Master Rekap tapi belum terdaftar di ' +
+        'KELAS_DIHARAPKAN: ' + tidakTerdaftar.join(', ') + '. Tambahkan ' +
+        'ke konfigurasi supaya ikut dijaga kalau IMPORTRANGE-nya putus.'
+      );
+    }
+  }
 
   // 3. Siswa tanpa NIS (per kelas, supaya jelas kelas mana yang perlu dibenahi)
   const tanpaNisPerKelas = {};
