@@ -103,8 +103,29 @@ export async function generateMetadata({ params }) {
         siteName: namaSekolah,
         locale: 'id_ID',
         type: 'website',
+      /* Gambar pratinjau sengaja KECIL (192px), bukan logo 512px apa
+         adanya. WhatsApp mengunduh gambarnya lalu mengukur sendiri, dan
+         dari ukuran itulah ia memutuskan bentuk kartunya: gambar besar
+         menjadi kartu lebar yang memenuhi layar, gambar kecil menjadi
+         thumbnail di samping judul. Sekolah memilih yang ringkas --
+         nama dan logo terbaca, alamat tautan yang panjang tidak ikut
+         memenuhi layar.
+
+         Angka width/height di bawah ini TIDAK menentukan apa pun di
+         WhatsApp; ia mengabaikannya dan memakai ukuran berkas yang
+         sebenarnya. Angkanya tetap ditulis jujur karena Facebook,
+         Telegram, dan Slack justru mempercayainya untuk menyiapkan
+         kotak kartu sebelum gambarnya selesai diunduh -- dan sebelum
+         ini angkanya keliru (256 padahal berkasnya 512).
+
+         Berkasnya dibuat oleh scripts/buat-pratinjau.py. */
         images: [
-          { url: '/logo.png', width: 256, height: 256, alt: `Logo ${namaSekolah}` },
+          {
+            url: '/pratinjau-192.png',
+            width: 192,
+            height: 192,
+            alt: `Logo ${namaSekolah}`,
+          },
         ],
       },
     };

@@ -27,8 +27,8 @@ const alamatResmi = process.env.NEXT_PUBLIC_SITE_URL || 'https://akademik-sdyaum
    seluruh jaringan, dan halaman rapor tiap siswa sudah menimpanya
    dengan nama sekolahnya masing-masing. */
 export const metadata = {
-  // metadataBase membuat /logo.png di bawah menjadi alamat lengkap;
-  // WhatsApp mengabaikan gambar pratinjau yang alamatnya relatif.
+  // metadataBase membuat /pratinjau-192.png di bawah menjadi alamat
+  // lengkap; WhatsApp mengabaikan gambar pratinjau beralamat relatif.
   metadataBase: new URL(alamatResmi),
   title: 'Akademik — Sekolah BIAS',
   description:
@@ -44,7 +44,25 @@ export const metadata = {
     siteName: 'Sekolah BIAS',
     locale: 'id_ID',
     type: 'website',
-    images: [{ url: '/logo.png', width: 256, height: 256, alt: 'Logo Sekolah BIAS' }],
+    /* Gambar pratinjau sengaja KECIL (192px), bukan logo 512px apa
+       adanya. WhatsApp mengunduh gambarnya lalu mengukur sendiri, dan
+       dari ukuran itulah ia memutuskan bentuk kartunya: gambar besar
+       menjadi kartu lebar yang memenuhi layar, gambar kecil menjadi
+       thumbnail di samping judul. Sekolah memilih yang ringkas --
+       nama dan logo terbaca, alamat tautan yang panjang tidak ikut
+       memenuhi layar.
+
+       Angka width/height di bawah ini TIDAK menentukan apa pun di
+       WhatsApp; ia mengabaikannya dan memakai ukuran berkas yang
+       sebenarnya. Angkanya tetap ditulis jujur karena Facebook,
+       Telegram, dan Slack justru mempercayainya untuk menyiapkan
+       kotak kartu sebelum gambarnya selesai diunduh -- dan sebelum
+       ini angkanya keliru (256 padahal berkasnya 512).
+
+       Berkasnya dibuat oleh scripts/buat-pratinjau.py. */
+    images: [
+      { url: '/pratinjau-192.png', width: 192, height: 192, alt: 'Logo Sekolah BIAS' },
+    ],
   },
 };
 
