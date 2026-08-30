@@ -192,6 +192,15 @@ Bagi kepala sekolah yang hanya membawahi satu sekolah, tampilannya
 **tidak berubah sedikit pun** — pemilih sekolah hanya muncul kalau yang
 terbaca lebih dari satu. Dijaga oleh `scripts/uji-direktur-area.mjs`.
 
+Halaman **Tautan Orang Tua** ikut disaring per sekolah, dan penjagaannya
+ada di sisi server. `/api/tautan` memakai `service_role`, yang MELEWATI
+seluruh kebijakan RLS, jadi ia menghitung sendiri sekolah mana yang boleh
+disentuh pemanggilnya — untuk kepala sekolah satu sekolah, untuk biro
+seluruh sekolah dalam areanya. Tanpa itu, kepala sekolah satu sekolah
+dapat mendaftar, menerbitkan, mengganti, dan mencabut tautan orang tua
+sekolah lain hanya dengan mengirim NIS-nya. Gagal tertutup: kalau
+sekolah pemanggil tidak bisa ditentukan, permintaannya ditolak.
+
 Kalau kelak ada biro yang membawahi sekolah LINTAS area, pendekatan
 `area` ini tidak cukup dan butuh tabel penugasan tersendiri (satu email
 ke banyak sekolah secara eksplisit). Belum dibuat, karena sampai

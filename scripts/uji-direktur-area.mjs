@@ -246,6 +246,86 @@ try {
       !teks.includes('Application error'));
     await page.close();
   }
+
+  /* ---------------- Halaman Tautan Orang Tua ---------------- */
+  console.log('\n--- tautan orang tua ---');
+  {
+    /* Endpoint /api/tautan memakai service_role, yang MELEWATI seluruh
+       kebijakan RLS -- jadi ia memeriksa sendiri sekolah pemanggilnya.
+       Yang diuji di sini sisi tampilannya; jawaban API dipalsukan supaya
+       ujinya tidak menuntut kunci server. */
+    const page = await konteks.newPage();
+    await page.route('**/*.supabase.co/**', async (rute) => {
+      const nama = new URL(rute.request().url()).pathname.split('/').pop();
+      const isi = tabel('direktur_area');
+      const data = isi[nama] ?? [];
+      const tunggal = (rute.request().headers()['accept'] || '').includes('pgrst.object');
+      await rute.fulfill({
+        status: 200, contentType: 'application/json',
+        headers: { 'content-range': '0-99/*' },
+        body: JSON.stringify(tunggal && Array.isArray(data) ? data[0] ?? null : data),
+      });
+    });
+    await page.route('**/api/tautan', (rute) =>
+      rute.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          daftar: siswa.map((x) => {
+            const k = KELAS.find((y) => y.id === x.kelas_id);
+            const sek = SEKOLAH.find((y) => y.id === k.sekolah_id);
+            return {
+              nis: x.nis,
+              nama_lengkap: x.nama_lengkap,
+              nama_panggilan: x.nama_panggilan,
+              nama_kelas: k.nama_kelas,
+              sekolah_id: sek.id,
+              nama_sekolah: sek.nama,
+              token: null, aktif: null, terakhir_dibuka: null,
+            };
+          }),
+        }),
+      })
+    );
+    await page.addInitScript(() => {
+      localStorage.setItem('sb-placeholder-project-auth-token', JSON.stringify({
+        access_token: 'uji', token_type: 'bearer', refresh_token: 'uji',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600 * 24 * 365,
+        user: {
+          id: '00000000-0000-0000-0000-000000000001',
+          aud: 'authenticated', role: 'authenticated',
+          email: 'biro@contoh.sch.id',
+          app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z',
+        },
+      }));
+    });
+    await page.goto(`${ASAL}/dashboard/kepala-sekolah/tautan`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+
+    const teks = await page.locator('body').innerText();
+    periksa('halaman tautan termuat tanpa galat',
+      !teks.includes('Application error'));
+    periksa('kolom Sekolah muncul saat lebih dari satu sekolah',
+      teks.includes('PG Yaumi Fatimah Kudus') && teks.includes('SD Yaumi Fatimah Pati'));
+
+    const barisSemua = await page.locator('table tbody tr').count();
+    periksa('tanpa penyaringan, seluruh siswa tampil', barisSemua === 24,
+      `${barisSemua} baris`);
+
+    /* Menyaring ke satu sekolah. Pemilih sekolah adalah dropdown pertama
+       di baris kontrol halaman ini. */
+    const pemilihSekolah = page.locator('select').first();
+    await pemilihSekolah.selectOption('SD Yaumi Fatimah Pati');
+    await page.waitForTimeout(600);
+
+    const barisSatu = await page.locator('table tbody tr').count();
+    periksa('disaring per sekolah, siswa sekolah lain tidak ikut',
+      barisSatu === 8, `${barisSatu} baris`);
+    periksa('nama sekolah lain hilang dari tabel',
+      !(await page.locator('table tbody').innerText()).includes('PG Yaumi Fatimah Kudus'));
+    await page.close();
+  }
 } finally {
   await peramban.close();
   server.kill('SIGTERM');

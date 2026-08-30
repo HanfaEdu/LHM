@@ -27,6 +27,12 @@ export default function HalamanTautan() {
   const [tahunAjaran, setTahunAjaran] = useState('');
   const [daftar, setDaftar] = useState([]);
   const [kelasPilih, setKelasPilih] = useState('semua');
+  /* Biro akademik melihat siswa dari beberapa sekolah sekaligus. Tanpa
+     penyaring ini, "A1" milik Kudus dan "A1" milik Pati berjajar dalam
+     satu daftar tanpa bisa dibedakan -- dan tautan bisa diterbitkan ke
+     kelas yang salah. Kepala sekolah tidak pernah melihat penyaring ini
+     karena daftarnya hanya berisi satu sekolah. */
+  const [sekolahPilih, setSekolahPilih] = useState('semua');
   const [sibuk, setSibuk] = useState(false);
 
   /** Memanggil /api/tautan dengan token sesi yang sedang berlaku. */
@@ -66,8 +72,14 @@ export default function HalamanTautan() {
         }
 
         const p = await muatProfil(session.user.email);
-        if (p?.role !== 'kepala_sekolah') {
-          setGalat('Halaman ini hanya untuk kepala sekolah.');
+        /* Biro akademik ikut mengelola tautan orang tua, dibatasi ke
+           sekolah-sekolah dalam areanya. Penjagaan yang sesungguhnya ada
+           di /api/tautan -- endpoint itu memakai service_role dan
+           memeriksa sendiri sekolah pemanggilnya; pemeriksaan di sini
+           hanya supaya orang yang salah alamat mendapat kalimat yang
+           jelas, bukan tabel kosong. */
+        if (p?.role !== 'kepala_sekolah' && p?.role !== 'direktur_area') {
+          setGalat('Halaman ini hanya untuk kepala sekolah dan biro akademik.');
           return;
         }
         setProfil(p);
@@ -105,14 +117,48 @@ export default function HalamanTautan() {
     if (tahunAjaran) muatDaftar(tahunAjaran);
   }, [tahunAjaran, muatDaftar]);
 
-  const daftarKelas = useMemo(
-    () => [...new Set(daftar.map((d) => d.nama_kelas))].sort((a, b) => a.localeCompare(b, 'id')),
+  const daftarSekolah = useMemo(
+    () =>
+      [...new Set(daftar.map((d) => d.nama_sekolah).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b, 'id')
+      ),
     [daftar]
   );
+  const banyakSekolah = daftarSekolah.length > 1;
+
+  /* Disaring sekolah DULU, baru kelas: dua sekolah bisa punya nama kelas
+     yang sama persis, jadi daftar kelasnya pun harus mengikuti sekolah
+     yang sedang dipilih -- kalau tidak, memilih "A1" akan menampilkan
+     siswa dari dua sekolah sekaligus. */
+  const sesuaiSekolah = useMemo(
+    () =>
+      sekolahPilih === 'semua'
+        ? daftar
+        : daftar.filter((d) => d.nama_sekolah === sekolahPilih),
+    [daftar, sekolahPilih]
+  );
+
+  const daftarKelas = useMemo(
+    () =>
+      [...new Set(sesuaiSekolah.map((d) => d.nama_kelas))].sort((a, b) =>
+        a.localeCompare(b, 'id')
+      ),
+    [sesuaiSekolah]
+  );
+
+  // Kelas yang dipilih bisa saja tidak ada di sekolah yang baru dipilih.
+  useEffect(() => {
+    if (kelasPilih !== 'semua' && !daftarKelas.includes(kelasPilih)) {
+      setKelasPilih('semua');
+    }
+  }, [daftarKelas, kelasPilih]);
 
   const tampil = useMemo(
-    () => (kelasPilih === 'semua' ? daftar : daftar.filter((d) => d.nama_kelas === kelasPilih)),
-    [daftar, kelasPilih]
+    () =>
+      kelasPilih === 'semua'
+        ? sesuaiSekolah
+        : sesuaiSekolah.filter((d) => d.nama_kelas === kelasPilih),
+    [sesuaiSekolah, kelasPilih]
   );
 
   const belumPunya = tampil.filter((d) => !d.token);
@@ -234,7 +280,7 @@ export default function HalamanTautan() {
       kelasPilih === 'semua' ? daftarKelas : [kelasPilih];
 
     const lembar = kelasDiunduh.map((namaKelas) => {
-      const baris = daftar.filter((d) => d.nama_kelas === namaKelas);
+      const baris = sesuaiSekolah.filter((d) => d.nama_kelas === namaKelas);
       return {
         nama: `Kelas ${namaKelas}`,
         baris: [
@@ -300,6 +346,25 @@ export default function HalamanTautan() {
                   <span className={gaya.nilaiStatis}>{tahunAjaran}</span>
                 )}
               </label>
+              {/* Hanya muncul kalau daftarnya memang memuat lebih dari satu
+                  sekolah -- bagi kepala sekolah, baris kontrolnya tidak
+                  berubah sedikit pun. */}
+              {banyakSekolah && (
+                <label>
+                  Sekolah
+                  <select
+                    value={sekolahPilih}
+                    onChange={(e) => setSekolahPilih(e.target.value)}
+                  >
+                    <option value="semua">Semua sekolah</option>
+                    {daftarSekolah.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label>
                 Kelas
                 <select value={kelasPilih} onChange={(e) => setKelasPilih(e.target.value)}>
@@ -383,6 +448,7 @@ export default function HalamanTautan() {
                   <tr>
                     <th>No</th>
                     <th className={gaya.kiri}>Nama Lengkap</th>
+                    {banyakSekolah && <th className={gaya.kiri}>Sekolah</th>}
                     <th>Kelas</th>
                     <th>Status</th>
                     <th className={gaya.kiri}>Tautan</th>
@@ -394,6 +460,9 @@ export default function HalamanTautan() {
                     <tr key={d.nis}>
                       <td>{i + 1}</td>
                       <td className={gaya.kiri}>{d.nama_lengkap}</td>
+                      {banyakSekolah && (
+                        <td className={gaya.kiri}>{d.nama_sekolah}</td>
+                      )}
                       <td>{d.nama_kelas}</td>
                       <td>
                         {!d.token ? (
