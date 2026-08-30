@@ -784,7 +784,20 @@ function sinkronkanDariMaster(isi) {
  * sekolah — akses orang tua memakai jalur terpisah (lihat akses_ortu
  * dan docs/AKSES_ORANG_TUA.md), bukan baris di sheet ini.
  */
-const PERAN_VALID = ['kepala_sekolah', 'wali_kelas'];
+/**
+ * Peran yang diterima database (CHECK constraint di users_access).
+ *
+ * 'direktur_area' untuk biro akademik yang membawahi beberapa sekolah
+ * dalam satu Tim Manajemen. Emailnya cukup ditulis SEKALI, di sheet
+ * users_access salah satu sekolah di wilayah itu -- bukan di semua
+ * sekolah. users_access.email adalah PRIMARY KEY, jadi email yang sama
+ * ditulis di dua Master Rekap akan saling menimpa: sekolah yang sinkron
+ * paling akhir yang menang, dan karena tiap sekolah punya pemicu
+ * sendiri, pemenangnya bisa berganti tiap malam tanpa satu pun pesan
+ * galat. Cakupan bacanya ditentukan kolom `area` sekolah tempat
+ * emailnya terdaftar, bukan oleh jumlah barisnya.
+ */
+const PERAN_VALID = ['kepala_sekolah', 'wali_kelas', 'direktur_area'];
 
 /** Membaca sheet 'users_access' di Master Rekap. */
 function sinkronkanUserAccess() {

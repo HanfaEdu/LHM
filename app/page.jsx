@@ -45,7 +45,12 @@ export default function HomeRouter() {
 
         if (error) throw error;
 
-        if (staf?.role === 'kepala_sekolah') {
+        /* Biro akademik memakai dasbor yang sama dengan kepala sekolah;
+           yang membedakan hanya cakupannya -- RLS memberi mereka seluruh
+           sekolah dalam satu area, dan dasbor itu menyediakan pemilih
+           sekolah begitu yang terbaca lebih dari satu. Membuatkan halaman
+           tersendiri hanya akan menggandakan seluruh isinya. */
+        if (staf?.role === 'kepala_sekolah' || staf?.role === 'direktur_area') {
           router.push('/dashboard/kepala-sekolah');
           return;
         }

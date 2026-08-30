@@ -21,7 +21,7 @@ import {
   muatDaftarKelas,
   muatNilaiKelas,
   muatProfil,
-  muatSekolah,
+  muatDaftarSekolah,
   siswaDalamKelas,
   susunBulananSiswa,
 } from '@/lib/data-dasbor';
@@ -67,7 +67,14 @@ export default function DasborKepalaSekolah() {
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState('');
   const [profil, setProfil] = useState(null);
-  const [sekolah, setSekolah] = useState(null);
+  /* Biro akademik (peran direktur_area) melihat SELURUH sekolah dalam
+     satu Tim Manajemen, sementara kepala sekolah hanya melihat satu.
+     Keduanya memakai halaman ini; yang membedakan hanya panjang daftar
+     yang dikembalikan RLS. Pemilih sekolah baru muncul kalau isinya
+     lebih dari satu, jadi tampilan kepala sekolah tidak berubah sama
+     sekali. */
+  const [daftarSekolah, setDaftarSekolah] = useState([]);
+  const [sekolahId, setSekolahId] = useState('');
   const [daftarKelas, setDaftarKelas] = useState([]);
   const [tahunAjaran, setTahunAjaran] = useState('');
   const [bulan, setBulan] = useState('');
@@ -106,10 +113,12 @@ export default function DasborKepalaSekolah() {
         }
         setProfil(p);
 
-        // Nama sekolah untuk kepala halaman. Diambil terpisah dan
-        // kegagalannya diabaikan: pada database yang belum menjalankan
-        // migrasi multi-sekolah, tabelnya memang belum ada.
-        setSekolah(await muatSekolah());
+        // Sekolah yang boleh dilihat. Diambil terpisah dan kegagalannya
+        // diabaikan: pada database yang belum menjalankan migrasi
+        // multi-sekolah, tabelnya memang belum ada.
+        const sekolahBoleh = await muatDaftarSekolah();
+        setDaftarSekolah(sekolahBoleh);
+        if (sekolahBoleh.length) setSekolahId(String(sekolahBoleh[0].id));
 
         const semua = await muatDaftarKelas();
         if (!semua.length) {
@@ -126,9 +135,35 @@ export default function DasborKepalaSekolah() {
     })();
   }, [router]);
 
+  /* Sekolah yang sedang dilihat. Untuk kepala sekolah selalu satu-satunya
+     yang ada; untuk biro akademik, yang sedang dipilih di dropdown. */
+  const sekolah = useMemo(
+    () => daftarSekolah.find((x) => String(x.id) === String(sekolahId)) || null,
+    [daftarSekolah, sekolahId]
+  );
+  const banyakSekolah = daftarSekolah.length > 1;
+
+  /* Kelas disaring menurut sekolah yang sedang dilihat.
+     
+     Tanpa penyaringan ini, biro akademik akan melihat "A1" milik Kudus
+     dan "A1" milik Pati berdampingan di tabel rekap tanpa bisa
+     dibedakan sama sekali -- dan grafik ketuntasan antar kelas akan
+     mencampur dua sekolah dalam satu sumbu. Menampilkan satu sekolah
+     pada satu waktu membuat seluruh isi dasbor tetap berarti persis
+     seperti yang dibaca kepala sekolah.
+     
+     Perbandingan memakai String(): sekolah_id dari database berupa
+     angka, sedangkan nilai <select> selalu teks. */
+  const kelasSekolahIni = useMemo(
+    () => (banyakSekolah && sekolahId
+      ? daftarKelas.filter((k) => String(k.sekolah_id) === String(sekolahId))
+      : daftarKelas),
+    [daftarKelas, sekolahId, banyakSekolah]
+  );
+
   const kelasTahunIni = useMemo(
-    () => daftarKelas.filter((k) => k.tahun_ajaran === tahunAjaran),
-    [daftarKelas, tahunAjaran]
+    () => kelasSekolahIni.filter((k) => k.tahun_ajaran === tahunAjaran),
+    [kelasSekolahIni, tahunAjaran]
   );
 
   // Memuat seluruh kelas pada tahun ajaran terpilih.
@@ -170,9 +205,27 @@ export default function DasborKepalaSekolah() {
   }, [kelasTahunIni, tahunAjaran]);
 
   const tahunTersedia = useMemo(
-    () => [...new Set(daftarKelas.map((k) => k.tahun_ajaran))],
-    [daftarKelas]
+    () => [...new Set(kelasSekolahIni.map((k) => k.tahun_ajaran))],
+    [kelasSekolahIni]
   );
+
+  /* Berganti sekolah membatalkan seluruh pilihan yang menunjuk kelas.
+     
+     fokus, kelasSiswa, dan nisSiswa berisi id milik sekolah sebelumnya;
+     dibiarkan, penelusuran akan menampilkan kelas yang sudah tidak ada
+     di daftar -- atau kosong tanpa penjelasan. Tahun ajaran juga ikut
+     diperiksa: sekolah baru bisa saja belum punya tahun ajaran yang
+     sedang dipilih. */
+  useEffect(() => {
+    setFokus('');
+    setKelasSiswa('');
+    setNisSiswa('');
+  }, [sekolahId]);
+
+  useEffect(() => {
+    if (!tahunTersedia.length) return;
+    if (!tahunTersedia.includes(tahunAjaran)) setTahunAjaran(tahunTersedia[0]);
+  }, [tahunTersedia, tahunAjaran]);
 
   const bulanTersedia = useMemo(
     () => BULAN_AJARAN.filter((b) => Object.values(dataKelas).some((p) => adaIsiBulan(p[b]))),
@@ -260,8 +313,23 @@ export default function DasborKepalaSekolah() {
       <div className={gaya.wadah}>
         <KepalaSekolahan
           namaSekolah={sekolah?.nama}
-          judul={`Dasbor Sekolah · ${bulan || 'belum ada data'}`}
-          keterangan={`${profil?.nama ?? ''} · ${kelasTahunIni.length} kelas`}
+          /* Biro akademik membawahi beberapa sekolah, jadi judulnya
+             menyebut sekolah yang sedang dilihat -- kalau tidak, empat
+             sekolah akan tampil dengan judul yang sama persis dan
+             lembar cetaknya tidak bisa dibedakan lagi setelah tercetak.
+             Kepala sekolah tetap membaca judul yang sama seperti dulu. */
+          judul={
+            banyakSekolah
+              ? `${sekolah?.nama ?? 'Sekolah'} · ${bulan || 'belum ada data'}`
+              : `Dasbor Sekolah · ${bulan || 'belum ada data'}`
+          }
+          keterangan={
+            banyakSekolah
+              ? `${profil?.nama ?? ''} · Biro Akademik${
+                  sekolah?.area ? ` ${sekolah.area}` : ''
+                } · ${daftarSekolah.length} sekolah · ${kelasTahunIni.length} kelas`
+              : `${profil?.nama ?? ''} · ${kelasTahunIni.length} kelas`
+          }
           aksi={
             <>
               {/* Kepala sekolah ikut membuka aplikasi input LHM: saat
@@ -281,6 +349,24 @@ export default function DasborKepalaSekolah() {
           }
           anak={
             <div className={gaya.penyaring}>
+            {/* Pemilih sekolah HANYA muncul kalau memang ada lebih dari
+                satu yang boleh dilihat. Bagi kepala sekolah, baris
+                kontrolnya tidak berubah sedikit pun. */}
+            {banyakSekolah && (
+              <label>
+                Sekolah
+                <select
+                  value={sekolahId}
+                  onChange={(e) => setSekolahId(e.target.value)}
+                >
+                  {daftarSekolah.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.nama}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {/* Selalu ditampilkan, bukan hanya saat sudah ada lebih dari satu
                 tahun -- sama seperti dasbor orang tua. Begitu tahun kedua
                 berjalan, kolom ini otomatis berubah dari teks menjadi menu

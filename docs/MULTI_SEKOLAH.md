@@ -153,10 +153,49 @@ seluruh kode aplikasi tetap berjalan apa adanya.
 dipersempit sehingga kepala sekolah hanya melihat sekolahnya sendiri,
 dan wali kelas hanya melihat kelas di sekolahnya sendiri.
 
-Peran ketiga disiapkan untuk nanti: `direktur_area`, yang melihat
-seluruh sekolah dalam satu area. Perannya sudah diterima database sejak
-sekarang, tetapi dasbornya belum dibuat — supaya penambahannya kelak
-tidak menuntut migrasi lagi.
+### Biro akademik: peran `direktur_area`
+
+Biro akademik membawahi beberapa sekolah dalam satu Tim Manajemen —
+misalnya PG Kudus, SD Pati, SD Juwana, dan SD Jepara yang semuanya
+ber-`area` **Pati Raya**.
+
+**Emailnya ditulis SEKALI SAJA**, di sheet `users_access` salah satu
+sekolah di wilayah itu — bukan di semua sekolah. `users_access.email`
+adalah PRIMARY KEY: email yang sama ditulis di dua Master Rekap akan
+saling menimpa lewat upsert, sekolah yang sinkron paling akhir yang
+menang, dan karena tiap sekolah punya pemicu tengah malamnya sendiri,
+pemenangnya bisa berganti tiap malam tanpa satu pun pesan galat.
+
+Cara mendaftarkannya:
+
+| Kolom di sheet `users_access` | Isi |
+|---|---|
+| Email | email biro |
+| Nama | nama biro |
+| Peran | `direktur_area` |
+| Kelas | dikosongkan |
+
+Cakupan bacanya ditentukan kolom `area` sekolah tempat emailnya
+terdaftar, bukan oleh jumlah barisnya. **Seluruh sekolah yang boleh ia
+lihat harus menulis `AREA_SEKOLAH` yang sama persis** di Apps Script —
+salah ketik satu huruf membuat sekolah itu tidak terlihat.
+
+Yang ia dapat: dasbor yang sama dengan kepala sekolah, ditambah pemilih
+**Sekolah** di baris kontrol. Satu sekolah ditampilkan pada satu waktu —
+kalau dicampur, "A1" milik Kudus dan "A1" milik Pati akan berdampingan
+di tabel rekap tanpa bisa dibedakan, dan grafik ketuntasan antar kelas
+akan mencampur dua sekolah dalam satu sumbu. Berganti sekolah mengganti
+seluruh isi dasbor, termasuk daftar mapelnya: berpindah dari PG ke SD
+memunculkan kembali kolom IPA dalam sesi login yang sama.
+
+Bagi kepala sekolah yang hanya membawahi satu sekolah, tampilannya
+**tidak berubah sedikit pun** — pemilih sekolah hanya muncul kalau yang
+terbaca lebih dari satu. Dijaga oleh `scripts/uji-direktur-area.mjs`.
+
+Kalau kelak ada biro yang membawahi sekolah LINTAS area, pendekatan
+`area` ini tidak cukup dan butuh tabel penugasan tersendiri (satu email
+ke banyak sekolah secara eksplisit). Belum dibuat, karena sampai
+sekarang tiap biro persis satu Tim Manajemen.
 
 ---
 
