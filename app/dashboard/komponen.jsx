@@ -15,7 +15,6 @@ import {
 } from 'recharts';
 import { TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
 import {
-  MAPEL,
   bulanBerdata,
   bulat,
   capaianTerbaik,
@@ -27,6 +26,7 @@ import {
 } from '@/lib/statistik';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
 import { useUkuranGrafik } from '@/app/komponen/cetak';
+import { useMapel } from '@/app/komponen/jenjang';
 import gaya from './dasbor.module.css';
 
 /* ================================================================
@@ -49,6 +49,17 @@ import gaya from './dasbor.module.css';
    menghabiskan empat halaman kertas. */
 const LEBAR_GRAFIK_CETAK = 664;
 const TINGGI_GRAFIK_CETAK = 250;
+
+/* Warna dipatok per MATA PELAJARAN, bukan per urutan batang. Kalau
+   dipatok per urutan, Matematika berubah dari jingga menjadi hijau
+   begitu IPA tidak ikut ditampilkan di jenjang Playgroup -- dan guru
+   yang terbiasa membaca warna di dasbor SD akan salah membaca dasbor
+   PG. */
+export const WARNA_MAPEL = {
+  rata_b_indo: 'var(--seri-1)',
+  rata_mtk: 'var(--seri-2)',
+  rata_ipa: 'var(--seri-3)',
+};
 
 /* Diekspor karena dasbor kepala sekolah menggambar satu grafik langsung
    di halamannya sendiri (ketuntasan antar kelas), bukan lewat komponen
@@ -161,6 +172,7 @@ export function MeterKetuntasan({ label, hasil }) {
    ================================================================ */
 export function GrafikKelasAkademik({ baris, target, anonim }) {
   const ukuran = useUkuranGrafikDasbor();
+  const mapel = useMapel();
 
   // `target` tidak lagi diikutkan ke tiap baris data: sejak digambar
   // sebagai ReferenceLine, ia bukan lagi seri yang perlu punya nilai per
@@ -171,7 +183,7 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
     ...b,
   }));
 
-  const adaIsi = data.some((b) => MAPEL.some((m) => b[m.kunci] !== null));
+  const adaIsi = data.some((b) => mapel.some((m) => b[m.kunci] !== null));
   if (!adaIsi) return <p className={gaya.kosong}>Belum ada nilai untuk bulan ini.</p>;
 
   return (
@@ -246,12 +258,21 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
               keduanya; kemiringannya lalu terbaca sebagai tren yang tidak
               ada. Garis tetap dipakai pada grafik per-siswa sepanjang tahun,
               di mana sumbu X-nya bulan dan tren memang bermakna. */}
-          <Bar isAnimationActive={!ukuran.cetak} dataKey="rata_b_indo" name="B. Indonesia" fill="var(--seri-1)"
-               radius={[3, 3, 0, 0]} maxBarSize={18} />
-          <Bar isAnimationActive={!ukuran.cetak} dataKey="rata_mtk" name="Matematika" fill="var(--seri-2)"
-               radius={[3, 3, 0, 0]} maxBarSize={18} />
-          <Bar isAnimationActive={!ukuran.cetak} dataKey="rata_ipa" name="IPA" fill="var(--seri-3)"
-               radius={[3, 3, 0, 0]} maxBarSize={18} />
+          {/* Batangnya dibuat dari daftar mapel, bukan ditulis satu per
+              satu: pada jenjang Playgroup IPA tidak dinilai sama sekali,
+              dan batang yang selalu kosong terbaca sebagai data yang
+              belum diisi. */}
+          {mapel.map((m) => (
+            <Bar
+              key={m.kunci}
+              isAnimationActive={!ukuran.cetak}
+              dataKey={m.kunci}
+              name={m.label}
+              fill={WARNA_MAPEL[m.kunci]}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={18}
+            />
+          ))}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -392,7 +413,8 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
    Tabel distribusi nilai
    ================================================================ */
 export function TabelDistribusi({ baris }) {
-  const sebaran = MAPEL.map((m) => ({ mapel: m, data: distribusi(baris, m.kunci) }));
+  const mapel = useMapel();
+  const sebaran = mapel.map((m) => ({ mapel: m, data: distribusi(baris, m.kunci) }));
 
   return (
     <div className={gaya.gulir}>
@@ -400,12 +422,12 @@ export function TabelDistribusi({ baris }) {
         <thead>
           <tr>
             <th rowSpan={2} className={gaya.kiri}>Rentang Nilai</th>
-            <th colSpan={3}>Jumlah Siswa</th>
-            <th colSpan={3}>Persentase</th>
+            <th colSpan={mapel.length}>Jumlah Siswa</th>
+            <th colSpan={mapel.length}>Persentase</th>
           </tr>
           <tr>
-            {MAPEL.map((m) => <th key={`j-${m.kunci}`}>{m.pendek}</th>)}
-            {MAPEL.map((m) => <th key={`p-${m.kunci}`}>{m.pendek}</th>)}
+            {mapel.map((m) => <th key={`j-${m.kunci}`}>{m.pendek}</th>)}
+            {mapel.map((m) => <th key={`p-${m.kunci}`}>{m.pendek}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -422,10 +444,10 @@ export function TabelDistribusi({ baris }) {
           ))}
           <tr style={{ fontWeight: 700 }}>
             <td className={gaya.kiri}>Rata-Rata Kelas</td>
-            {MAPEL.map((m) => (
+            {mapel.map((m) => (
               <td key={m.kunci}>{bulat(rataRata(baris.map((b) => b[m.kunci])), 1)}</td>
             ))}
-            <td colSpan={3}></td>
+            <td colSpan={mapel.length}></td>
           </tr>
         </tbody>
       </table>
@@ -474,7 +496,7 @@ export function RekapQuran({ jenis, baris }) {
    Peringatan dini
    ================================================================ */
 export function PeringatanDini({ baris, target }) {
-  const perlu = peringatanDini(baris, target);
+  const perlu = peringatanDini(baris, target, useMapel());
 
   if (!perlu.length) {
     return (
@@ -506,7 +528,7 @@ export function PeringatanDini({ baris, target }) {
    Ringkasan naratif
    ================================================================ */
 export function CatatanTerbaik({ baris }) {
-  const terbaik = capaianTerbaik(baris);
+  const terbaik = capaianTerbaik(baris, useMapel());
   if (!terbaik.length) return null;
   return (
     <p className={gaya.narasi}>
@@ -565,6 +587,8 @@ export function KeteranganQuran({ jenis }) {
    menerjemahkan dulu apa yang sedang dilihat orang tua di layar HP-nya.
    ================================================================ */
 export function TabelBulananSiswa({ bulanan, target }) {
+  const mapel = useMapel();
+
   const rata = (kolom) => {
     const angka = bulanan.map((b) => b[kolom]).filter((v) => v !== null);
     if (!angka.length) return null;
@@ -598,14 +622,15 @@ export function TabelBulananSiswa({ bulanan, target }) {
           <tr>
             <th rowSpan={2}>No</th>
             <th rowSpan={2}>Bulan</th>
-            <th colSpan={4}>Nilai Rata-Rata</th>
+            {/* +1 untuk kolom Target akademik yang selalu ada. */}
+            <th colSpan={mapel.length + 1}>Nilai Rata-Rata</th>
             <th colSpan={2}>Tahfidz</th>
             <th colSpan={2}>Tahsin</th>
           </tr>
           <tr>
-            <th>B. Indonesia</th>
-            <th>Matematika</th>
-            <th>IPA</th>
+            {mapel.map((m) => (
+              <th key={m.kunci}>{m.label}</th>
+            ))}
             <th>Target</th>
             <th>Capaian</th>
             <th>Target</th>
@@ -623,9 +648,9 @@ export function TabelBulananSiswa({ bulanan, target }) {
               <tr key={b.bulan}>
                 <td>{i + 1}</td>
                 <td className={gaya.kiri}>{b.bulan}</td>
-                <td>{tampil(b.rata_b_indo)}</td>
-                <td>{tampil(b.rata_mtk)}</td>
-                <td>{tampil(b.rata_ipa)}</td>
+                {mapel.map((m) => (
+                  <td key={m.kunci}>{tampil(b[m.kunci])}</td>
+                ))}
                 <td>{berjalan ? target : <span className={gaya.kosong}>–</span>}</td>
                 <td>{tampilPoin(b.capaian_tahfidz, 'tahfidz')}</td>
                 <td>{tampilPoin(b.target_tahfidz, 'tahfidz')}</td>
@@ -636,9 +661,9 @@ export function TabelBulananSiswa({ bulanan, target }) {
           })}
           <tr className={gaya.barisRata}>
             <td colSpan={2}>Rata-Rata</td>
-            <td>{tampil(rata('rata_b_indo'))}</td>
-            <td>{tampil(rata('rata_mtk'))}</td>
-            <td>{tampil(rata('rata_ipa'))}</td>
+            {mapel.map((m) => (
+              <td key={m.kunci}>{tampil(rata(m.kunci))}</td>
+            ))}
             {/* Lima kolom sisanya sengaja tidak dirata-ratakan: target
                 akademik sama sepanjang tahun, sedangkan Tahfidz dan Tahsin
                 bersifat kumulatif -- rata-rata poinnya tidak berarti
@@ -667,10 +692,9 @@ export function TabelBulananSiswa({ bulanan, target }) {
    ================================================================ */
 export function GrafikTahunanAkademik({ bulanan, target }) {
   const ukuran = useUkuranGrafikDasbor();
+  const mapel = useMapel();
 
-  const adaIsi = bulanan.some(
-    (b) => b.rata_b_indo !== null || b.rata_mtk !== null || b.rata_ipa !== null
-  );
+  const adaIsi = bulanan.some((b) => mapel.some((m) => b[m.kunci] !== null));
   if (!adaIsi) {
     return <p className={gaya.kosong}>Belum ada nilai akademik untuk siswa ini.</p>;
   }
@@ -720,12 +744,18 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
             activeDot={false}
             connectNulls
           />
-          <Line isAnimationActive={!ukuran.cetak} dataKey="rata_b_indo" name="B. Indonesia" stroke="var(--seri-1)"
-                strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
-          <Line isAnimationActive={!ukuran.cetak} dataKey="rata_mtk" name="Matematika" stroke="var(--seri-2)"
-                strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
-          <Line isAnimationActive={!ukuran.cetak} dataKey="rata_ipa" name="IPA" stroke="var(--seri-3)"
-                strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />
+          {mapel.map((m) => (
+            <Line
+              key={m.kunci}
+              isAnimationActive={!ukuran.cetak}
+              dataKey={m.kunci}
+              name={m.label}
+              stroke={WARNA_MAPEL[m.kunci]}
+              strokeWidth={2}
+              dot={{ r: 4 }}
+              connectNulls={false}
+            />
+          ))}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -793,4 +823,8 @@ export function GrafikTahunanQuran({ jenis, bulanan, warna }) {
   );
 }
 
-export { ketuntasan, MAPEL, bulat };
+/* MAPEL sengaja TIDAK ikut diekspor ulang dari sini. Yang boleh dipakai
+   halaman adalah mapelUntuk(jenjang) atau useMapel(); mengambil daftar
+   lengkapnya lewat pintu belakang ini akan menampilkan IPA di jenjang
+   yang tidak menilainya, tanpa satu pun galat. */
+export { ketuntasan, bulat };

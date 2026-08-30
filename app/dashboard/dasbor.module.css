@@ -1147,8 +1147,11 @@
     gap: 0.7rem;
   }
 
+  /* auto-fit, bukan repeat(3, 1fr): jenjang Playgroup hanya punya dua
+     mapel, dan tiga kolom tetap akan menyisakan satu kolom kosong di
+     sebelah kanan yang terbaca sebagai meteran yang gagal tergambar. */
   .barisMeter {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: 0.5rem;
   }
 

@@ -27,11 +27,11 @@ import {
 } from '@/lib/data-dasbor';
 import {
   AMBANG_KETUNTASAN,
-  MAPEL,
   adaIsiBulan,
   bulanBawaan,
   bulat,
   ketuntasan,
+  mapelUntuk,
   narasiKelas,
   rataRata,
   rekapQuran,
@@ -49,6 +49,7 @@ import {
   TabelBulananSiswa,
   TabelDistribusi,
   useUkuranGrafikDasbor,
+  WARNA_MAPEL,
 } from '../komponen';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolLhm from '@/app/komponen/TombolLhm';
@@ -57,6 +58,7 @@ import TombolKeluar from '@/app/komponen/TombolKeluar';
 import TombolPasang from '@/app/komponen/TombolPasang';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
 import { KonteksCetak, usePersiapanCetak } from '@/app/komponen/cetak';
+import { KonteksJenjang, useMapel } from '@/app/komponen/jenjang';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import gaya from '../dasbor.module.css';
 
@@ -177,12 +179,17 @@ export default function DasborKepalaSekolah() {
     [dataKelas]
   );
 
+  /* Dihitung di sini, TIDAK lewat useMapel(): halaman inilah yang
+     memasang <KonteksJenjang.Provider>, dan komponen tidak bisa membaca
+     konteks yang disediakannya sendiri. */
+  const mapel = mapelUntuk(sekolah?.jenjang);
+
   const ringkasan = useMemo(
     () =>
       kelasTahunIni.map((k) => {
         const baris = dataKelas[k.id]?.[bulan] || [];
         const target = Number(k.target_akademik ?? 90);
-        const perMapel = MAPEL.map((m) => ketuntasan(baris, m.kunci, target));
+        const perMapel = mapel.map((m) => ketuntasan(baris, m.kunci, target));
         const semuaPersen = perMapel.filter(Boolean).map((x) => x.persen);
 
         return {
@@ -201,11 +208,14 @@ export default function DasborKepalaSekolah() {
 
   const grafikKelas = ringkasan
     .filter((r) => r.jumlah)
+    /* Kolomnya dibangun dari daftar mapel, bukan ditulis satu per satu:
+       di jenjang Playgroup IPA tidak dinilai, dan kolom yang selalu null
+       akan tetap menyisakan batang kosong di grafik. */
     .map((r) => ({
       nama: r.kelas.nama_kelas,
-      'B. Indonesia': r.perMapel[0]?.persen ?? null,
-      Matematika: r.perMapel[1]?.persen ?? null,
-      IPA: r.perMapel[2]?.persen ?? null,
+      ...Object.fromEntries(
+        mapel.map((m, i) => [m.label, r.perMapel[i]?.persen ?? null])
+      ),
     }));
 
   const kelasFokus = ringkasan.find((r) => String(r.kelas.id) === String(fokus));
@@ -245,6 +255,7 @@ export default function DasborKepalaSekolah() {
 
   return (
     <KonteksCetak.Provider value={modeCetak}>
+    <KonteksJenjang.Provider value={sekolah?.jenjang}>
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
@@ -356,7 +367,7 @@ export default function DasborKepalaSekolah() {
                   <th className={gaya.kiri}>Kelas</th>
                   <th className={gaya.kiri}>Wali Kelas</th>
                   <th>Siswa</th>
-                  {MAPEL.map((m) => (
+                  {mapel.map((m) => (
                     <th key={m.kunci}>{m.pendek}</th>
                   ))}
                   <th>Tuntas Tahfidz</th>
@@ -444,7 +455,7 @@ export default function DasborKepalaSekolah() {
           {kelasFokus && kelasFokus.jumlah > 0 && (
             <>
               <div className={gaya.barisMeter}>
-                {MAPEL.map((m, i) => (
+                {mapel.map((m, i) => (
                   <MeterKetuntasan
                     key={m.kunci}
                     label={m.label}
@@ -453,7 +464,7 @@ export default function DasborKepalaSekolah() {
                 ))}
               </div>
               <p className={gaya.narasi}>
-                {narasiKelas(kelasFokus.baris, kelasFokus.target, bulan)}
+                {narasiKelas(kelasFokus.baris, kelasFokus.target, bulan, mapel)}
               </p>
               <GrafikKelasAkademik baris={kelasFokus.baris} target={kelasFokus.target} />
               <CatatanTerbaik baris={kelasFokus.baris} />
@@ -592,6 +603,7 @@ export default function DasborKepalaSekolah() {
         </footer>
       </div>
     </div>
+    </KonteksJenjang.Provider>
     </KonteksCetak.Provider>
   );
 }
@@ -611,6 +623,9 @@ export default function DasborKepalaSekolah() {
    ================================================================ */
 function GrafikKetuntasanKelas({ data }) {
   const ukuran = useUkuranGrafikDasbor();
+  // Komponen ini anak dari <KonteksJenjang.Provider>, jadi boleh membaca
+  // konteksnya lewat hook -- berbeda dari komponen halaman di atas.
+  const mapel = useMapel();
 
   return (
     <div className={gaya.grafik}>
@@ -679,9 +694,16 @@ function GrafikKetuntasanKelas({ data }) {
             strokeWidth={2}
             strokeDasharray="6 4"
           />
-          <Bar isAnimationActive={!ukuran.cetak} dataKey="B. Indonesia" fill="var(--seri-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-          <Bar isAnimationActive={!ukuran.cetak} dataKey="Matematika" fill="var(--seri-2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-          <Bar isAnimationActive={!ukuran.cetak} dataKey="IPA" fill="var(--seri-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          {mapel.map((m) => (
+            <Bar
+              key={m.kunci}
+              isAnimationActive={!ukuran.cetak}
+              dataKey={m.label}
+              fill={WARNA_MAPEL[m.kunci]}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={28}
+            />
+          ))}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

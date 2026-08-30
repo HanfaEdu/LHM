@@ -26,12 +26,16 @@ import {
   usePersiapanCetak,
   useUkuranGrafik as ukuranGrafikCetak,
 } from '@/app/komponen/cetak';
+import { KonteksJenjang, useMapel } from '@/app/komponen/jenjang';
 import gaya from './rapor.module.css';
 
+/* Dikunci pada KUNCI KOLOM, bukan nama pendek: warnanya lalu tidak
+   pernah bergeser ketika IPA tidak ikut ditampilkan di jenjang
+   Playgroup -- B. Indonesia tetap biru, Matematika tetap jingga. */
 const WARNA = {
-  bIndo: 'var(--seri-1)',
-  mtk: 'var(--seri-2)',
-  ipa: 'var(--seri-3)',
+  rata_b_indo: 'var(--seri-1)',
+  rata_mtk: 'var(--seri-2)',
+  rata_ipa: 'var(--seri-3)',
   target: 'var(--target)',
   tahfidz: 'var(--seri-1)',
   tahsin: 'var(--seri-3)',
@@ -282,6 +286,7 @@ export default function HalamanRapor({ params }) {
 
   return (
     <KonteksCetak.Provider value={modeCetak}>
+    <KonteksJenjang.Provider value={data.sekolah?.jenjang}>
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
@@ -419,6 +424,7 @@ export default function HalamanRapor({ params }) {
         </span>
       </footer>
     </div>
+    </KonteksJenjang.Provider>
     </KonteksCetak.Provider>
   );
 }
@@ -428,9 +434,8 @@ export default function HalamanRapor({ params }) {
    ================================================================ */
 function GrafikAkademik({ bulanan, target }) {
   const ukuranGrafik = useUkuranGrafik();
-  const adaIsi = bulanan.some(
-    (b) => b.rata_b_indo !== null || b.rata_mtk !== null || b.rata_ipa !== null
-  );
+  const mapel = useMapel();
+  const adaIsi = bulanan.some((b) => mapel.some((m) => b[m.kunci] !== null));
 
   return (
     <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
@@ -484,36 +489,19 @@ function GrafikAkademik({ bulanan, target }) {
               />
               {/* connectNulls dibiarkan false: bulan tanpa nilai harus memutus
                   garis, bukan disambung seolah-olah nilainya berpindah halus. */}
-              <Line
-                isAnimationActive={!ukuranGrafik.cetak}
-                type="monotone"
-                dataKey="rata_b_indo"
-                name="B. Indonesia"
-                stroke={WARNA.bIndo}
-                strokeWidth={2}
-                dot={{ r: 4 }}
-                connectNulls={false}
-              />
-              <Line
-                isAnimationActive={!ukuranGrafik.cetak}
-                type="monotone"
-                dataKey="rata_mtk"
-                name="Matematika"
-                stroke={WARNA.mtk}
-                strokeWidth={2}
-                dot={{ r: 4 }}
-                connectNulls={false}
-              />
-              <Line
-                isAnimationActive={!ukuranGrafik.cetak}
-                type="monotone"
-                dataKey="rata_ipa"
-                name="IPA"
-                stroke={WARNA.ipa}
-                strokeWidth={2}
-                dot={{ r: 4 }}
-                connectNulls={false}
-              />
+              {mapel.map((m) => (
+                <Line
+                  key={m.kunci}
+                  isAnimationActive={!ukuranGrafik.cetak}
+                  type="monotone"
+                  dataKey={m.kunci}
+                  name={m.label}
+                  stroke={WARNA[m.kunci]}
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  connectNulls={false}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -521,7 +509,7 @@ function GrafikAkademik({ bulanan, target }) {
         <p className={gaya.kosong}>Belum ada nilai yang diinput untuk tahun ajaran ini.</p>
       )}
 
-      <p className={gaya.narasi}>{narasiAkademik(bulanan, target)}</p>
+      <p className={gaya.narasi}>{narasiAkademik(bulanan, target, mapel)}</p>
     </section>
   );
 }
@@ -678,6 +666,7 @@ function TitikTargetBerpendar({ cx, cy, value }) {
    Tabel 12 bulan
    ================================================================ */
 function TabelBulanan({ bulanan }) {
+  const mapel = useMapel();
   const wadahGulir = useRef(null);
   const sudahDigoyang = useRef(false);
   const [adaLagiKanan, setAdaLagiKanan] = useState(false);
@@ -855,14 +844,15 @@ function TabelBulanan({ bulanan }) {
             <tr>
               <th rowSpan={2}>No</th>
               <th rowSpan={2}>Bulan</th>
-              <th colSpan={4}>Nilai Rata-Rata</th>
+              {/* +1 untuk kolom Target akademik yang selalu ada. */}
+              <th colSpan={mapel.length + 1}>Nilai Rata-Rata</th>
               <th colSpan={2}>Tahfidz</th>
               <th colSpan={2}>Tahsin</th>
             </tr>
             <tr>
-              <th>B. Indonesia</th>
-              <th>Matematika</th>
-              <th>IPA</th>
+              {mapel.map((m) => (
+                <th key={m.kunci}>{m.label}</th>
+              ))}
               <th>Target</th>
               <th>Capaian</th>
               <th>Target</th>
@@ -880,9 +870,9 @@ function TabelBulanan({ bulanan }) {
                 <tr key={b.bulan}>
                   <td>{i + 1}</td>
                   <td>{b.bulan}</td>
-                  <td>{tampil(b.rata_b_indo)}</td>
-                  <td>{tampil(b.rata_mtk)}</td>
-                  <td>{tampil(b.rata_ipa)}</td>
+                  {mapel.map((m) => (
+                    <td key={m.kunci}>{tampil(b[m.kunci])}</td>
+                  ))}
                   <td className={gaya.batasKelompok}>
                     {berjalan ? b.target_akademik : <span className={gaya.kosong}>–</span>}
                   </td>
@@ -909,9 +899,9 @@ function TabelBulanan({ bulanan }) {
             })}
             <tr className={gaya.barisRata}>
               <td colSpan={2}>Rata-Rata</td>
-              <td>{tampil(rata('rata_b_indo'))}</td>
-              <td>{tampil(rata('rata_mtk'))}</td>
-              <td>{tampil(rata('rata_ipa'))}</td>
+              {mapel.map((m) => (
+                <td key={m.kunci}>{tampil(rata(m.kunci))}</td>
+              ))}
               {/* Lima kolom sisanya sengaja tidak dirata-ratakan: target
                   akademik sama sepanjang tahun, sedangkan Tahfidz dan
                   Tahsin bersifat kumulatif -- rata-rata poinnya tidak
@@ -960,6 +950,7 @@ function PerbandinganKelas({
   targetAkademik,
   tahunAjaran,
 }) {
+  const mapel = useMapel();
   const bulanTersedia = useMemo(
     () => BULAN_AJARAN.filter((b) => perbandingan[b]?.length),
     [perbandingan]
@@ -982,10 +973,10 @@ function PerbandinganKelas({
 
   const semuaBaris = perbandingan[bulan] || [];
 
+  /* Mapel akademiknya mengikuti jenjang sekolah -- Playgroup tidak
+     menilai IPA. Tahfidz dan Tahsin selalu ada di jenjang mana pun. */
   const UKURAN = [
-    { kunci: 'rata_b_indo', nama: 'B. Indonesia', jenisQuran: null },
-    { kunci: 'rata_mtk', nama: 'Matematika', jenisQuran: null },
-    { kunci: 'rata_ipa', nama: 'IPA', jenisQuran: null },
+    ...mapel.map((m) => ({ kunci: m.kunci, nama: m.label, jenisQuran: null })),
     { kunci: 'capaian_tahfidz', nama: 'Tahfidz', jenisQuran: 'tahfidz' },
     { kunci: 'capaian_tahsin', nama: 'Tahsin', jenisQuran: 'tahsin' },
   ];
@@ -1154,14 +1145,12 @@ function GrafikSatuUkuran({
 /* ================================================================
    Narasi otomatis
    ================================================================ */
-function narasiAkademik(bulanan, target) {
-  const terisi = bulanan.filter(
-    (b) => b.rata_b_indo !== null || b.rata_mtk !== null || b.rata_ipa !== null
-  );
+function narasiAkademik(bulanan, target, mapel) {
+  const terisi = bulanan.filter((b) => mapel.some((m) => b[m.kunci] !== null));
   if (!terisi.length) return 'Narasi akan muncul setelah nilai bulan pertama diinput.';
 
   const semua = terisi.flatMap((b) =>
-    [b.rata_b_indo, b.rata_mtk, b.rata_ipa].filter((v) => v !== null)
+    mapel.map((m) => b[m.kunci]).filter((v) => v !== null)
   );
   const rata = semua.reduce((a, b) => a + b, 0) / semua.length;
   const bulanTerakhir = terisi[terisi.length - 1].bulan;

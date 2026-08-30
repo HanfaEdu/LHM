@@ -95,13 +95,20 @@ export async function POST(request) {
      Menyisipkannya sebagai relasi ke query kelas di atas berarti seluruh
      rapor gagal dimuat hanya karena kolom yang belum sempat dibuat. */
   let namaSekolah = null;
+  /* Jenjang menentukan mata pelajaran mana yang ditampilkan: Playgroup
+     tidak menilai IPA sama sekali. Dibiarkan null kalau belum terbaca --
+     mapelUntuk() menjawab null dengan SELURUH mapel, dan menampilkan
+     lebih banyak jauh lebih aman daripada diam-diam menyembunyikan nilai
+     yang sudah diisi guru. */
+  let jenjangSekolah = null;
   try {
     const { data: sek } = await db
       .from('kelas')
-      .select('sekolah:sekolah_id (nama)')
+      .select('sekolah:sekolah_id (nama, jenjang)')
       .eq('id', kelas.id)
       .maybeSingle();
     namaSekolah = sek?.sekolah?.nama ?? null;
+    jenjangSekolah = sek?.sekolah?.jenjang ?? null;
   } catch {
     // Belum dimigrasi. Halaman rapor memakai nama cadangannya.
   }
@@ -188,7 +195,7 @@ export async function POST(request) {
 
   return NextResponse.json({
     anak: { nama_lengkap: anak.nama_lengkap, nama_panggilan: anak.nama_panggilan },
-    sekolah: { nama: namaSekolah },
+    sekolah: { nama: namaSekolah, jenjang: jenjangSekolah },
     kelas: {
       nama_kelas: kelas.nama_kelas,
       wali_kelas: kelas.wali_kelas,

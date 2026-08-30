@@ -12,7 +12,7 @@ import {
   siswaDalamKelas,
   susunBulananSiswa,
 } from '@/lib/data-dasbor';
-import { MAPEL, bulanBawaan, ketuntasan, narasiKelas } from '@/lib/statistik';
+import { bulanBawaan, ketuntasan, mapelUntuk, narasiKelas } from '@/lib/statistik';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
@@ -32,6 +32,7 @@ import TombolCetak from '@/app/komponen/TombolCetak';
 import TombolKeluar from '@/app/komponen/TombolKeluar';
 import TombolPasang from '@/app/komponen/TombolPasang';
 import { KonteksCetak, usePersiapanCetak } from '@/app/komponen/cetak';
+import { KonteksJenjang } from '@/app/komponen/jenjang';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import gaya from '../dasbor.module.css';
 
@@ -140,6 +141,12 @@ export default function DasborWaliKelas() {
   const baris = perBulan[bulan] || [];
   const target = Number(kelas?.target_akademik ?? 90);
 
+  /* Dihitung di sini, TIDAK lewat useMapel(): halaman inilah yang
+     memasang <KonteksJenjang.Provider> di bawah, dan komponen tidak bisa
+     membaca konteks yang disediakannya sendiri -- ia hanya akan menerima
+     nilai bawaannya. */
+  const mapel = mapelUntuk(sekolah?.jenjang);
+
   // Telusur satu siswa sepanjang tahun ajaran. Wali kelas hanya memegang
   // satu kelas, jadi cukup satu pilihan (nama) -- tidak perlu memilih kelas
   // lebih dulu seperti di dasbor kepala sekolah.
@@ -172,6 +179,7 @@ export default function DasborWaliKelas() {
 
   return (
     <KonteksCetak.Provider value={modeCetak}>
+    <KonteksJenjang.Provider value={sekolah?.jenjang}>
     <div className={gaya.halaman}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
@@ -257,7 +265,7 @@ export default function DasborWaliKelas() {
                 dinilai tidak ikut dihitung.
               </p>
               <div className={gaya.barisMeter}>
-                {MAPEL.map((m) => (
+                {mapel.map((m) => (
                   <MeterKetuntasan
                     key={m.kunci}
                     label={m.label}
@@ -265,7 +273,7 @@ export default function DasborWaliKelas() {
                   />
                 ))}
               </div>
-              <p className={gaya.narasi}>{narasiKelas(baris, target, bulan)}</p>
+              <p className={gaya.narasi}>{narasiKelas(baris, target, bulan, mapel)}</p>
             </section>
 
             <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
@@ -414,6 +422,7 @@ export default function DasborWaliKelas() {
         </footer>
       </div>
     </div>
+    </KonteksJenjang.Provider>
     </KonteksCetak.Provider>
   );
 }

@@ -241,6 +241,15 @@ Supabase sama sekali.
    const LINK_LHM        = 'https://lhm-pati.vercel.app/';  // aplikasi input sekolah ini
    ```
 
+   `JENJANG_SEKOLAH` bukan sekadar keterangan: ia menentukan mata
+   pelajaran yang ditampilkan. Playgroup tidak menilai IPA, jadi sekolah
+   ber-jenjang `PG` otomatis kehilangan meteran, grafik, dan kolom IPA
+   di seluruh dasbor maupun rapor orang tuanya — tanpa satu baris kode
+   pun yang perlu diubah. Aturannya ada di `mapelUntuk()` pada
+   `lib/statistik.js`; menambah jenjang lain yang menyimpang cukup satu
+   baris di sana. TK sengaja belum didaftarkan karena belum ada
+   keterangan apakah di sana IPA dinilai.
+
    `LINK_LHM` adalah alamat aplikasi input nilai milik sekolah itu;
    dari sinilah tombol **Input/Edit LHM** di kepala dasbor wali kelas
    mengambil tujuannya. Kalau dikosongkan (`''`), tombolnya tidak
