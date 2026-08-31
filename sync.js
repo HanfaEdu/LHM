@@ -419,6 +419,46 @@ function cekKesehatanData() {
     temuan.push('Kelas ' + k + ': ' + tanpaNisPerKelas[k] + ' baris siswa tanpa NIS.');
   });
 
+  /* 3b. NIS yang dipakai lebih dari satu anak.
+
+     NIS adalah identitas: seluruh sistem memakainya untuk mengenali
+     siswa. Kalau dua anak memakai NIS yang sama -- salah ketik satu
+     angka sudah cukup -- keduanya MELEBUR menjadi satu siswa di
+     database. Namanya diambil dari baris yang terbaca lebih dulu, nilai
+     keduanya bercampur di dasbor, dan satu tautan orang tua membuka
+     data dua anak sekaligus.
+
+     Tidak ada galat yang muncul untuk ini: bagi database keduanya
+     memang satu siswa. Karena itu harus ditangkap di sini, di sisi
+     spreadsheet, selagi kedua barisnya masih bisa dibedakan. */
+  const kelasPerNis = {};
+  const namaPerNis = {};
+  isi.nilai.forEach(function (n) {
+    if (!n.nis) return;
+    const kunci = n.tahun_ajaran + '|' + n.nis;
+    if (!kelasPerNis[kunci]) { kelasPerNis[kunci] = []; namaPerNis[kunci] = []; }
+    if (kelasPerNis[kunci].indexOf(n.nama_kelas) === -1) {
+      kelasPerNis[kunci].push(n.nama_kelas);
+    }
+    if (n.nama_lengkap && namaPerNis[kunci].indexOf(n.nama_lengkap) === -1) {
+      namaPerNis[kunci].push(n.nama_lengkap);
+    }
+  });
+  Object.keys(kelasPerNis).forEach(function (kunci) {
+    const nis = kunci.split('|')[1];
+    const kelas = kelasPerNis[kunci];
+    const nama = namaPerNis[kunci];
+    if (kelas.length > 1 || nama.length > 1) {
+      temuan.push(
+        'NIS ' + nis + ' dipakai lebih dari satu kali' +
+        (kelas.length > 1 ? ' di kelas ' + kelas.join(' dan ') : ' di kelas ' + kelas[0]) +
+        (nama.length > 1 ? ', atas nama: ' + nama.join(' / ') : '') +
+        '. Kedua anak akan MELEBUR menjadi satu siswa dan nilainya ' +
+        'bercampur. Perbaiki salah satu NIS-nya di Master Rekap.'
+      );
+    }
+  });
+
   // 4. Kapasitas blok 25 baris/bulan — peringatkan kalau sudah mepet (>=23)
   KELAS_DIHARAPKAN.forEach(function (k) {
     const siswaKelas = unik(
