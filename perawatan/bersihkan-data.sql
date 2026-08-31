@@ -75,6 +75,37 @@
 
 
 -- -------------------------------------------------------------------
+-- LANGKAH 0 — Potret seluruh data  (jalan pulang)
+-- -------------------------------------------------------------------
+-- Menyalin isi keenam tabel apa adanya sebelum apa pun dihapus,
+-- sehingga keadaan hari ini bisa dikembalikan utuh kalau ternyata
+-- Master Rekap masih ada yang keliru. Lihat "MEMBATALKAN" di bagian
+-- paling bawah untuk cara memulihkannya.
+--
+-- Ini bukan pengganti Langkah 1: potret ini menyalin akses_ortu apa
+-- adanya, sedangkan Langkah 1 menyalinnya BESERTA nama siswa dan kelas
+-- -- satu-satunya jembatan ke NIS baru kalau penomorannya berubah.
+-- Keduanya murah, ambil dua-duanya.
+--
+-- Tabelnya bertanggal, jadi menjalankan skrip ini berkali-kali tidak
+-- pernah menimpa potret sebelumnya. Membersihkannya nanti: lihat
+-- catatan di bagian paling bawah.
+DO $$
+DECLARE
+    cap   TEXT := to_char(now(), 'YYYYMMDD_HH24MI');
+    tabel TEXT;
+BEGIN
+    FOREACH tabel IN ARRAY ARRAY[
+        'siswa', 'kelas', 'penempatan', 'nilai_bulanan', 'users_access', 'akses_ortu'
+    ] LOOP
+        EXECUTE format('CREATE TABLE %I AS TABLE %I',
+                       'potret_' || cap || '_' || tabel, tabel);
+    END LOOP;
+    RAISE NOTICE 'Potret dibuat dengan awalan: potret_%_', cap;
+END $$;
+
+
+-- -------------------------------------------------------------------
 -- LANGKAH 1 — Cadangkan tautan orang tua  (JANGAN DILEWATI)
 -- -------------------------------------------------------------------
 -- Nama siswa dan kelasnya ikut disalin, bukan hanya NIS-nya: sesudah
@@ -191,4 +222,63 @@ ORDER  BY table_name DESC;
 --   SELECT nama_lengkap, nama_kelas, nis_lokal, token, no_wa
 --   FROM   cadangan_akses_ortu_<tanggal>
 --   ORDER  BY nama_kelas, nama_lengkap;
+-- ===================================================================
+
+
+-- ===================================================================
+-- MEMBATALKAN — mengembalikan keadaan sebelum pembersihan
+-- ===================================================================
+-- Dipakai kalau sesudah dibersihkan ternyata Master Rekap masih keliru
+-- dan Bapak ingin kembali ke keadaan semula dulu. Memulihkan seluruh
+-- isi keenam tabel dari potret Langkah 0, termasuk tautan orang tua.
+--
+-- Ganti <tanggal> dengan cap waktu potret yang dipakai. Daftarnya:
+--
+--   SELECT table_name FROM information_schema.tables
+--   WHERE table_schema='public' AND table_name LIKE 'potret_%'
+--   ORDER BY table_name;
+--
+-- Urutannya WAJIB seperti di bawah: induk lebih dulu, baru anaknya.
+-- Membalik urutannya melanggar kunci asing dan pemulihan berhenti di
+-- tengah. Seluruhnya dibungkus satu transaksi supaya kalau ada yang
+-- gagal, tidak ada yang setengah terpulihkan.
+--
+-- BEGIN;
+--
+-- TRUNCATE TABLE nilai_bulanan, penempatan, akses_ortu, siswa, kelas,
+--                users_access RESTART IDENTITY;
+--
+-- INSERT INTO kelas         SELECT * FROM potret_<tanggal>_kelas;
+-- INSERT INTO siswa         SELECT * FROM potret_<tanggal>_siswa;
+-- INSERT INTO users_access  SELECT * FROM potret_<tanggal>_users_access;
+-- INSERT INTO penempatan    SELECT * FROM potret_<tanggal>_penempatan;
+-- INSERT INTO nilai_bulanan SELECT * FROM potret_<tanggal>_nilai_bulanan;
+-- INSERT INTO akses_ortu    SELECT * FROM potret_<tanggal>_akses_ortu;
+--
+-- -- Penomoran id dilanjutkan dari yang tertinggi. Tanpa ini, baris
+-- -- BARU berikutnya akan memakai id 1 yang sudah terpakai, dan
+-- -- penyimpanannya ditolak.
+-- SELECT setval(pg_get_serial_sequence('kelas','id'),
+--               coalesce((SELECT max(id) FROM kelas), 1));
+-- SELECT setval(pg_get_serial_sequence('penempatan','id'),
+--               coalesce((SELECT max(id) FROM penempatan), 1));
+-- SELECT setval(pg_get_serial_sequence('nilai_bulanan','id'),
+--               coalesce((SELECT max(id) FROM nilai_bulanan), 1));
+-- SELECT setval(pg_get_serial_sequence('akses_ortu','id'),
+--               coalesce((SELECT max(id) FROM akses_ortu), 1));
+--
+-- COMMIT;
+--
+--
+-- MEMBERSIHKAN POTRET LAMA
+-- ------------------------
+-- Potret dan cadangan menumpuk kalau skrip ini dipakai berkali-kali.
+-- Sesudah yakin datanya benar dan tidak akan dipulihkan lagi, hapus
+-- yang sudah tidak perlu SATU PER SATU dan dengan sadar:
+--
+--   DROP TABLE potret_<tanggal>_siswa;
+--
+-- Sengaja tidak disediakan perintah yang menghapus semuanya sekaligus.
+-- Potret adalah jaring pengaman terakhir; menghapusnya harus lebih
+-- merepotkan daripada menyimpannya.
 -- ===================================================================
