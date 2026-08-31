@@ -419,6 +419,21 @@
   color: #fff;
 }
 
+/* Tombol yang ISINYA data, bukan perintah -- nama kelas pada kolom
+   pertama tabel Rekap Seluruh Kelas. Bentuknya tombol karena diklik
+   untuk menelusuri kelas itu, tetapi yang tertulis di dalamnya adalah
+   "2A", satu-satunya penanda baris tersebut.
+
+   Kelasnya sendiri hampir tidak mengubah tampilan di layar; ia ada
+   supaya blok cetak di bawah bisa membedakannya dari .tombolKecil yang
+   lain (Salin, Terbitkan, Ganti di halaman tautan) yang memang harus
+   hilang dari kertas. Tanpa pembeda itu, aturan yang menyembunyikan
+   seluruh tombol ikut menghapus nama kelasnya, dan lajur pertama
+   laporan bulanan keluar sebagai kolom kosong. */
+.tombolKelas {
+  white-space: nowrap;
+}
+
 /* Keterangan poin -> nama surah/materi di sebelah grafik Tahfidz/Tahsin.
    Tertutup secara bawaan: daftarnya bisa sampai 49 baris (Tahfidz), dan
    kebanyakan pembaca hanya perlu menerjemahkan satu-dua angka yang
@@ -1219,6 +1234,31 @@
   .tombolKecil,
   .kepalaAlat label {
     display: none !important;
+  }
+
+  /* KECUALI nama kelas pada kolom pertama tabel Rekap Seluruh Kelas.
+     Ia kebetulan berbentuk tombol -- diklik untuk menelusuri kelas itu
+     -- tetapi isinya data, bukan perintah: "2A" adalah satu-satunya
+     penanda baris tersebut. Ikut disembunyikan bersama tombol yang
+     lain, seluruh lajur pertama laporan keluar sebagai kolom kosong
+     dan tidak ada lagi yang memberi tahu baris mana milik kelas mana.
+
+     Jadi yang dibuang hanya rupa tombolnya -- pil berbingkai yang di
+     atas kertas tidak bisa ditekan siapa pun -- sementara tulisannya
+     tetap tercetak sebagai teks tabel biasa. Warna dan latar ditulis
+     tegas supaya baris yang sedang difokuskan (.tombolKecilAktif:
+     putih di atas biru) tidak keluar sebagai putih di atas putih.
+
+     Harus tetap SETELAH aturan di atas: kekhususannya sama-sama satu
+     kelas, sehingga yang menang adalah yang ditulis belakangan. */
+  .tombolKelas {
+    display: inline !important;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    color: #000000;
+    font: inherit;
   }
 
   /* Daftar keterangan poin Tahfidz/Tahsin. Di rapor orang tua daftar

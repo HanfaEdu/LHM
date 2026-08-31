@@ -464,9 +464,13 @@ export default function DasborKepalaSekolah() {
                 {ringkasan.map((r) => (
                   <tr key={r.kelas.id}>
                     <td className={gaya.kiri}>
+                      {/* .tombolKelas menandai tombol yang ISINYA data:
+                          di atas kertas rupa tombolnya dilucuti tetapi
+                          nama kelasnya tetap tercetak, tidak ikut hilang
+                          bersama tombol-tombol perintah lain. */}
                       <button
                         type="button"
-                        className={`${gaya.tombolKecil} ${
+                        className={`${gaya.tombolKecil} ${gaya.tombolKelas} ${
                           String(fokus) === String(r.kelas.id) ? gaya.tombolKecilAktif : ''
                         }`}
                         onClick={() =>
