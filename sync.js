@@ -96,6 +96,26 @@ const AREA_SEKOLAH = 'Pati Raya';   // Tim Manajemen; boleh dikosongkan
 const JENJANG_SEKOLAH = 'SD';       // PG | TK | SD | SMP | SMA
 
 /**
+ * Jenjang yang dikenal sistem.
+ *
+ * Bukan sekadar daftar isian: jenjang menentukan mata pelajaran mana
+ * yang tampil (PG tidak menilai IPA) DAN menjadi dasar cakupan biro
+ * akademik. Jenjang yang salah ketik -- 'SDIT' alih-alih 'SD' -- membuat
+ * sekolahnya hilang dari pandangan biro yang bercakupan, tanpa satu pun
+ * pesan galat. Karena itu isinya diperiksa, bukan dikirim apa adanya.
+ *
+ * Nama sekolah boleh apa saja ('SDIT Yaumi Fatimah'); yang harus salah
+ * satu dari daftar ini hanya JENJANG_SEKOLAH.
+ */
+const JENJANG_VALID = ['PG', 'TK', 'SD', 'SMP', 'SMA'];
+
+/** JENJANG_SEKOLAH yang sudah dirapikan, atau '' kalau tidak dikenal. */
+function jenjangRapi() {
+  const j = teks(JENJANG_SEKOLAH).toUpperCase();
+  return JENJANG_VALID.indexOf(j) === -1 ? '' : j;
+}
+
+/**
  * Alamat tempat wali kelas sekolah INI mengisi dan menyunting nilai.
  *
  * Tiap sekolah punya aplikasi input LHM sendiri, jadi alamatnya ikut
@@ -417,8 +437,88 @@ function cekKesehatanData() {
   // 5. Target/capaian Tahfidz-Tahsin yang tidak bisa dikenali otomatis
   isi.targetTeksBermasalah.forEach(function (t) { temuan.push(t); });
 
+  /* 6. Jenjang sekolah.
+
+     Jenjang bukan sekadar label: ia menentukan mata pelajaran yang
+     tampil (PG tidak menilai IPA) DAN menjadi dasar cakupan biro
+     akademik. Jenjang yang salah ketik membuat sekolah ini lenyap dari
+     dasbor biro yang bercakupan -- tanpa satu pun pesan galat, karena
+     bagi database itu sekadar jenjang yang tidak cocok. */
+  if (!jenjangRapi()) {
+    temuan.push(
+      'JENJANG_SEKOLAH "' + JENJANG_SEKOLAH + '" tidak dikenal. Isi salah ' +
+      'satu dari: ' + JENJANG_VALID.join(', ') + '. Selama belum dibetulkan, ' +
+      'sinkronisasi akan berhenti dan sekolah ini tidak akan terlihat oleh ' +
+      'biro akademik.'
+    );
+  }
+
+  /* 7. Kolom "Cakupan Jenjang" di sheet users_access.
+
+     Diperiksa di sini juga -- bukan hanya saat sinkronisasi -- supaya
+     salah ketiknya terbaca sebagai salah ketik, bukan sebagai biro yang
+     tiba-tiba tidak bisa melihat sekolah mana pun. */
+  temuanCakupanJenjang().forEach(function (t) { temuan.push(t); });
+
   laporkanKesehatan(temuan);
   return temuan.join('\n');
+}
+
+/**
+ * Memeriksa kolom "Cakupan Jenjang" di sheet users_access.
+ *
+ * Selain salah ketik, ikut menangkap dua kesalahpahaman yang wajar:
+ * kolom diisi untuk wali kelas/kepala sekolah (tidak berpengaruh —
+ * keduanya sudah terikat satu sekolah), dan biro yang cakupannya
+ * dikosongkan (sah, tetapi berarti lintas jenjang; disebutkan supaya
+ * tidak terjadi tanpa disadari).
+ */
+function temuanCakupanJenjang() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
+  if (!sheet) return [];
+
+  const tabel = sheet.getDataRange().getValues();
+  if (tabel.length < 2) return [];
+
+  const judul = (tabel[0] || []).map(function (h) { return teks(h).toLowerCase(); });
+  const kol = judul.indexOf('cakupan jenjang');
+  if (kol === -1) return [];          // sheet lama; sah, berarti kosong
+
+  const temuan = [];
+  for (let i = 1; i < tabel.length; i++) {
+    const email = teks(tabel[i][0]).toLowerCase();
+    if (!email) continue;
+
+    const role = teks(tabel[i][2]).toLowerCase();
+    const isiSel = teks(tabel[i][kol]);
+
+    if (role !== 'direktur_area') {
+      if (isiSel) {
+        temuan.push(
+          email + ': kolom Cakupan Jenjang diisi "' + isiSel + '" padahal ' +
+          'perannya ' + (role || '(kosong)') + '. Kolom ini hanya berlaku ' +
+          'untuk direktur_area dan akan diabaikan.'
+        );
+      }
+      continue;
+    }
+
+    const hasil = cakupanJenjangRapi(isiSel);
+    if (hasil.salah.length) {
+      temuan.push(
+        email + ': cakupan jenjang "' + hasil.salah.join(', ') + '" tidak ' +
+        'dikenal. Isi salah satu dari: ' + JENJANG_VALID.join(', ') +
+        ' (boleh lebih dari satu, dipisah koma). Barisnya tidak akan dikirim.'
+      );
+    } else if (!hasil.nilai) {
+      temuan.push(
+        email + ': cakupan jenjang dikosongkan, jadi biro ini melihat ' +
+        'SELURUH jenjang di areanya. Sah untuk direktur area — isi kolomnya ' +
+        '(misal "SD" atau "PG,TK") kalau seharusnya terbatas.'
+      );
+    }
+  }
+  return temuan;
 }
 
 function laporkanKesehatan(temuan) {
@@ -678,11 +778,22 @@ function linkLhmRapi() {
  * nilai gagal. Menyimpan satu baris yang sama dua kali tidak berbiaya.
  */
 function pastikanSekolah() {
+  const jenjang = jenjangRapi();
+  if (!jenjang) {
+    throw new Error(
+      'JENJANG_SEKOLAH "' + JENJANG_SEKOLAH + '" tidak dikenal. Isi salah ' +
+      'satu dari: ' + JENJANG_VALID.join(', ') + '. Jenjang menentukan ' +
+      'mata pelajaran yang tampil dan cakupan biro akademik, jadi salah ' +
+      'ketik di sini membuat sekolah ini hilang dari dasbor biro tanpa ' +
+      'pesan galat.'
+    );
+  }
+
   const tersimpan = kirim('sekolah', [{
     kode: kodeSekolahRapi(),
     nama: NAMA_SEKOLAH,
     area: AREA_SEKOLAH || null,
-    jenjang: JENJANG_SEKOLAH || 'SD',
+    jenjang: jenjang,
     link_lhm: linkLhmRapi(),
   }], 'kode', true);
 
@@ -799,6 +910,46 @@ function sinkronkanDariMaster(isi) {
  */
 const PERAN_VALID = ['kepala_sekolah', 'wali_kelas', 'direktur_area'];
 
+/**
+ * Merapikan isi kolom "Cakupan Jenjang" pada sheet users_access.
+ *
+ * KENAPA CAKUPAN JADI KOLOM, BUKAN PERAN TERSENDIRI
+ * -------------------------------------------------
+ * Biro SD dan biro PG-TK MELAKUKAN hal yang persis sama -- melihat
+ * dasbor, mengelola tautan orang tua, mencetak laporan. Yang berbeda
+ * hanya sekolah mana yang ia pegang. Itu perbedaan cakupan, bukan
+ * perbedaan peran, dan menjadikannya peran (`direktur_sd`,
+ * `direktur_pgtk`) berarti tiap kombinasi baru menuntut peran baru
+ * beserta aturan RLS dan pengujiannya sendiri.
+ *
+ *   dikosongkan -> null  : seluruh jenjang dalam areanya (direktur area)
+ *   'SD'        -> 'SD'  : hanya SD dalam areanya
+ *   'pg, tk'    -> 'PG,TK': hanya PG dan TK dalam areanya
+ *
+ * Mengembalikan { nilai, salah }. `salah` berisi jenjang yang tidak
+ * dikenal; barisnya lalu DILEWATI, tidak dikirim setengah benar --
+ * cakupan yang salah ketik menghasilkan biro yang tidak melihat apa pun,
+ * dan itu terbaca sebagai "sistemnya rusak", bukan sebagai salah ketik.
+ */
+function cakupanJenjangRapi(nilaiSel) {
+  const mentah = teks(nilaiSel);
+  if (!mentah) return { nilai: null, salah: [] };
+
+  const bagian = mentah.toUpperCase().split(',');
+  const bersih = [];
+  const salah = [];
+
+  for (let i = 0; i < bagian.length; i++) {
+    const j = bagian[i].replace(/\s+/g, '');
+    if (!j) continue;                                  // koma ganda
+    if (JENJANG_VALID.indexOf(j) === -1) salah.push(j);
+    else if (bersih.indexOf(j) === -1) bersih.push(j); // buang kembar
+  }
+
+  if (salah.length) return { nilai: null, salah: salah };
+  return { nilai: bersih.length ? bersih.join(',') : null, salah: [] };
+}
+
 /** Membaca sheet 'users_access' di Master Rekap. */
 function sinkronkanUserAccess() {
   const sekolahId = pastikanSekolah();
@@ -811,6 +962,16 @@ function sinkronkanUserAccess() {
   const tabel = sheet.getDataRange().getValues();
   const daftar = [];
   const dilewati = [];
+
+  /* Kolom "Cakupan Jenjang" dicari lewat NAMA judulnya, bukan posisi.
+     Kolom ini menyusul belakangan, dan sheet users_access sekolah lama
+     belum memilikinya -- dicari lewat nama, sheet lama tetap jalan
+     (indexOf -> -1 -> dianggap kosong -> seluruh jenjang), sedangkan
+     posisi tetap akan salah baca begitu ada yang menyisipkan kolom. */
+  const judul = (tabel[0] || []).map(function (h) {
+    return teks(h).toLowerCase();
+  });
+  const kolCakupan = judul.indexOf('cakupan jenjang');
 
   for (let i = 1; i < tabel.length; i++) {
     const email = teks(tabel[i][0]).toLowerCase();
@@ -827,12 +988,30 @@ function sinkronkanUserAccess() {
       continue;
     }
 
+    /* Cakupan jenjang hanya berlaku bagi biro/direktur. Kepala sekolah
+       dan wali kelas sudah terikat satu sekolah lewat sekolah_id, jadi
+       nilainya dikosongkan supaya tidak ada yang mengira kolom itu
+       membatasi mereka juga. */
+    let cakupan = null;
+    if (role === 'direktur_area' && kolCakupan !== -1) {
+      const hasil = cakupanJenjangRapi(tabel[i][kolCakupan]);
+      if (hasil.salah.length) {
+        dilewati.push(
+          email + ' (cakupan jenjang "' + hasil.salah.join(', ') + '" tidak ' +
+          'dikenal; isi salah satu dari: ' + JENJANG_VALID.join(', ') + ')'
+        );
+        continue;
+      }
+      cakupan = hasil.nilai;
+    }
+
     daftar.push({
-      email:      email,
-      nama:       teks(tabel[i][1]),
-      role:       role,
-      nama_kelas: role === 'wali_kelas' ? normalKelas(tabel[i][3]) : null,
-      sekolah_id: sekolahId,
+      email:           email,
+      nama:            teks(tabel[i][1]),
+      role:            role,
+      nama_kelas:      role === 'wali_kelas' ? normalKelas(tabel[i][3]) : null,
+      sekolah_id:      sekolahId,
+      cakupan_jenjang: cakupan,
     });
   }
 

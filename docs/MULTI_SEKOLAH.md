@@ -174,6 +174,7 @@ Cara mendaftarkannya:
 | Nama | nama biro |
 | Peran | `direktur_area` |
 | Kelas | dikosongkan |
+| Cakupan Jenjang | `SD`, atau `PG,TK`, atau dikosongkan untuk lintas jenjang (lihat di bawah) |
 
 Cakupan bacanya ditentukan kolom `area` sekolah tempat emailnya
 terdaftar, bukan oleh jumlah barisnya. **Seluruh sekolah yang boleh ia
@@ -200,6 +201,54 @@ seluruh sekolah dalam areanya. Tanpa itu, kepala sekolah satu sekolah
 dapat mendaftar, menerbitkan, mengganti, dan mencabut tautan orang tua
 sekolah lain hanya dengan mengirim NIS-nya. Gagal tertutup: kalau
 sekolah pemanggil tidak bisa ditentukan, permintaannya ditolak.
+
+### Cakupan jenjang: biro SD vs biro PG-TK
+
+Di BIAS, biro akademik terikat jenjang tertentu — ada biro SD, ada biro
+PG-TK — sedangkan **direktur area** melihat lintas jenjang. Keduanya
+berperan `direktur_area` dan **melakukan** hal yang sama; yang berbeda
+hanya sekolah mana yang dipegang.
+
+Itu perbedaan **cakupan**, bukan perbedaan **peran**, dan karena itu
+diatur oleh satu kolom — bukan oleh peran baru:
+
+| Kolom `Cakupan Jenjang` di sheet `users_access` | Artinya |
+|---|---|
+| *(dikosongkan)* | seluruh jenjang dalam areanya — untuk direktur area |
+| `SD` | hanya SD dalam areanya |
+| `PG,TK` | hanya PG dan TK dalam areanya |
+
+Boleh huruf kecil dan berspasi (`pg, tk`); dirapikan saat sinkronisasi.
+Jenjang yang sah: `PG`, `TK`, `SD`, `SMP`, `SMA`. Salah ketik **menolak
+seluruh baris** (biro itu tidak ikut tersinkron) alih-alih mengirimnya
+setengah benar — cakupan salah yang lolos menghasilkan biro yang tidak
+melihat satu sekolah pun, dan itu terbaca sebagai sistem rusak, bukan
+sebagai salah ketik. Cek Kesehatan Data menyebutkannya lebih dulu.
+
+Kolom ini **diabaikan** untuk `kepala_sekolah` dan `wali_kelas` —
+keduanya sudah terikat satu sekolah lewat `sekolah_id`.
+
+**Kenapa bukan peran `direktur_sd` dan `direktur_pgtk`.** Karena tiap
+kombinasi baru akan menuntut peran baru: biro yang memegang SD dan SMP
+butuh `direktur_sd_smp`, direktur yang melihat semuanya butuh
+`direktur_semua` — masing-masing dengan cabang aturan RLS dan
+pengujiannya sendiri. Satu kolom teks melayani seluruh kombinasi tanpa
+menambah apa pun.
+
+**Aturannya ditulis dua kali, dan itu disengaja:**
+`sekolah_yang_boleh()` di `migrasi/002-cakupan-jenjang.sql` menjaga
+dasbor lewat RLS, sedangkan `dalamCakupan()` di `lib/cakupan.js` menjaga
+`/api/tautan` yang memakai `service_role` dan melewati seluruh RLS.
+Keduanya **harus berubah bersama**. Kesamaannya dijaga
+`scripts/uji-cakupan-jenjang.mjs`, yang menjalankan kasus yang sama
+persis lewat Postgres sungguhan dan lewat fungsi JavaScript-nya, lalu
+membandingkan hasilnya. SQL-nya dipotong langsung dari berkas migrasi,
+jadi yang diuji benar-benar SQL yang dikirim ke Supabase.
+
+Sekolah yang **jenjangnya kosong** tidak cocok dengan cakupan mana pun:
+ia terlihat oleh direktur (cakupan kosong) tetapi tidak oleh biro yang
+bercakupan. Gagal tertutup — lebih baik hilang dari satu dasbor dan
+ketahuan, daripada muncul di dasbor semua biro tanpa disadari.
 
 Kalau kelak ada biro yang membawahi sekolah LINTAS area, pendekatan
 `area` ini tidak cukup dan butuh tabel penugasan tersendiri (satu email

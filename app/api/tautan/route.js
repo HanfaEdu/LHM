@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { dalamCakupan } from '@/lib/cakupan';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,7 +59,7 @@ async function pastikanBerwenang(request) {
   const db = supabaseServer();
   const { data: profil } = await db
     .from('users_access')
-    .select('email, nama, role, sekolah_id')
+    .select('email, nama, role, sekolah_id, cakupan_jenjang')
     .eq('email', user.email.toLowerCase().trim())
     .maybeSingle();
 
@@ -104,12 +105,14 @@ async function pastikanBerwenang(request) {
     if (sendiri?.area) {
       const { data: seArea, error: galatArea } = await db
         .from('sekolah')
-        .select('id')
+        .select('id, jenjang')
         .eq('area', sendiri.area);
       if (galatArea) {
         return { galat: 'Gagal menentukan cakupan sekolah.', status: 500 };
       }
-      sekolahBoleh = (seArea || []).map((x) => x.id);
+      sekolahBoleh = (seArea || [])
+        .filter((s) => dalamCakupan(s.jenjang, profil.cakupan_jenjang))
+        .map((s) => s.id);
     }
   }
 
