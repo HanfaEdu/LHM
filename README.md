@@ -37,8 +37,11 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 | `quran_mapping.js` | Peta poin → nama surah (Tahfidz) & bab materi (Tahsin). |
 | `app/rapor/[token]/` | Dashboard orang tua (tautan pribadi, tanpa login). |
 | `app/api/rapor/` | Endpoint server: verifikasi token (PIN opsional) + penyamaran nama sekelas. |
+| `app/api/wa/` | Webhook WhatsApp: mengenali nomor pengirim, membalas tautan rapor anaknya. |
+| `migrasi/` | Perubahan skema susulan. Dijalankan berurutan, sekali masing-masing. |
 | `docs/PERBAIKAN_SPREADSHEET.md` | Audit rumus + daftar perbaikan sebelum sync pertama. |
 | `docs/AKSES_ORANG_TUA.md` | Cara menerbitkan tautan untuk orang tua (token saja secara default). |
+| `docs/LAYANAN_WA.md` | Layanan WhatsApp: orang tua meminta ulang tautan rapor lewat chat. |
 | `docs/TAHUN_AJARAN_BARU.md` | Yang disiapkan tiap naik tahun ajaran — dan yang tidak perlu disentuh. |
 
 ## Urutan penyiapan
@@ -55,6 +58,8 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
    `SYNC_SHARED_SECRET` di langkah 3) di bagian atas berkas.
 5. Jalankan menu **SiPaDi → Cek Kesehatan Data** untuk memastikan bersih.
 6. Jalankan **SiPaDi → Sinkronkan Sekarang**, lalu pasang pemicu harian.
+7. Jalankan berkas di `migrasi/` secara berurutan di Supabase SQL Editor.
+8. Opsional — hidupkan layanan WhatsApp: `docs/LAYANAN_WA.md`.
 
 **Kenapa GAS tidak bicara langsung ke Supabase:** Supabase memblokir
 kunci `sb_secret_...` kalau permintaan terdeteksi berasal dari browser,
@@ -73,3 +78,7 @@ benar-benar bicara ke Supabase.
   disimpan sebagai `NULL`, dan digambar sebagai garis terputus di grafik.
 - **Bulan diurutkan menurut tahun ajaran** (Juli = 1 … Juni = 12) lewat
   kolom `urutan_bulan`, bukan menurut kalender atau abjad.
+- **Nomor WA dibakukan di satu tempat saja** (`lib/nomor-wa.js`), dipakai
+  baik saat menyimpan maupun saat mencocokkan pesan masuk. Aturan yang
+  punya dua salinan akan menyimpang, dan simpangannya muncul sebagai
+  orang tua yang tidak dikenali — tanpa satu pun pesan galat.

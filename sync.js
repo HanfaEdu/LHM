@@ -459,6 +459,51 @@ function cekKesehatanData() {
     }
   });
 
+  /* 3c. Nomor WA orang tua yang kosong atau jelas keliru.
+
+     Nomor inilah yang dipakai layanan WhatsApp untuk mengenali pengirim
+     pesan sebagai orang tua siswa tertentu (docs/LAYANAN_WA.md). Siswa
+     tanpa nomor yang terbaca tidak akan pernah dikenali: orang tuanya
+     menerima balasan "nomor belum terdaftar" dan mengira sekolah salah,
+     padahal selnya memang kosong sejak awal.
+
+     Pemeriksaan di sini SENGAJA longgar dan hanya menangkap yang jelas
+     salah -- kosong, atau angkanya terlalu sedikit/terlalu banyak.
+     Aturan yang sebenarnya ada di lib/nomor-wa.js di sisi aplikasi, dan
+     dialah yang menentukan. Menyalin aturan lengkapnya ke sini hanya
+     akan membuat dua salinan yang menyimpang diam-diam. */
+  if (!isi.adaKolomNoWa) {
+    temuan.push(
+      'Kolom "No WA" tidak ditemukan di header Sheet1. Layanan WhatsApp ' +
+      'tidak akan mengenali satu pun orang tua sampai kolom itu ada.'
+    );
+  } else {
+    const tanpaWa = [];
+    const waMeragukan = [];
+    isi.roster.forEach(function (s) {
+      const angka = String(s.noWa || '').replace(/\D/g, '');
+      if (!angka) {
+        tanpaWa.push(s.namaLengkap);
+      } else if (angka.length < 10 || angka.length > 15) {
+        waMeragukan.push(s.namaLengkap + ' ("' + s.noWa + '")');
+      }
+    });
+
+    if (tanpaWa.length) {
+      temuan.push(
+        tanpaWa.length + ' siswa belum punya isi kolom "No WA": ' +
+        ringkasDaftar(tanpaWa) + '. Orang tuanya tidak akan bisa meminta ' +
+        'tautan rapor lewat WhatsApp.'
+      );
+    }
+    if (waMeragukan.length) {
+      temuan.push(
+        waMeragukan.length + ' nomor WA tidak berbentuk nomor HP yang wajar: ' +
+        ringkasDaftar(waMeragukan) + '. Periksa kembali isinya.'
+      );
+    }
+  }
+
   // 4. Kapasitas blok 25 baris/bulan — peringatkan kalau sudah mepet (>=23)
   KELAS_DIHARAPKAN.forEach(function (k) {
     const siswaKelas = unik(
@@ -620,8 +665,9 @@ function bacaMasterRekap() {
     );
   }
 
-  const roster = [];            // {nis, namaLengkap, namaPanggilan} — dedup per NIS
+  const roster = [];            // {nis, namaLengkap, namaPanggilan, noWa} — dedup per NIS
   const rosterTerlihat = {};
+  const rosterPerNis = {};      // nis -> baris roster, untuk melengkapi No WA
   const kelasMap = {};          // 'tahunAjaran|namaKelas' -> {tahunAjaran, namaKelas, waliKelas, targetAkademik}
   const nilai = [];
   const targetTeksBermasalah = [];
@@ -640,9 +686,30 @@ function bacaMasterRekap() {
     const nis = normalNis(r[kol.nis]);
     const namaPanggilan = kol.namaSiswa !== -1 ? teks(r[kol.namaSiswa]) : '';
 
+    /* Nomor WA orang tua ikut dibawa roster.
+
+       Kolomnya sudah dibaca sejak versi pertama tetapi tidak pernah
+       dikirim ke mana-mana. Sekarang ia menjadi tulang punggung layanan
+       WhatsApp (docs/LAYANAN_WA.md): nomor pengirim pesan itulah yang
+       dicocokkan untuk menemukan anaknya.
+
+       Diambil dari baris terisi yang PERTAMA ditemui, lalu tidak ditimpa
+       baris berikutnya -- kecuali yang tersimpan masih kosong. Satu siswa
+       muncul 12 kali (sekali per bulan) dan sebagian besar guru hanya
+       mengisi No WA di baris bulan pertama. */
+    const noWaBaris = kol.noWa !== -1 ? teks(r[kol.noWa]) : '';
+
     if (nis && !rosterTerlihat[nis]) {
       rosterTerlihat[nis] = true;
-      roster.push({ nis: nis, namaLengkap: namaLengkap, namaPanggilan: namaPanggilan || namaLengkap });
+      const baru = {
+        nis: nis, namaLengkap: namaLengkap,
+        namaPanggilan: namaPanggilan || namaLengkap,
+        noWa: noWaBaris,
+      };
+      roster.push(baru);
+      rosterPerNis[nis] = baru;
+    } else if (nis && noWaBaris && !rosterPerNis[nis].noWa) {
+      rosterPerNis[nis].noWa = noWaBaris;
     }
 
     const kunciKelas = tahunAjaran + '|' + namaKelas;
@@ -687,6 +754,10 @@ function bacaMasterRekap() {
     kelasMap: kelasMap,
     nilai: nilai,
     targetTeksBermasalah: unik(targetTeksBermasalah),
+    // Cek Kesehatan Data perlu membedakan "seluruh sel No WA kosong"
+    // dari "kolomnya memang tidak ada" -- dua masalah dengan dua
+    // perbaikan yang sama sekali berbeda.
+    adaKolomNoWa: kol.noWa !== -1,
   };
 }
 
@@ -878,6 +949,9 @@ function sinkronkanDariMaster(isi) {
         nis: nisGlobal(s.nis),
         nis_lokal: s.nis,
         nama_lengkap: s.namaLengkap, nama_panggilan: s.namaPanggilan,
+        // Dibakukan menjadi 62xxx oleh /api/sync, bukan di sini -- lihat
+        // lib/nomor-wa.js. Yang dikirim adalah isi sel apa adanya.
+        no_wa: s.noWa || null,
         updated_at: new Date().toISOString(),
       };
     }), 'nis');
@@ -1085,6 +1159,18 @@ function kirim(tabel, data, kolomKonflik, kembalikan) {
                     respons.getContentText().slice(0, 300));
   }
   return kembalikan ? JSON.parse(respons.getContentText()).data : null;
+}
+
+/**
+ * Daftar nama untuk pesan temuan: paling banyak lima, sisanya dihitung.
+ *
+ * Tanpa pembatas ini, satu Master Rekap yang kolom No WA-nya belum diisi
+ * sama sekali akan memuntahkan 150 nama ke dalam satu kotak dialog --
+ * dan seluruh temuan lain di bawahnya ikut tak terbaca.
+ */
+function ringkasDaftar(daftar) {
+  if (daftar.length <= 5) return daftar.join(', ');
+  return daftar.slice(0, 5).join(', ') + ', dan ' + (daftar.length - 5) + ' lainnya';
 }
 
 /** Sel -> teks bersih. */

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { nomorWaDaftar } from '@/lib/nomor-wa';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,33 @@ const TABEL_DIIZINKAN = [
   'nilai_bulanan',
   'users_access',
 ];
+
+/**
+ * Melengkapi baris siswa dengan nomor WA yang sudah dibakukan.
+ *
+ * Apps Script mengirim kolom "No WA" apa adanya -- "0812-3456-7890",
+ * "+62 812 ...", atau 81234567890 (nol di depannya hilang karena Sheets
+ * membaca selnya sebagai angka). Bentuk baku 62xxxxxxxxxx-lah yang
+ * dicocokkan dengan nomor pengirim WhatsApp di /api/wa.
+ *
+ * Pembakuannya dilakukan DI SINI, bukan di Apps Script maupun sebagai
+ * kolom generated di Postgres, supaya aturannya hanya punya satu
+ * salinan (lib/nomor-wa.js). Dua salinan yang menyimpang akan muncul
+ * sebagai orang tua yang tidak dikenali sistem -- tanpa satu pun pesan
+ * galat yang menunjukkan sebabnya.
+ *
+ * Baris tanpa field no_wa dibiarkan utuh: upsert yang tidak menyebut
+ * kolomnya tidak boleh diam-diam mengosongkan nomor yang sudah ada.
+ */
+function lengkapiNomorWa(tabel, data) {
+  if (tabel !== 'siswa') return data;
+
+  return data.map((baris) =>
+    baris && Object.prototype.hasOwnProperty.call(baris, 'no_wa')
+      ? { ...baris, wa_normal: nomorWaDaftar(baris.no_wa) }
+      : baris
+  );
+}
 
 export async function POST(request) {
   const kunciRahasia = request.headers.get('x-sync-secret');
@@ -64,11 +92,20 @@ export async function POST(request) {
     const db = supabaseServer();
     const { data: hasil, error } = await db
       .from(tabel)
-      .upsert(data, { onConflict })
+      .upsert(lengkapiNomorWa(tabel, data), { onConflict })
       .select();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      /* Kolom no_wa/wa_normal baru ada setelah migrasi 003 dijalankan.
+         Kalau sync.js yang baru berjalan lebih dulu, Postgres menolaknya
+         dengan pesan "column ... does not exist" yang tidak menyebut apa
+         yang harus dikerjakan -- padahal jalan keluarnya satu langkah. */
+      const pesan = /no_wa|wa_normal/.test(error.message)
+        ? error.message +
+          ' -- jalankan migrasi/003-layanan-wa.sql di Supabase SQL Editor ' +
+          'lebih dulu, lalu ulangi sinkronisasi.'
+        : error.message;
+      return NextResponse.json({ error: pesan }, { status: 500 });
     }
     return NextResponse.json({ data: hasil });
   } catch (err) {
