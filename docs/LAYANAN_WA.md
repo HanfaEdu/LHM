@@ -41,7 +41,7 @@ Rekap sejak awal. Karena itu **isi pesannya tidak dibaca sama sekali** —
 "assalamu'alaikum", "p", dan stiker sama-sama dijawab dengan benar.
 
 Konsekuensi yang perlu diketahui: balasan hanya sebaik isi kolom "No WA".
-Jalankan **SiPaDi → Cek Kesehatan Data** di Master Rekap; ia menyebutkan
+Jalankan **SiPaGi → Cek Kesehatan Data** di Master Rekap; ia menyebutkan
 siswa mana yang kolomnya masih kosong atau isinya bukan nomor HP.
 
 ## Penyiapan
@@ -54,7 +54,7 @@ Supabase → SQL Editor → tempel isi `migrasi/003-layanan-wa.sql` → Run.
 
 Tempel ulang seluruh isi `sync.js` versi ini (yang lama membaca kolom
 "No WA" tetapi tidak pernah mengirimkannya), lalu jalankan
-**SiPaDi → Sinkronkan Sekarang**.
+**SiPaGi → Sinkronkan Sekarang**.
 
 > Urutannya penting. `sync.js` versi ini mengirim kolom `no_wa`, dan
 > kolom itu baru ada setelah migrasi dijalankan. Kalau terbalik,

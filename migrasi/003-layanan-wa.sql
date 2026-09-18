@@ -129,7 +129,7 @@ COMMIT;
 -- SESUDAH MIGRASI
 -- ===================================================================
 -- 1. Perbarui sync.js di Apps Script (versi ini mengirim kolom No WA),
---    lalu jalankan SiPaDi → Sinkronkan Sekarang. Sebelum itu, kolom
+--    lalu jalankan SiPaGi → Sinkronkan Sekarang. Sebelum itu, kolom
 --    wa_normal seluruh siswa masih kosong dan tidak ada nomor yang
 --    dikenali.
 -- 2. Isi nomor perangkat WhatsApp sekolah, mis.:

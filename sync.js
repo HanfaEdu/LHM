@@ -1,7 +1,7 @@
 /**
  * ===================================================================
  * GOOGLE APPS SCRIPT — SINKRONISASI MASTER REKAP -> SUPABASE
- * Sistem Rapor Digital (SiPaDi) — SD Yaumi Fatimah Kudus
+ * Sistem Rapor Digital (SiPaGi) — SD Yaumi Fatimah Kudus
  * ===================================================================
  *
  * CARA PASANG
@@ -209,7 +209,7 @@ const SHEET_USER = 'users_access';
 /** Menu manual di Google Sheets, supaya tidak perlu menunggu tengah malam. */
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu('SiPaDi')
+    .createMenu('SiPaGi')
     .addItem('Sinkronkan Sekarang', 'sinkronkanSemua')
     .addItem('Cek Kesehatan Data (tanpa kirim)', 'cekKesehatanData')
     .addToUi();

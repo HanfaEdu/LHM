@@ -56,8 +56,8 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 4. Pasang `sync.js` di Apps Script file Master Rekap, isi `APP_URL`
    (domain Vercel Anda) dan `SYNC_SECRET` (samakan persis dengan
    `SYNC_SHARED_SECRET` di langkah 3) di bagian atas berkas.
-5. Jalankan menu **SiPaDi → Cek Kesehatan Data** untuk memastikan bersih.
-6. Jalankan **SiPaDi → Sinkronkan Sekarang**, lalu pasang pemicu harian.
+5. Jalankan menu **SiPaGi → Cek Kesehatan Data** untuk memastikan bersih.
+6. Jalankan **SiPaGi → Sinkronkan Sekarang**, lalu pasang pemicu harian.
 7. Jalankan berkas di `migrasi/` secara berurutan di Supabase SQL Editor.
 8. Opsional — hidupkan layanan WhatsApp: `docs/LAYANAN_WA.md`.
 
