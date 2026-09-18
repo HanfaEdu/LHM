@@ -1102,15 +1102,49 @@ function kunci(v) {
 }
 
 /**
- * NIS selalu string.
+ * NIS selalu string, dan selalu dalam satu bentuk baku.
+ *
  * Google Sheets menyimpan sebagian NIS sebagai angka dan sebagian sebagai
  * teks di file yang sama, sehingga 302 bisa terbaca "302" atau "302.0".
- * Tanpa normalisasi ini, satu siswa bisa terpecah jadi dua baris.
+ * Nol di depan menambah satu ragam lagi: sel yang diformat teks menyimpan
+ * "0302", dan bagi database SDYFK-0302 bukan siswa yang sama dengan
+ * SDYFK-302. Tanpa pembakuan ini, satu siswa bisa terpecah jadi dua baris.
+ *
+ * Yang membuat ragam nol di depan lebih berbahaya daripada ragam "302.0":
+ * ia TIDAK tertangkap Cek Kesehatan Data. Pemeriksaan kembar di sana
+ * mengelompokkan per NIS lalu mengeluh kalau satu NIS dipakai dua nama.
+ * Kasus ini justru kebalikannya -- satu nama dipakai dua NIS -- sehingga
+ * lolos tanpa peringatan, dan anak yang sama muncul dua kali di dasbor
+ * dengan nilainya terbelah antara kedua baris.
+ *
+ * Dibakukan di sini, bukan dengan meminta disiplin format di spreadsheet:
+ * NIS masuk lewat IMPORTRANGE dari tujuh file kelas, jadi formatnya
+ * ditentukan di file masing-masing dan tidak terlihat dari Master Rekap.
+ * Satu wali kelas yang mengetik "0302" sudah cukup untuk menghantukan
+ * satu anak, dan tidak ada yang akan menyadarinya.
+ *
+ * Arah pembakuannya membuang nol, bukan menambahkannya: "302" adalah
+ * bentuk yang sudah dipakai seluruh data yang ada, dan yang dihasilkan
+ * sendiri oleh sel angka biasa tanpa perlu format khusus.
+ *
+ * Hanya NIS yang seluruhnya angka yang dibakukan. NIS beralfabet
+ * dibiarkan apa adanya -- "0A12" bukan angka yang kebetulan berawalan
+ * nol, dan memotongnya berarti mengubah nomor yang sah menjadi nomor
+ * lain.
+ *
+ * Kalau ternyata "0302" dan "302" memang dua anak yang berbeda, keduanya
+ * melebur di sini -- dan justru itu yang membuatnya terlihat: sesudah
+ * dibakukan keduanya ber-NIS sama dengan dua nama berbeda, tepat pola
+ * yang sudah dilaporkan Cek Kesehatan Data sebagai "NIS dipakai lebih
+ * dari satu kali".
  */
 function normalNis(v) {
   if (v === null || v === undefined || v === '') return '';
   if (typeof v === 'number') return String(Math.round(v));
-  return String(v).trim().replace(/\.0+$/, '');
+  const s = String(v).trim().replace(/\.0+$/, '');
+  // Lookahead menyisakan satu angka terakhir: "000" -> "0", bukan "".
+  if (/^\d+$/.test(s)) return s.replace(/^0+(?=\d)/, '');
+  return s;
 }
 
 /** Nama kelas: 1 -> "1", "2a" -> "2A", "2 (Dua)" -> "2". */

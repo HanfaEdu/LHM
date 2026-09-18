@@ -145,6 +145,55 @@ periksa('baris tanpa NIS tidak dianggap kembar', !tanpaNis.includes('dipakai leb
 periksa('baris tanpa NIS tetap dilaporkan sebagai NIS kosong',
   tanpaNis.includes('baris siswa tanpa NIS'));
 
+/* ----------------------------------------------------------------
+   Pembakuan NIS
+   ----------------------------------------------------------------
+   Satu siswa harus menghasilkan satu NIS, apa pun cara selnya
+   diformat di file kelas. Ragam "302.0" sudah lama ditangani; yang
+   diuji di sini terutama nol di depan, karena ragam itulah yang lolos
+   dari Cek Kesehatan Data: pemeriksaan kembar mengelompokkan per NIS
+   dan mengeluh kalau satu NIS dipakai dua nama, sedangkan "0302" vs
+   "302" adalah satu nama dipakai dua NIS -- tidak ada lapis lain yang
+   menangkapnya.
+   ---------------------------------------------------------------- */
+function normalNisUji() {
+  const ctx = {
+    Logger: { log() {} },
+    SpreadsheetApp: {
+      getUi: () => ({ createMenu: () => ({ addItem() { return this; }, addToUi() {} }) }),
+      getActiveSpreadsheet: () => ({ getSheetByName: () => null }),
+    },
+  };
+  vm.createContext(ctx);
+  vm.runInContext(kode, ctx);
+  return ctx.normalNis;
+}
+
+const nn = normalNisUji();
+
+periksa('sel angka 302 -> "302"', nn(302) === '302');
+periksa('sel teks "302" -> "302"', nn('302') === '302');
+periksa('ragam desimal "302.0" -> "302"', nn('302.0') === '302');
+periksa('nol di depan "0302" -> "302"', nn('0302') === '302');
+periksa('nol ganda "00302" -> "302"', nn('00302') === '302');
+periksa('nol di depan berspasi " 0302 " -> "302"', nn(' 0302 ') === '302');
+periksa('nol di depan + desimal "0302.0" -> "302"', nn('0302.0') === '302');
+periksa('semua ragam 302 menghasilkan NIS yang sama',
+  new Set([nn(302), nn('302'), nn('302.0'), nn('0302'), nn('00302'), nn('0302.0')]).size === 1);
+
+/* NIS empat digit, untuk sekolah yang jumlah siswanya sudah melewati
+   seribu. Tidak boleh terpotong menjadi tiga digit, dan tidak boleh
+   bertabrakan dengan NIS tiga digit yang sudah ada. */
+periksa('empat digit 1012 utuh', nn(1012) === '1012');
+periksa('empat digit "01012" -> "1012"', nn('01012') === '1012');
+periksa('empat digit tidak bertabrakan dengan tiga digit', nn('1012') !== nn('012'));
+
+/* Yang TIDAK boleh ikut dipotong. */
+periksa('NIS beralfabet dibiarkan apa adanya', nn('0A12') === '0A12');
+periksa('nol tunggal tetap "0"', nn('0') === '0');
+periksa('nol semua menyisakan satu angka', nn('000') === '0');
+periksa('sel kosong tetap kosong', nn('') === '' && nn(null) === '' && nn(undefined) === '');
+
 console.log(gagalUji ? `\n${gagalUji} GAGAL\n` : '\nSemua lolos.\n');
 console.log('--- contoh isi dialog ---\n' + sukses.dialog[0]);
 process.exit(gagalUji ? 1 : 0);
