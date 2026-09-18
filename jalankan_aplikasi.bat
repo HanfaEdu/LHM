@@ -1,9 +1,9 @@
 @echo off
-title SiPaDi - Jalankan Aplikasi Lokal
+title SiPaGi - Jalankan Aplikasi Lokal
 color 0B
 
 echo =========================================================================
-echo  SISTEM PERKEMBANGAN AKADEMIK DIGITAL TERINTEGRASI (SiPaDi)
+echo  SISTEM RAPOR DIGITAL (SiPaGi)
 echo  SD Yaumi Fatimah Kudus - Script Pembuka Aplikasi
 echo =========================================================================
 echo.

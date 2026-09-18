@@ -1,4 +1,4 @@
-# SiPaDi — Sistem Rapor Digital
+# SiPaGi — Sistem Rapor Digital
 
 Web app untuk menyajikan capaian akademik (B. Indonesia, Matematika, IPA)
 serta Tahfidz & Tahsin secara personal kepada orang tua, wali kelas, dan

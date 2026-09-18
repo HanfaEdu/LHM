@@ -23,7 +23,7 @@ function pembangkit(semai) {
   };
 }
 
-// Dua warna dari palet SiPaDi supaya bintangnya terasa satu keluarga
+// Dua warna dari palet SiPaGi supaya bintangnya terasa satu keluarga
 // dengan tombol dan judulnya, bukan hiasan yang ditempel dari luar.
 const WARNA = ['rgba(0, 245, 212, 0.9)', 'rgba(0, 180, 216, 0.85)', 'rgba(255, 255, 255, 0.75)'];
 

@@ -102,7 +102,7 @@ https://<domain-anda>/api/wa?kunci=<isi WA_WEBHOOK_SECRET>
 ```
 
 Memastikan alamatnya benar — buka di peramban, harus menjawab
-`Layanan WhatsApp SiPaDi aktif.`:
+`Layanan WhatsApp SiPaGi aktif.`:
 
 ```
 https://<domain-anda>/api/wa

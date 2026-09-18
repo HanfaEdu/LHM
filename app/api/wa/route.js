@@ -350,7 +350,7 @@ export async function POST(request) {
  * dipasang di Fonnte. Sengaja tidak menyebut apa pun tentang data.
  */
 export async function GET() {
-  return new Response('Layanan WhatsApp SiPaDi aktif.', {
+  return new Response('Layanan WhatsApp SiPaGi aktif.', {
     headers: { 'content-type': 'text/plain; charset=utf-8' },
   });
 }
