@@ -481,10 +481,22 @@ function cekKesehatanData() {
     const tanpaWa = [];
     const waMeragukan = [];
     isi.roster.forEach(function (s) {
-      const angka = String(s.noWa || '').replace(/\D/g, '');
-      if (!angka) {
+      /* Dipecah dulu per nomor, bukan dihitung angkanya sekaligus.
+
+         Satu sel yang sah kerap memuat DUA nomor -- ayah dan ibu --
+         dipisah koma atau ganti baris. Menghitung seluruh angkanya
+         sekaligus menghasilkan 26 digit, dan pemeriksaan panjang lalu
+         menuduh sel yang justru paling benar. Peringatan palsu yang
+         muncul di setiap keluarga berorang tua lengkap akan membuat
+         seluruh laporan Cek Kesehatan Data berhenti dipercaya. */
+      const potongan = String(s.noWa || '')
+        .split(/[,;\/\n]|\bdan\b/i)
+        .map(function (x) { return x.replace(/\D/g, ''); })
+        .filter(function (x) { return x; });
+
+      if (!potongan.length) {
         tanpaWa.push(s.namaLengkap);
-      } else if (angka.length < 10 || angka.length > 15) {
+      } else if (potongan.some(function (x) { return x.length < 10 || x.length > 15; })) {
         waMeragukan.push(s.namaLengkap + ' ("' + s.noWa + '")');
       }
     });
@@ -697,7 +709,7 @@ function bacaMasterRekap() {
        baris berikutnya -- kecuali yang tersimpan masih kosong. Satu siswa
        muncul 12 kali (sekali per bulan) dan sebagian besar guru hanya
        mengisi No WA di baris bulan pertama. */
-    const noWaBaris = kol.noWa !== -1 ? teks(r[kol.noWa]) : '';
+    const noWaBaris = kol.noWa !== -1 ? teksNoWa(r[kol.noWa]) : '';
 
     if (nis && !rosterTerlihat[nis]) {
       rosterTerlihat[nis] = true;
@@ -1177,6 +1189,26 @@ function ringkasDaftar(daftar) {
 function teks(v) {
   if (v === null || v === undefined) return '';
   return String(v).trim().replace(/\s+/g, ' ');
+}
+
+/**
+ * Sel "No WA" -> teks, dengan GANTI BARIS dipertahankan sebagai pemisah.
+ *
+ * teks() biasa meratakan setiap runtun spasi -- termasuk ganti baris --
+ * menjadi satu spasi. Untuk kolom mana pun yang lain itu benar, tetapi
+ * di sini ia justru menghapus satu-satunya tanda bahwa sel itu memuat
+ * DUA nomor: Alt+Enter di dalam satu sel adalah cara yang sangat wajar
+ * menulis nomor ayah di baris pertama dan nomor ibu di baris kedua.
+ * Begitu ganti barisnya berubah menjadi spasi, kedua nomor melebur
+ * menjadi satu deret 26 digit yang ditolak seluruhnya -- dan orang tua
+ * yang nomornya sebenarnya sah tidak pernah dikenali.
+ *
+ * Ganti baris diubah menjadi koma, bukan sekadar dipertahankan, supaya
+ * seluruh sisi sistem cukup mengenal satu bentuk pemisah.
+ */
+function teksNoWa(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/[\r\n]+/g, ', ').trim().replace(/[ \t]+/g, ' ');
 }
 
 /**
