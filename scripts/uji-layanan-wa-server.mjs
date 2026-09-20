@@ -273,6 +273,34 @@ console.log('--- kunci webhook ---');
 }
 
 // ===================================================================
+console.log('\n--- penanda hidup GET ---');
+// ===================================================================
+{
+  const polos = await (await fetch(`http://127.0.0.1:${PORT_APP}/api/wa`)).text();
+  periksa('tanpa kunci: menyebut layanan aktif', polos.includes('aktif'));
+  periksa('tanpa kunci: tidak membocorkan apa pun soal kunci',
+    !/COCOK/.test(polos));
+
+  const benar = await (await fetch(
+    `http://127.0.0.1:${PORT_APP}/api/wa?kunci=${KUNCI}`)).text();
+  periksa('kunci benar: dinyatakan COCOK', /Kunci COCOK/.test(benar));
+
+  /* Inilah yang sebelumnya menghabiskan waktu penelusuran: kunci yang
+     salah tidak bisa dibedakan dari webhook yang tidak pernah dipanggil,
+     karena keduanya sama-sama berwujud "tidak ada balasan". */
+  const salah = await (await fetch(
+    `http://127.0.0.1:${PORT_APP}/api/wa?kunci=salah-sekali`)).text();
+  periksa('kunci salah: dinyatakan TIDAK COCOK', /TIDAK COCOK/.test(salah));
+
+  /* Spasi di ujung adalah kesalahan penyalinan yang paling sering dan
+     paling sulit dilihat -- kedua nilai tampak sama persis di layar. */
+  const berspasi = await (await fetch(
+    `http://127.0.0.1:${PORT_APP}/api/wa?kunci=${encodeURIComponent(' ' + KUNCI + '\n')}`)).text();
+  periksa('kunci berspasi di ujung tetap dianggap cocok',
+    /Kunci COCOK/.test(berspasi));
+}
+
+// ===================================================================
 console.log('\n--- orang tua yang dikenali ---');
 // ===================================================================
 {

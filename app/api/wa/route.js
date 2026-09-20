@@ -60,10 +60,21 @@ const API_FONNTE = process.env.FONNTE_API_URL || 'https://api.fonnte.com/send';
 /**
  * Membandingkan kunci tanpa membocorkan berapa banyak karakter yang
  * sudah cocok lewat lama waktu perbandingan.
+ *
+ * Kedua sisi dirapikan dulu dari spasi di ujung. Kunci ini disalin
+ * manusia ke dalam kotak isian Vercel dan kotak isian Fonnte, dan
+ * salinan yang membawa satu spasi, tab, atau ganti baris di ujungnya
+ * adalah kesalahan yang paling sering terjadi sekaligus paling sulit
+ * dilihat -- kedua nilai tampak sama persis di layar, tetapi tidak sama
+ * bagi mesin. Gagalnya pun senyap: webhook ditolak 401 tanpa jejak di
+ * wa_pesan, sehingga yang terlihat hanyalah "tidak ada balasan".
+ *
+ * Merapikan ujung tidak melemahkan apa pun: spasi di tepi bukan bagian
+ * dari rahasia, dan isi kuncinya tetap dibandingkan utuh.
  */
 function kunciCocok(dikirim, seharusnya) {
-  const a = Buffer.from(String(dikirim || ''));
-  const b = Buffer.from(String(seharusnya || ''));
+  const a = Buffer.from(String(dikirim || '').trim());
+  const b = Buffer.from(String(seharusnya || '').trim());
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }
@@ -186,6 +197,7 @@ export async function POST(request) {
 
   const kunciDikirim =
     request.headers.get('x-wa-secret') || request.nextUrl.searchParams.get('kunci') || '';
+
 
   if (!kunciCocok(kunciDikirim, kunciServer)) {
     return NextResponse.json({ error: 'Tidak diizinkan.' }, { status: 401 });
@@ -348,9 +360,40 @@ export async function POST(request) {
 /**
  * Penanda hidup, untuk memastikan alamat webhook sudah benar sebelum
  * dipasang di Fonnte. Sengaja tidak menyebut apa pun tentang data.
+ *
+ * Kalau alamatnya dibuka LENGKAP dengan ?kunci=..., jawabannya sekaligus
+ * menyebutkan apakah kunci itu cocok dengan yang tersimpan di server.
+ *
+ * Kenapa ini ada: tanpa itu, kunci yang salah hanya terlihat sebagai
+ * "webhook saya tidak membalas apa-apa". Permintaan yang ditolak 401
+ * sengaja tidak dicatat ke wa_pesan -- kalau dicatat, siapa pun yang tahu
+ * alamatnya bisa menggelembungkan tabel itu -- sehingga satu-satunya
+ * jejaknya ada di log Vercel, yang tidak bisa dibuka operator sekolah.
+ * Dengan ini, kunci yang salah bisa dipastikan sendiri dari peramban
+ * dalam hitungan detik.
+ *
+ * Yang dijawab hanya cocok atau tidak, tidak pernah kuncinya sendiri.
+ * Membiarkan orang menguji tebakan memang berarti alamat ini bisa
+ * dipakai menebak -- tetapi kunci yang dianjurkan berpanjang 48 karakter
+ * heksadesimal (192 bit), dan menebaknya tidak realistis.
  */
-export async function GET() {
-  return new Response('Layanan WhatsApp SiPaGi aktif.', {
+export async function GET(request) {
+  const kunciServer = process.env.WA_WEBHOOK_SECRET;
+  const kunciDikirim = request.nextUrl.searchParams.get('kunci');
+
+  let keterangan = '';
+  if (!kunciServer) {
+    keterangan = '\n\nWA_WEBHOOK_SECRET belum diatur di server.';
+  } else if (kunciDikirim !== null) {
+    keterangan = kunciCocok(kunciDikirim, kunciServer)
+      ? '\n\nKunci COCOK. Alamat ini siap dipasang sebagai webhook di Fonnte.'
+      : '\n\nKunci TIDAK COCOK dengan yang tersimpan di server. ' +
+        'Webhook dari Fonnte akan ditolak. Periksa kembali WA_WEBHOOK_SECRET ' +
+        'di Vercel dan bagian ?kunci= pada alamat webhook -- termasuk spasi ' +
+        'yang mungkin ikut tersalin di ujungnya.';
+  }
+
+  return new Response('Layanan WhatsApp SiPaGi aktif.' + keterangan, {
     headers: { 'content-type': 'text/plain; charset=utf-8' },
   });
 }
