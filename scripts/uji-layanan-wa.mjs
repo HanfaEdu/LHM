@@ -59,6 +59,15 @@ periksa('dua nomor dipisah kata "dan"',
 periksa('nomor kembar tidak digandakan',
   nomorWaDaftar('081234567890 / 0812-3456-7890').length === 1);
 
+/* Alt+Enter di dalam satu sel: nomor ayah di baris pertama, nomor ibu di
+   baris kedua. Sempat melebur menjadi satu deret 26 digit yang ditolak
+   seluruhnya, karena kelas karakternya memakai \s dan ikut menelan
+   ganti baris. */
+periksa('dua nomor dipisah ganti baris',
+  nomorWaDaftar('081234567890\n081355556666').length === 2);
+periksa('dua nomor dipisah titik koma',
+  nomorWaDaftar('081234567890; 081355556666').length === 2);
+
 /* Yang harus DITOLAK. Nomor tetap tidak pernah bisa menerima WhatsApp,
    jadi meloloskannya hanya membuat sel yang salah isi tampak benar. */
 periksa('sel kosong ditolak', nomorWaDaftar('').length === 0);
@@ -181,6 +190,8 @@ console.log('\n--- kolom "No WA" di Apps Script (sync.js) ---');
     ['2026-2027', '3', 'Bu Ani', 'Aisyah Putri', 'Aisyah', 282, '', 'Juli', 88],
     ['2026-2027', '3', 'Bu Ani', 'Aisyah Putri', 'Aisyah', 282, 81355556666, 'Agustus', 89],
     ['2026-2027', '3', 'Bu Ani', 'Umar Hadi', 'Umar', 283, '', 'Juli', 85],
+    ['2026-2027', '3', 'Bu Ani', 'Zaid Anwar', 'Zaid', 284,
+     '081234567890\n081355556666', 'Juli', 87],
   ];
 
   const ctx = {
@@ -202,6 +213,12 @@ console.log('\n--- kolom "No WA" di Apps Script (sync.js) ---');
   periksa('No WA yang baru terisi di bulan berikutnya tetap terjaring',
     per['282'].noWa === '81355556666');
   periksa('siswa tanpa No WA tidak dikarang-karang', per['283'].noWa === '');
+
+  /* Ganti baris di dalam sel tidak boleh diratakan menjadi spasi.
+     teks() biasa melakukan itu, dan hasilnya kedua nomor melebur.
+     Pemisahnya dibakukan menjadi koma di teksNoWa(). */
+  periksa('Alt+Enter di dalam sel tetap terbaca sebagai dua nomor',
+    per['284'].noWa === '081234567890, 081355556666');
 
   /* Yang paling penting: kolomnya benar-benar SAMPAI ke database.
      Terbaca tapi tidak terkirim adalah keadaan sistem ini sebelumnya. */

@@ -44,6 +44,57 @@ Konsekuensi yang perlu diketahui: balasan hanya sebaik isi kolom "No WA".
 Jalankan **SiPaGi → Cek Kesehatan Data** di Master Rekap; ia menyebutkan
 siswa mana yang kolomnya masih kosong atau isinya bukan nomor HP.
 
+## Cara mengisi kolom "No WA"
+
+Semua bentuk di bawah ini dikenali dan bermuara ke satu nomor yang sama:
+
+| Ditulis guru | Dibaca sistem |
+|---|---|
+| `6285123456789` | `6285123456789` |
+| `085123456789` | `6285123456789` |
+| `+62 851 2345 6789` | `6285123456789` |
+| `0851-2345-6789` | `6285123456789` |
+| `85123456789` (nol depan hilang) | `6285123456789` |
+
+**Bentuk yang dianjurkan: `6285123456789`** — tanpa tanda plus, tanpa
+spasi. Bukan karena yang lain tidak jalan, melainkan karena bentuk inilah
+satu-satunya yang selamat dari Google Sheets. Sel bernilai `085123456789`
+kerap dibaca Sheets sebagai ANGKA dan nol depannya hilang; sistem memang
+memulihkannya, tetapi lebih baik tidak bergantung pada pemulihan. Awalan
+`+` lebih buruk lagi: di Google Sheets, isi sel yang diawali `+` dianggap
+rumus.
+
+### Satu anak, dua nomor orang tua
+
+Boleh, dan memang didukung — ayah dan ibu kerap berbeda nomor. Tulis
+keduanya di sel yang sama, dipisah **koma**:
+
+```
+6285123456789, 6285987654321
+```
+
+Pemisah yang dikenali: koma, titik koma, garis miring, kata "dan", dan
+ganti baris (Alt+Enter di dalam sel). Keterangan seperti nama boleh ikut
+ditulis — `Ayah 6285123456789, Ibu 6285987654321` terbaca benar.
+
+Yang TIDAK dikenali adalah dua nomor yang hanya dipisah **spasi**:
+
+```
+6285123456789 6285987654321      <- DITOLAK, dan diperingatkan
+```
+
+Ini disengaja. Deretan angka berspasi tidak bisa dibedakan dari satu
+nomor panjang yang salah ketik, dan menebaknya berarti sebagian orang tua
+menerima tautan anak orang lain. Cek Kesehatan Data menandai sel seperti
+ini supaya ketahuan sebelum sinkronisasi.
+
+Kedua nomor itu sama-sama sah: siapa pun di antara keduanya yang mengirim
+pesan akan dikenali, dan balasan hanya dikirim kepada yang mengirim.
+
+Sebaliknya juga berlaku: satu nomor yang sama boleh dipakai beberapa
+siswa. Orang tua dengan dua anak di sekolah yang sama menerima kedua
+tautan sekaligus dalam satu balasan.
+
 ## Penyiapan
 
 ### 1. Jalankan migrasi
