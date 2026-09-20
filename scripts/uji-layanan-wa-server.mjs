@@ -117,7 +117,10 @@ const dbTiruan = http.createServer((req, res) => {
 
   if (tabel === 'wa_pesan') {
     const pengirim = (nilaiFilter(cari, 'pengirim') || '').replace('eq.', '');
-    const jumlah = pesanTercatat.filter((p) => p.pengirim === pengirim).length;
+    const hasil = (nilaiFilter(cari, 'hasil') || '').replace('eq.', '');
+    const jumlah = pesanTercatat.filter(
+      (p) => p.pengirim === pengirim && (!hasil || p.hasil === hasil)
+    ).length;
     return balas([], 200, { 'content-range': `0-0/${jumlah}` });
   }
 
@@ -373,6 +376,53 @@ console.log('\n--- nomor yang tidak dikenali ---');
   periksa('tetap dibalas, bukan didiamkan', terkirimWa.length === 1);
   periksa('balasan tidak memuat satu pun tautan rapor',
     !terkirimWa[0]?.message?.includes('/rapor/'));
+}
+
+// ===================================================================
+console.log('\n--- nomor tak dikenal didiamkan setelah dua balasan ---');
+// ===================================================================
+{
+  bersihCatatan();
+  const asing = '6285000000001';
+  const kirim = () => kirimWebhook({
+    sender: asing, message: 'halo', device: '628111000111',
+  });
+
+  const satu = await kirim();
+  const dua = await kirim();
+  periksa('dua pesan pertama dijawab',
+    satu.badan?.hasil === 'tidak_dikenal' &&
+    dua.badan?.hasil === 'tidak_dikenal' &&
+    terkirimWa.length === 2);
+
+  /* Orang yang tidak yakin pesannya terkirim mencoba sekali lagi, dan
+     percobaan KEDUA itulah yang dia tunggu jawabannya. Didiamkan di situ
+     terasa seperti sistem rusak, bukan seperti nomor belum terdaftar. */
+  const tiga = await kirim();
+  periksa('pesan ketiga tidak dibalas', terkirimWa.length === 2);
+  periksa('yang didiamkan tetap tercatat',
+    tiga.badan?.lewat === 'tidak dikenal, sudah dijawab hari ini' &&
+    pesanTercatat[pesanTercatat.length - 1].hasil === 'tidak_dikenal_diam');
+
+  const empat = await kirim();
+  periksa('pesan keempat juga tidak dibalas', terkirimWa.length === 2);
+
+  /* Yang dihitung hanya balasan yang benar-benar terkirim. Kalau baris
+     'tidak_dikenal_diam' ikut dihitung, batasnya berubah makna menjadi
+     "dua pesan sehari" -- dan nomor yang sudah didiamkan tidak akan
+     pernah dijawab lagi meski besok datanya sudah dimasukkan. */
+  periksa('catatan memisahkan yang dijawab dari yang didiamkan',
+    pesanTercatat.filter((p) => p.hasil === 'tidak_dikenal').length === 2 &&
+    pesanTercatat.filter((p) => p.hasil === 'tidak_dikenal_diam').length === 2);
+
+  /* Batas ini milik nomor tak dikenal saja. Orang tua yang terdaftar
+     tidak boleh ikut terkena hanya karena kebetulan mengirim sesudahnya. */
+  bersihCatatan();
+  const ortu = await kirimWebhook({
+    sender: '6281234567890', message: 'p', device: '628111000111',
+  });
+  periksa('orang tua terdaftar tidak ikut terkena batas',
+    ortu.badan?.hasil === 'terkirim' && terkirimWa.length === 1);
 }
 
 // ===================================================================

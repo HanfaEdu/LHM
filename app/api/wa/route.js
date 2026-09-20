@@ -48,6 +48,27 @@ export const dynamic = 'force-dynamic';
 const BATAS_PER_JAM = 8;
 
 /**
+ * Batas balasan untuk nomor yang TIDAK dikenali, per nomor per 24 jam.
+ *
+ * Dua, bukan satu, dan bukan tanpa batas. Masing-masing angka itu salah
+ * dengan caranya sendiri:
+ *
+ *   Tanpa batas -- setiap salah sambung, nomor promosi, dan autoresponder
+ *   yang menyapa nomor sekolah ikut dibalas, dan tiap balasan memakan
+ *   kuota WhatsApp sekolah tanpa satu pun manfaat.
+ *
+ *   Satu kali -- orang yang tidak yakin pesannya terkirim akan mencoba
+ *   sekali lagi, dan justru percobaan kedua itulah yang dia tunggu
+ *   jawabannya. Didiamkan pada percobaan kedua terasa seperti sistem
+ *   yang rusak, bukan seperti nomor yang belum terdaftar.
+ *
+ * Yang dihitung hanya balasan yang benar-benar TERKIRIM ('tidak_dikenal'),
+ * bukan pesan yang sudah didiamkan, sehingga batasnya berarti "dua
+ * jawaban sehari" dan bukan "dua pesan sehari".
+ */
+const BATAS_TAK_DIKENAL_SEHARI = 2;
+
+/**
  * Alamat API Fonnte.
  *
  * Bisa dialihkan lewat env var supaya seluruh alur endpoint ini dapat
@@ -323,6 +344,40 @@ export async function POST(request) {
     namaSekolah: namaSekolah || SEKOLAH_BAWAAN,
     anak,
   });
+
+  /* --- Nomor tak dikenal: dijawab secukupnya, lalu didiamkan ---------
+     Orang tua yang nomornya belum terdaftar perlu tahu harus berbuat apa
+     -- didiamkan sama sekali, yang mereka simpulkan adalah "aplikasinya
+     rusak", lalu wali kelas yang ditelepon satu per satu. Tetapi nomor
+     sekolah juga menerima salah sambung dan pesan promosi, dan membalas
+     semuanya tanpa henti membuang kuota.
+
+     Dihitung dari wa_pesan, bukan dari ingatan proses: fungsi serverless
+     tidak punya ingatan antar-permintaan, dan catatan itu memang sudah
+     ada untuk keperluan ini. */
+  if (hasil === 'tidak_dikenal') {
+    const sehariLalu = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    try {
+      const { count } = await db
+        .from('wa_pesan')
+        .select('id', { count: 'exact', head: true })
+        .eq('pengirim', pengirim)
+        .eq('hasil', 'tidak_dikenal')
+        .gte('dibuat_pada', sehariLalu);
+
+      if ((count || 0) >= BATAS_TAK_DIKENAL_SEHARI) {
+        await catat(db, {
+          pengirim,
+          sekolah_id: sekolah?.id ?? null,
+          hasil: 'tidak_dikenal_diam',
+          jumlah_anak: 0,
+        });
+        return NextResponse.json({ ok: true, lewat: 'tidak dikenal, sudah dijawab hari ini' });
+      }
+    } catch {
+      // Tabel wa_pesan belum ada. Lebih baik menjawab daripada mendiamkan.
+    }
+  }
 
   /* Token perangkat dipilih per sekolah lebih dulu (FONNTE_TOKEN_SDYFK),
      baru jatuh ke token tunggal. Dengan begitu sekolah kedua yang punya
