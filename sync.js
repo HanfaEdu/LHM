@@ -489,10 +489,7 @@ function cekKesehatanData() {
          menuduh sel yang justru paling benar. Peringatan palsu yang
          muncul di setiap keluarga berorang tua lengkap akan membuat
          seluruh laporan Cek Kesehatan Data berhenti dipercaya. */
-      const potongan = String(s.noWa || '')
-        .split(/[,;\/\n]|\bdan\b/i)
-        .map(function (x) { return x.replace(/\D/g, ''); })
-        .filter(function (x) { return x; });
+      const potongan = nomorDiSel(s.noWa);
 
       if (!potongan.length) {
         tanpaWa.push(s.namaLengkap);
@@ -512,6 +509,67 @@ function cekKesehatanData() {
       temuan.push(
         waMeragukan.length + ' nomor WA tidak berbentuk nomor HP yang wajar: ' +
         ringkasDaftar(waMeragukan) + '. Periksa kembali isinya.'
+      );
+    }
+  }
+
+  /* 3d. Nomor yang dipakai lebih dari satu siswa.
+
+     Sistem menyimpulkan "kakak-adik" SEMATA-MATA dari kesamaan nomor --
+     ia tidak punya data keluarga sama sekali. Kalau memang kakak-adik,
+     inilah yang diinginkan: orang tuanya menerima seluruh tautan
+     anaknya dalam satu pesan, dan tidak ada yang perlu diubah.
+
+     Yang ditangkap pemeriksaan ini adalah kemungkinan yang satunya:
+     nomor keluarga A tersalin ke baris siswa keluarga B. Nomornya sah,
+     bentuknya benar, dan tidak ada satu pun galat yang muncul -- tetapi
+     orang tua A akan menerima tautan rapor anak keluarga B, dan tidak
+     ada yang memberi tahu siapa pun. Hanya manusia yang bisa
+     membedakan kedua keadaan itu, jadi yang dilakukan di sini adalah
+     menyodorkannya untuk dikonfirmasi, bukan menolaknya. */
+  if (isi.adaKolomNoWa) {
+    const kelasTiapSiswa = {};
+    isi.nilai.forEach(function (n) {
+      if (n.nis && !kelasTiapSiswa[n.nis]) kelasTiapSiswa[n.nis] = n.nama_kelas;
+    });
+
+    const pemakaiNomor = {};
+    isi.roster.forEach(function (s) {
+      nomorDiSel(s.noWa).forEach(function (angka) {
+        const kunciNomor = ekorNomor(angka);
+        if (!pemakaiNomor[kunciNomor]) {
+          pemakaiNomor[kunciNomor] = { contoh: angka, siswa: [] };
+        }
+        // Satu siswa yang menulis nomor sama dua kali di selnya sendiri
+        // bukan dua siswa yang berbagi nomor.
+        const daftar = pemakaiNomor[kunciNomor].siswa;
+        const sudahAda = daftar.filter(function (x) { return x.nis === s.nis; }).length > 0;
+        if (!sudahAda) {
+          daftar.push({ nis: s.nis, nama: s.namaLengkap });
+        }
+      });
+    });
+
+    const berbagiNomor = [];
+    Object.keys(pemakaiNomor).forEach(function (kunciNomor) {
+      const pakai = pemakaiNomor[kunciNomor];
+      if (pakai.siswa.length < 2) return;
+      berbagiNomor.push(
+        pakai.contoh + ' (' +
+        pakai.siswa.map(function (x) {
+          const kelas = kelasTiapSiswa[x.nis];
+          return x.nama + (kelas ? ' kelas ' + kelas : '');
+        }).join(', ') + ')'
+      );
+    });
+
+    if (berbagiNomor.length) {
+      temuan.push(
+        berbagiNomor.length + ' nomor WA dipakai lebih dari satu siswa: ' +
+        ringkasDaftar(berbagiNomor) + '. Kalau mereka memang kakak-adik, ini ' +
+        'BENAR dan tidak perlu diubah — orang tuanya akan menerima seluruh ' +
+        'tautan anaknya dalam satu pesan. Kalau bukan, salah satu orang tua ' +
+        'akan menerima tautan rapor anak orang lain.'
       );
     }
   }
@@ -1209,6 +1267,35 @@ function teks(v) {
 function teksNoWa(v) {
   if (v === null || v === undefined) return '';
   return String(v).replace(/[\r\n]+/g, ', ').trim().replace(/[ \t]+/g, ' ');
+}
+
+/**
+ * Angka-angka yang berdiri sendiri di dalam satu sel "No WA".
+ *
+ * Pemisahnya sama dengan yang dikenali lib/nomor-wa.js di sisi aplikasi:
+ * koma, titik koma, garis miring, ganti baris, dan kata "dan". Spasi
+ * sengaja TIDAK memisahkan -- dua nomor berspasi tidak bisa dibedakan
+ * dari satu nomor panjang yang salah ketik.
+ */
+function nomorDiSel(nilai) {
+  return String(nilai || '')
+    .split(/[,;\/\n]|\bdan\b/i)
+    .map(function (x) { return x.replace(/\D/g, ''); })
+    .filter(function (x) { return x; });
+}
+
+/**
+ * Kunci pembanding antar-nomor: sembilan angka terakhir.
+ *
+ * 08123456789, 628123456789, dan 8123456789 adalah nomor yang SAMA
+ * ditulis tiga cara; yang berbeda hanya awalannya. Membandingkan
+ * ekornya membuat ketiganya bertemu tanpa perlu menyalin seluruh aturan
+ * pembakuan dari lib/nomor-wa.js ke dalam berkas ini -- salinan aturan
+ * yang menyimpang diam-diam justru bahaya yang lebih besar daripada
+ * pembandingan yang sedikit longgar di sini.
+ */
+function ekorNomor(angka) {
+  return angka.length > 9 ? angka.slice(-9) : angka;
 }
 
 /**
