@@ -301,7 +301,7 @@ tersimpan sebagai kosong, tidak pernah sebagai 0.
 | 9 | Isi kolom `No WA` | Sebelum kirim link ke orang tua |
 
 Setelah NIS Kelas 1 & 2B selesai, jalankan menu
-**SiPaDi → Cek Kesehatan Data** di Master Rekap. Menu itu sekarang membaca
+**SiPaGi → Cek Kesehatan Data** di Master Rekap. Menu itu sekarang membaca
 Master Rekap langsung (bukan tiap file kelas satu-satu) dan melaporkan sisa
 masalah — termasuk kalau salah satu dari 7 kelas tiba-tiba hilang dari
 Master Rekap, tanda IMPORTRANGE-nya putus — tanpa mengirim apa pun ke

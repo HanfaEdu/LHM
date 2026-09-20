@@ -58,7 +58,7 @@ def buat(ukuran, huruf=None):
 
 os.makedirs(TUJUAN, exist_ok=True)
 for u in (192, 512):
-    buat(u).save(f'{TUJUAN}/sipadi-{u}.png', optimize=True)
+    buat(u).save(f'{TUJUAN}/sipagi-{u}.png', optimize=True)
 for h in [chr(c) for c in range(65, 91)]:
     for u in (192, 512):
         buat(u, h).save(f'{TUJUAN}/siswa-{u}-{h}.png', optimize=True)

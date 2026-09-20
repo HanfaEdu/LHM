@@ -1,5 +1,5 @@
 -- ===================================================================
--- SKEMA DATABASE: SISTEM RAPOR DIGITAL (SiPaDi)
+-- SKEMA DATABASE: SISTEM RAPOR DIGITAL (SiPaGi)
 -- SD Yaumi Fatimah Kudus
 -- ===================================================================
 -- Dijalankan sekali di Supabase SQL Editor.

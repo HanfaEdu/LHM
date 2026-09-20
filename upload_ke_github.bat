@@ -1,9 +1,9 @@
 @echo off
-title SiPaDi - Upload ke GitHub
+title SiPaGi - Upload ke GitHub
 color 0A
 
 echo =========================================================================
-echo  SISTEM PERKEMBANGAN AKADEMIK DIGITAL TERINTEGRASI (SiPaDi)
+echo  SISTEM RAPOR DIGITAL (SiPaGi)
 echo  Script Otomatis Unggah ke GitHub Anda
 echo =========================================================================
 echo.
@@ -52,7 +52,7 @@ echo.
 echo [INFO] Menambahkan file proyek...
 git add .
 echo [INFO] Membuat catatan perubahan (Commit)...
-git commit -m "Inisialisasi Proyek SiPaDi"
+git commit -m "Inisialisasi Proyek SiPaGi"
 
 :: 6. Push ke GitHub
 echo.
