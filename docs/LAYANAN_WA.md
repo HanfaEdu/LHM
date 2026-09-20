@@ -224,6 +224,13 @@ berarti "dua jawaban sehari", bukan "dua pesan sehari". Pesan yang
 didiamkan tetap dicatat di `wa_pesan` sebagai `tidak_dikenal_diam`,
 sehingga tetap bisa ditelusuri.
 
+**Batas ini tidak menahan orang tua yang datanya baru masuk.** Nomor
+yang sudah didiamkan pagi ini akan langsung dibalas begitu wali kelas
+mengisi kolom "No WA", menjalankan Sinkronkan Sekarang, dan tautannya
+diterbitkan — tidak perlu menunggu 24 jam. Batasnya hanya berlaku
+selama nomor itu masih **tidak dikenali**; sesudah datanya ada, ia bukan
+nomor tak dikenal lagi.
+
 ## Catatan keamanan
 
 - **Balasan selalu ke nomor pengirim yang sudah dicocokkan**, tidak pernah
