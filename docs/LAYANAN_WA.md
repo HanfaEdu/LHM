@@ -91,9 +91,32 @@ ini supaya ketahuan sebelum sinkronisasi.
 Kedua nomor itu sama-sama sah: siapa pun di antara keduanya yang mengirim
 pesan akan dikenali, dan balasan hanya dikirim kepada yang mengirim.
 
+### Satu orang tua, beberapa anak
+
 Sebaliknya juga berlaku: satu nomor yang sama boleh dipakai beberapa
-siswa. Orang tua dengan dua anak di sekolah yang sama menerima kedua
-tautan sekaligus dalam satu balasan.
+siswa. Tulis nomor yang sama di baris kakak dan di baris adik, dan orang
+tuanya menerima **seluruh tautan anaknya dalam satu balasan** — bukan
+satu pesan per anak, dan bukan hanya anak yang kebetulan tersimpan lebih
+dulu. Tidak ada batas jumlah anak.
+
+Yang perlu disadari: sistem menyimpulkan "kakak-adik" **semata-mata dari
+kesamaan nomor**. Ia tidak punya data keluarga sama sekali. Kalau nomor
+keluarga A tersalin ke baris siswa keluarga B, nomornya tetap sah dan
+bentuknya tetap benar — tidak ada galat yang muncul — tetapi orang tua A
+akan menerima tautan rapor anak keluarga B.
+
+Karena itu Cek Kesehatan Data menyebutkan setiap nomor yang dipakai lebih
+dari satu siswa, lengkap dengan nama dan kelasnya:
+
+> 1 nomor WA dipakai lebih dari satu siswa: 6285743915031 (Faiz Abdullah
+> kelas 3, Naira Salsabila kelas 1). Kalau mereka memang kakak-adik, ini
+> BENAR dan tidak perlu diubah — orang tuanya akan menerima seluruh
+> tautan anaknya dalam satu pesan. Kalau bukan, salah satu orang tua akan
+> menerima tautan rapor anak orang lain.
+
+Ini konfirmasi, bukan larangan. Kakak-adik memang seharusnya bernomor
+sama; yang ditangkap peringatan itu adalah salah ketik yang kebetulan
+menghasilkan nomor yang sah.
 
 ## Penyiapan
 

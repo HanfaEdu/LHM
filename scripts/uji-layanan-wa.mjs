@@ -241,5 +241,78 @@ console.log('\n--- kolom "No WA" di Apps Script (sync.js) ---');
     siswa['283'].no_wa === null);
 }
 
+// ===================================================================
+console.log('\n--- nomor yang dipakai lebih dari satu siswa ---');
+// ===================================================================
+{
+  /* Sistem menyimpulkan "kakak-adik" semata-mata dari kesamaan nomor;
+     ia tidak punya data keluarga. Yang ditangkap pemeriksaan ini adalah
+     kemungkinan sebaliknya: nomor keluarga A tersalin ke baris siswa
+     keluarga B. Nomornya sah, bentuknya benar, tidak ada galat -- tetapi
+     orang tua A menerima tautan rapor anak keluarga B. */
+  const kode = readFileSync(new URL('../sync.js', import.meta.url), 'utf8');
+  const tabel = [
+    ['Tahun Ajaran', 'Kelas', 'Wali Kelas', 'Nama Lengkap', 'Nama Siswa',
+     'NISN/NIS', 'No WA', 'Bulan', 'Rata B. Indo'],
+    ['2026-2027', '3', 'Bu Ani', 'Faiz Abdullah',  'Faiz',  281, '6285743915031', 'Juli', 90],
+    ['2026-2027', '1', 'Bu Sri', 'Naira Salsabila', 'Naira', 282, '6285743915031', 'Juli', 88],
+    // Kakak-adik yang nomornya ditulis dalam dua bentuk berbeda.
+    ['2026-2027', '4', 'Bu Ida', 'Umar Hadi',  'Umar', 283, '085226434376',  'Juli', 85],
+    ['2026-2027', '6', 'Pak Bud', 'Zaid Anwar', 'Zaid', 284, '6285226434376', 'Juli', 85],
+    // Nomor yang hanya dipakai satu siswa: tidak boleh dilaporkan.
+    ['2026-2027', '5', 'Bu Rina', 'Aisyah Putri', 'Aisyah', 285, '6285879506019', 'Juli', 88],
+    // Satu siswa menulis nomor yang sama dua kali di selnya sendiri:
+    // itu satu siswa, bukan dua yang berbagi nomor.
+    ['2026-2027', '2A', 'Bu Tuti', 'Hana Kamila', 'Hana', 286,
+     '6281359523060, 6281359523060', 'Juli', 88],
+  ];
+
+  const ctx = {
+    Logger: { log() {} },
+    SpreadsheetApp: {
+      getUi: () => ({
+        createMenu: () => ({ addItem() { return this; }, addToUi() {} }),
+        alert() {}, ButtonSet: { OK: 'OK' },
+      }),
+      getActiveSpreadsheet: () => ({
+        getSheetByName: () => ({ getDataRange: () => ({ getValues: () => tabel }) }),
+      }),
+    },
+  };
+  vm.createContext(ctx);
+  vm.runInContext(kode, ctx);
+  ctx.temuanCakupanJenjang = () => [];
+
+  let laporan = [];
+  ctx.laporkanKesehatan = (t) => { laporan = t; };
+  ctx.cekKesehatanData();
+
+  const berbagi = laporan.filter((t) => /dipakai lebih dari satu siswa/.test(t));
+  periksa('dilaporkan sebagai satu temuan', berbagi.length === 1);
+
+  const teks = berbagi[0] || '';
+  periksa('menghitung dua nomor yang berbagi', /^2 nomor WA/.test(teks));
+  periksa('menyebut kakak-adik bernomor sama persis',
+    teks.includes('Faiz Abdullah kelas 3') && teks.includes('Naira Salsabila kelas 1'));
+
+  /* 085226434376 dan 6285226434376 adalah nomor yang SAMA ditulis dua
+     cara. Kalau pembandingnya angka mentah, keduanya lolos tanpa
+     terdeteksi -- justru kasus salah salin yang paling mungkin luput. */
+  periksa('dua bentuk penulisan nomor yang sama tetap dikenali sepasang',
+    teks.includes('Umar Hadi kelas 4') && teks.includes('Zaid Anwar kelas 6'));
+
+  periksa('nomor milik satu siswa saja tidak dilaporkan',
+    !teks.includes('Aisyah'));
+
+  /* Peringatan palsu di sini mahal: yang dilaporkan menuduh sekolah
+     salah memasangkan keluarga, dan menyuruh orang memeriksa sesuatu
+     yang sebenarnya benar. */
+  periksa('nomor kembar di dalam satu sel bukan dua siswa',
+    !teks.includes('Hana'));
+
+  periksa('temuannya menjelaskan bahwa kakak-adik memang wajar',
+    /kakak-adik/.test(teks) && /BENAR/.test(teks));
+}
+
 console.log(gagal ? `\n${gagal} pemeriksaan GAGAL\n` : '\nSeluruh pemeriksaan lolos.\n');
 process.exit(gagal ? 1 : 0);
