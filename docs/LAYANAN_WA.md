@@ -193,7 +193,7 @@ datang dalam beberapa detik.
 |---|---|
 | Nomor cocok, tautan aktif | Tautan rapor tiap anak yang cocok |
 | Nomor cocok, tautan belum diterbitkan | "Data Ananda sudah kami temukan, tautannya belum diterbitkan" |
-| Nomor tidak dikenali | Diarahkan ke wali kelas untuk memperbarui nomor |
+| Nomor tidak dikenali | Diarahkan ke wali kelas — **paling banyak 2 balasan per 24 jam** |
 | Pesan dari grup | **Tidak dibalas sama sekali** |
 | Lebih dari 8 pesan/jam dari satu nomor | Tidak dibalas |
 
@@ -203,6 +203,26 @@ tautannya dalam satu balasan.
 Pesan grup sengaja tidak pernah dibalas: tautan rapor bersifat pribadi,
 dan membalasnya ke grup wali murid berarti mengirimkannya ke seluruh
 anggota grup sekaligus.
+
+### Kenapa nomor tak dikenal dibatasi dua balasan
+
+Nomor sekolah juga menerima salah sambung, pesan promosi, dan sapaan
+autoresponder. Membalas semuanya tanpa henti membuang kuota WhatsApp
+tanpa satu pun manfaat.
+
+Tetapi mendiamkannya sama sekali juga keliru: orang tua yang nomornya
+belum terdaftar tidak akan tahu harus berbuat apa, dan yang mereka
+simpulkan adalah "aplikasinya rusak" — lalu wali kelas yang ditelepon
+satu per satu, persis beban yang hendak dihilangkan layanan ini.
+
+Dua, bukan satu, karena orang yang tidak yakin pesannya terkirim akan
+mencoba sekali lagi — dan justru percobaan kedua itulah yang dia tunggu
+jawabannya.
+
+Yang dihitung hanya balasan yang benar-benar terkirim, jadi batasnya
+berarti "dua jawaban sehari", bukan "dua pesan sehari". Pesan yang
+didiamkan tetap dicatat di `wa_pesan` sebagai `tidak_dikenal_diam`,
+sehingga tetap bisa ditelusuri.
 
 ## Catatan keamanan
 
@@ -248,7 +268,9 @@ Periksa berurutan:
 
    `gagal_kirim` menunjuk ke Fonnte (kuota habis, perangkat terputus,
    token salah), bukan ke pencocokan data. `dibatasi` berarti nomor itu
-   sudah melewati 8 pesan dalam sejam terakhir.
+   sudah melewati 8 pesan dalam sejam terakhir, dan
+   `tidak_dikenal_diam` berarti nomor tak dikenal itu sudah dijawab dua
+   kali dalam 24 jam terakhir sehingga pesan berikutnya didiamkan.
 
 ## Pengujian
 
