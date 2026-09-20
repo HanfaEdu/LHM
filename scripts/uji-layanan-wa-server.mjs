@@ -426,6 +426,47 @@ console.log('\n--- nomor tak dikenal didiamkan setelah dua balasan ---');
 }
 
 // ===================================================================
+console.log('\n--- data masuk sesudah nomor terlanjur didiamkan ---');
+// ===================================================================
+{
+  bersihCatatan();
+  const belum = '6285000000002';
+  const kirim = () => kirimWebhook({
+    sender: belum, message: 'assalamualaikum', device: '628111000111',
+  });
+
+  await kirim();
+  await kirim();
+  const ketiga = await kirim();
+  periksa('nomornya memang sudah didiamkan',
+    terkirimWa.length === 2 && /sudah dijawab hari ini/.test(ketiga.badan?.lewat || ''));
+
+  /* Wali kelas mengisi kolom "No WA" lalu menjalankan Sinkronkan
+     Sekarang, dan kepala sekolah menerbitkan tautannya. */
+  SISWA.push({
+    nis: 'SDYFK-284', nama_lengkap: 'Umar Hadi', nama_panggilan: 'Umar',
+    sekolah_id: 1, wa_normal: [belum],
+  });
+  AKSES.push({ nis: 'SDYFK-284', token: 'GGG777hhh888', aktif: true });
+  PENEMPATAN.push({
+    nis: 'SDYFK-284', kelas: { nama_kelas: '5', tahun_ajaran: '2026-2027' },
+  });
+
+  /* Inilah yang harus dijaga. Batas 24 jam hanya berlaku bagi nomor yang
+     TIDAK dikenali; begitu datanya masuk, ia bukan nomor tak dikenal
+     lagi dan tidak ada alasan menahannya sampai besok. Kalau baris
+     'tidak_dikenal_diam' ikut dihitung sebagai jatah balasan, orang tua
+     ini justru didiamkan tepat ketika sistem akhirnya bisa membantunya
+     -- dan wali kelas akan mengira sinkronisasinya gagal. */
+  const sesudah = await kirim();
+  periksa('langsung dibalas begitu datanya masuk, tanpa menunggu 24 jam',
+    sesudah.badan?.hasil === 'terkirim' && terkirimWa.length === 3);
+  periksa('balasannya berisi tautan anaknya',
+    terkirimWa[2]?.message?.includes('/rapor/GGG777hhh888'));
+  periksa('dikirim ke nomor yang tadi didiamkan', terkirimWa[2]?.target === belum);
+}
+
+// ===================================================================
 console.log('\n--- tautan belum diterbitkan ---');
 // ===================================================================
 {
