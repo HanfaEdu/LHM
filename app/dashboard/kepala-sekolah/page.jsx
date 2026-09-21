@@ -339,6 +339,14 @@ export default function DasborKepalaSekolah() {
                   data sekolah -- bukan dipatok di dalam kode. */}
               <TombolLhm alamat={sekolah?.link_lhm} />
               <div className={gaya.aksiKecil}>
+                {/* Asisten membaca data yang sama dengan dasbor ini, lewat
+                    rumus yang sama di lib/statistik.js -- jadi angka yang
+                    dijawabnya tidak pernah berbeda dari yang terbaca di
+                    sini. Ditaruh berdampingan dengan tautan lain supaya
+                    tetap satu baris perintah, bukan menu baru. */}
+                <Link href="/dashboard/asisten" className={gaya.tombolAksi}>
+                  Asisten Data
+                </Link>
                 <Link href="/dashboard/kepala-sekolah/tautan" className={gaya.tombolAksi}>
                   Tautan Orang Tua
                 </Link>
