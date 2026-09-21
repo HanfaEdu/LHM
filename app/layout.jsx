@@ -19,7 +19,15 @@ import PendaftarSW from './komponen/PendaftarSW';
  * tuanya. Nama anak hanya muncul setelah tautannya benar-benar dibuka.
  */
 
-const alamatResmi = process.env.NEXT_PUBLIC_SITE_URL || 'https://akademik-sdyaumi.vercel.app';
+/* Alamat cadangan, dipakai HANYA ketika NEXT_PUBLIC_SITE_URL kosong --
+   yaitu saat dijalankan lokal. Di Vercel, next.config.mjs selalu
+   mengisinya dari VERCEL_PROJECT_PRODUCTION_URL.
+
+   PUNYA TANGGAL KEDALUWARSA. Nilai ini ikut basi setiap kali domain
+   produksi diganti, dan basinya tidak terlihat: yang rusak hanya gambar
+   pratinjau WhatsApp, yang tidak pernah dilihat siapa pun dari dalam
+   sekolah. Kalau domainnya berganti lagi, ganti baris ini juga. */
+const alamatResmi = process.env.NEXT_PUBLIC_SITE_URL || 'https://akademik-bias.vercel.app';
 
 /* Judul dan keterangan di sini adalah cadangan untuk halaman yang tidak
    punya metadata sendiri (halaman masuk, halaman pengalihan). Sengaja
