@@ -232,6 +232,9 @@ function onOpen() {
     .createMenu('SiPaGi')
     .addItem('Sinkronkan Sekarang', 'sinkronkanSemua')
     .addItem('Cek Kesehatan Data (tanpa kirim)', 'cekKesehatanData')
+    .addSeparator()
+    .addItem('Pratinjau Pengingat Wali Kelas (tanpa kirim)', 'pratinjauPengingatWaliKelas')
+    .addItem('Kirim Pengingat Wali Kelas Sekarang', 'kirimPengingatWaliKelasDariMenu')
     .addToUi();
 }
 
@@ -1511,3 +1514,441 @@ const NAMA_TAHSIN = {
   23: 'Idghom', 24: 'Idhar', 25: 'Juz Amma', 26: 'Juz 29', 27: 'Juz 1',
   28: 'Tadarus',
 };
+
+// ===================================================================
+// PENGINGAT WALI KELAS LEWAT WHATSAPP
+// ===================================================================
+
+/**
+ * Tiap tanggal 28, wali kelas yang nilai BULAN BERJALAN-nya belum
+ * lengkap menerima pesan WhatsApp berisi apa saja yang masih kosong.
+ * Kelas yang sudah lengkap tidak dikirimi apa-apa.
+ *
+ * Bagian ini tidak menyentuh Supabase maupun /api/sync sama sekali:
+ * yang dibaca langsung Sheet1 dan users_access, jadi datanya sesegar
+ * spreadsheet saat itu, bukan salinan semalam.
+ *
+ * CARA PASANG (sekali per Master Rekap)
+ * -------------------------------------
+ * 1. Sheet users_access: beri judul "No WA" di baris pertama kolom yang
+ *    masih kosong (mis. F1), lalu isi nomor WhatsApp tiap wali kelas.
+ *    Kolomnya dicari lewat judul, bukan posisi.
+ * 2. Apps Script > Setelan Proyek (ikon roda gigi) > Properti skrip >
+ *    Tambahkan properti skrip:
+ *      Properti: FONNTE_TOKEN
+ *      Nilai   : token perangkat Fonnte sekolah ini
+ * 3. Muat ulang Master Rekap, lalu jalankan menu SiPaGi > Pratinjau
+ *    Pengingat Wali Kelas. Tidak ada pesan yang terkirim.
+ * 4. Pemicu > Tambah Pemicu > fungsi kirimPengingatWaliKelas >
+ *    Berbasis waktu > Pemicu bulanan > tanggal 28 > pilih jamnya.
+ *    Atur "Failure notification settings" ke "Notify me immediately".
+ *
+ * Token disimpan di Properti skrip, BUKAN sebagai konstanta seperti
+ * SYNC_SECRET: skrip ini diperbarui dengan menimpa seluruh isinya dari
+ * GitHub, dan konstanta ikut tertimpa kembali menjadi teks contoh --
+ * pengingat bulan berikutnya lalu gagal. Properti skrip tidak ikut
+ * tertimpa, dan tokennya tidak pernah ikut tersalin ke GitHub.
+ */
+
+/**
+ * Kolom yang dianggap wajib terisi di akhir bulan. Kolom target tidak
+ * diperiksa: target diteruskan otomatis dari bulan sebelumnya.
+ */
+const KOLOM_PENGINGAT = [
+  { judul: 'Rata B. Indo', nama: 'B. Indonesia' },
+  { judul: 'Rata MTK', nama: 'Matematika' },
+  // Playgroup tidak menilai IPA -- sama dengan MAPEL_PER_JENJANG di lib/statistik.js.
+  { judul: 'Rata IPA', nama: 'IPA', bukanJenjang: ['PG'] },
+  { judul: 'Capaian Tahfidz', nama: 'Tahfidz' },
+  { judul: 'Capaian Tahsin', nama: 'Tahsin' },
+];
+
+const PROPERTI_TOKEN_FONNTE = 'FONNTE_TOKEN';
+const API_FONNTE = 'https://api.fonnte.com/send';
+
+/** Jeda antar-pesan, supaya perangkat WhatsApp sekolah tidak terbaca sebagai pengirim massal. */
+const JEDA_KIRIM_MS = 3000;
+
+const BULAN_KALENDER = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+/** Titik masuk pemicu tanggal 28. */
+function kirimPengingatWaliKelas() {
+  const rencana = rencanaPengingat(new Date());
+  const token = teks(PropertiesService.getScriptProperties().getProperty(PROPERTI_TOKEN_FONNTE));
+
+  if (!token) {
+    const laporan =
+      laporanPengingat(rencana, false) + '\n\n' +
+      '[GAGAL] Properti skrip ' + PROPERTI_TOKEN_FONNTE + ' belum diisi, jadi ' +
+      'TIDAK ADA pesan yang terkirim. Isi lewat Setelan Proyek > Properti skrip.';
+    Logger.log(laporan);
+    tampilkanDialogPengingat('Pengingat Wali Kelas', laporan);
+    throw new Error(laporan);
+  }
+
+  const link = linkLhmAman();
+  let sudahAdaYangDikirim = false;
+  rencana.kelas.forEach(function (k) {
+    if (!k.kurang.length) return;
+    k.penerima.forEach(function (p) {
+      if (sudahAdaYangDikirim) Utilities.sleep(JEDA_KIRIM_MS);
+      sudahAdaYangDikirim = true;
+      const hasil = kirimWaPengingat(token, p.nomor.join(','), pesanPengingat(p.nama, k, rencana, link));
+      p.hasil = hasil.ok ? 'terkirim' : 'GAGAL: ' + hasil.alasan;
+    });
+  });
+
+  const laporan = laporanPengingat(rencana, true);
+  Logger.log(laporan);
+  tampilkanDialogPengingat('Pengingat Wali Kelas', laporan);
+
+  // Dilempar supaya pemicu mengirim surel pemberitahuan -- alasannya sama
+  // dengan di akhir sinkronkanSemua().
+  if (perluPerhatianPengingat(rencana, true)) throw new Error(laporan);
+  return laporan;
+}
+
+/** Menu: sama dengan pemicu, tetapi minta konfirmasi dulu. */
+function kirimPengingatWaliKelasDariMenu() {
+  const ui = SpreadsheetApp.getUi();
+  const jawab = ui.alert(
+    'Kirim Pengingat Wali Kelas',
+    'Pesan WhatsApp akan LANGSUNG dikirim ke wali kelas yang nilai bulan ini ' +
+    'belum lengkap. Kalau belum, jalankan "Pratinjau Pengingat" dulu.\n\nLanjutkan?',
+    ui.ButtonSet.YES_NO
+  );
+  if (jawab !== ui.Button.YES) return;
+  kirimPengingatWaliKelas();
+}
+
+/** Menampilkan siapa akan dikirimi apa, TANPA mengirim apa pun. */
+function pratinjauPengingatWaliKelas() {
+  const rencana = rencanaPengingat(new Date());
+  let isi = laporanPengingat(rencana, false);
+
+  if (!teks(PropertiesService.getScriptProperties().getProperty(PROPERTI_TOKEN_FONNTE))) {
+    isi += '\n\nPERHATIAN: Properti skrip ' + PROPERTI_TOKEN_FONNTE + ' belum diisi. ' +
+           'Tanpa itu pengingat tidak akan bisa terkirim.';
+  }
+
+  const contohKelas = rencana.kelas.filter(function (k) {
+    return k.kurang.length && k.penerima.length;
+  })[0];
+  if (contohKelas) {
+    const p = contohKelas.penerima[0];
+    isi += '\n\n--- Contoh pesan untuk ' + p.nama + ' ---\n' +
+           pesanPengingat(p.nama, contohKelas, rencana, linkLhmAman());
+  }
+
+  Logger.log(isi);
+  tampilkanDialogPengingat('Pratinjau Pengingat Wali Kelas', isi);
+  return isi;
+}
+
+function rencanaPengingat(sekarang) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetNilai = ss.getSheetByName(SHEET_REKAP_MASTER);
+  if (!sheetNilai) {
+    throw new Error('Sheet "' + SHEET_REKAP_MASTER + '" tidak ditemukan di Master Rekap.');
+  }
+  const sheetUser = ss.getSheetByName(SHEET_USER);
+  return hitungPengingatWaliKelas(
+    sheetNilai.getDataRange().getValues(),
+    sheetUser ? sheetUser.getDataRange().getValues() : [],
+    sekarang,
+    jenjangRapi()
+  );
+}
+
+/** Bulan dan tahun ajaran yang sedang berjalan pada tanggal itu. */
+function bulanBerjalanPengingat(tanggal) {
+  const th = tanggal.getFullYear();
+  const bln = tanggal.getMonth();
+  return {
+    bulan: BULAN_KALENDER[bln],
+    tahunAjaran: bln >= 6 ? th + '-' + (th + 1) : (th - 1) + '-' + th,
+  };
+}
+
+/** "2026-2027" dan "2026/2027" dianggap sama. */
+function kunciTahunAjaran(v) {
+  return teks(v).replace(/\D/g, '');
+}
+
+/**
+ * Apakah satu sel nilai sudah diisi.
+ *
+ * Membaca isi sel APA ADANYA, bukan lewat angka(): 0 adalah nilai yang
+ * sah dan tidak boleh dianggap kosong. Sel galat (#REF!, #N/A) dianggap
+ * kosong -- nilainya memang belum terbaca.
+ */
+function selTerisi(v) {
+  if (v === null || v === undefined) return false;
+  if (typeof v === 'number') return isFinite(v);
+  const s = String(v).trim();
+  return s !== '' && s.charAt(0) !== '#';
+}
+
+/**
+ * Nomor wali kelas dalam bentuk 62xxx untuk dikirimi Fonnte.
+ *
+ * Ini salinan kecil dari aturan lib/nomor-wa.js, dan di sini salinan itu
+ * tidak berbahaya: nomor yang gagal terbaca muncul terang-terangan di
+ * pratinjau dan laporan pengingat, tidak seperti pencocokan nomor orang
+ * tua yang gagalnya senyap.
+ */
+function nomorWaliKelas(sel) {
+  const hasil = [];
+  nomorDiSel(teksNoWa(sel)).forEach(function (angkaNomor) {
+    let n = angkaNomor;
+    if (n.indexOf('62') === 0) {
+      // sudah berkode negara
+    } else if (n.charAt(0) === '0') {
+      n = '62' + n.slice(1);
+    } else if (n.charAt(0) === '8') {
+      // Nol di depan hilang karena selnya terbaca sebagai angka oleh Sheets.
+      n = '62' + n;
+    } else {
+      return;
+    }
+    if (/^628\d{7,12}$/.test(n) && hasil.indexOf(n) === -1) hasil.push(n);
+  });
+  return hasil;
+}
+
+/** Wali kelas per nama kelas, dari sheet users_access. */
+function bacaWaliKelasPengingat(tabelUser, catatan) {
+  const hasil = {};
+  if (!tabelUser || tabelUser.length < 2) {
+    catatan.push('Sheet "' + SHEET_USER + '" tidak ditemukan atau masih kosong.');
+    return hasil;
+  }
+
+  const judul = tabelUser[0].map(function (h) { return teks(h).toLowerCase(); });
+  const kolWa = judul.indexOf('no wa');
+  if (kolWa === -1) {
+    catatan.push(
+      'Kolom "No WA" belum ada di sheet ' + SHEET_USER + '. Tulis judul "No WA" ' +
+      'di baris pertama kolom yang kosong (mis. F1), lalu isi nomor wali kelas.'
+    );
+  }
+
+  for (let i = 1; i < tabelUser.length; i++) {
+    const baris = tabelUser[i];
+    if (teks(baris[2]).toLowerCase() !== 'wali_kelas') continue;
+    const namaKelas = normalKelas(baris[3]);
+    if (!namaKelas) continue;
+
+    const nama = teks(baris[1]) || 'Wali Kelas ' + namaKelas;
+    if (!hasil[namaKelas]) hasil[namaKelas] = { penerima: [], tanpaNomor: [] };
+
+    const isiSel = kolWa === -1 ? '' : teks(baris[kolWa]);
+    const nomor = kolWa === -1 ? [] : nomorWaliKelas(baris[kolWa]);
+    if (nomor.length) {
+      hasil[namaKelas].penerima.push({ nama: nama, nomor: nomor });
+    } else {
+      hasil[namaKelas].tanpaNomor.push(
+        nama + (isiSel ? ' (No WA "' + isiSel + '" tidak terbaca)' : ' (No WA kosong)')
+      );
+    }
+  }
+  return hasil;
+}
+
+/**
+ * Murni: tabel masuk, rencana keluar. Tidak membaca spreadsheet dan
+ * tidak mengirim apa pun, supaya bisa diuji tanpa Google.
+ */
+function hitungPengingatWaliKelas(tabelNilai, tabelUser, sekarang, jenjang) {
+  const waktu = bulanBerjalanPengingat(sekarang);
+  const catatan = [];
+
+  const judul = (tabelNilai[0] || []).map(teks);
+  const kolTahun = judul.indexOf('Tahun Ajaran');
+  const kolKelas = judul.indexOf('Kelas');
+  const kolNama = judul.indexOf('Nama Lengkap');
+  const kolPanggilan = judul.indexOf('Nama Siswa');
+  const kolBulan = judul.indexOf('Bulan');
+  if (kolTahun === -1 || kolKelas === -1 || kolNama === -1 || kolBulan === -1) {
+    throw new Error(
+      'Kolom Tahun Ajaran/Kelas/Nama Lengkap/Bulan tidak ditemukan di header ' +
+      SHEET_REKAP_MASTER + '. Header tidak boleh diubah namanya.'
+    );
+  }
+
+  const kolomDicek = [];
+  KOLOM_PENGINGAT.forEach(function (k) {
+    if (k.bukanJenjang && k.bukanJenjang.indexOf(jenjang) !== -1) return;
+    const i = judul.indexOf(k.judul);
+    if (i === -1) {
+      catatan.push('Kolom "' + k.judul + '" tidak ada di header ' + SHEET_REKAP_MASTER + ', jadi tidak diperiksa.');
+    } else {
+      kolomDicek.push({ nama: k.nama, i: i });
+    }
+  });
+
+  const kunciTahun = kunciTahunAjaran(waktu.tahunAjaran);
+  const siswaPerKelas = {};
+  const urutanKelas = [];
+  for (let r = 1; r < tabelNilai.length; r++) {
+    const baris = tabelNilai[r];
+    const namaLengkap = teks(baris[kolNama]);
+    const namaKelas = normalKelas(baris[kolKelas]);
+    if (!namaLengkap || !namaKelas) continue;       // baris cadangan blok bulan
+    if (teks(baris[kolBulan]) !== waktu.bulan) continue;
+    if (kunciTahunAjaran(baris[kolTahun]) !== kunciTahun) continue;
+
+    if (!siswaPerKelas[namaKelas]) {
+      siswaPerKelas[namaKelas] = [];
+      urutanKelas.push(namaKelas);
+    }
+    siswaPerKelas[namaKelas].push({
+      nama: (kolPanggilan !== -1 && teks(baris[kolPanggilan])) || namaLengkap,
+      baris: baris,
+    });
+  }
+
+  if (!urutanKelas.length) {
+    catatan.push(
+      'Tidak ada satu pun baris siswa bulan ' + waktu.bulan + ' tahun ajaran ' +
+      waktu.tahunAjaran + ' di ' + SHEET_REKAP_MASTER + '.'
+    );
+  }
+
+  const wali = bacaWaliKelasPengingat(tabelUser, catatan);
+
+  const kelas = urutanKelas.map(function (namaKelas) {
+    const siswa = siswaPerKelas[namaKelas];
+    const kurang = [];
+    kolomDicek.forEach(function (k) {
+      const kosong = siswa
+        .filter(function (s) { return !selTerisi(s.baris[k.i]); })
+        .map(function (s) { return s.nama; });
+      if (kosong.length) kurang.push({ nama: k.nama, kosong: kosong, total: siswa.length });
+    });
+    const w = wali[namaKelas] || { penerima: [], tanpaNomor: [] };
+    return {
+      namaKelas: namaKelas,
+      jumlahSiswa: siswa.length,
+      kurang: kurang,
+      penerima: w.penerima,
+      tanpaNomor: w.tanpaNomor,
+    };
+  });
+
+  return { bulan: waktu.bulan, tahunAjaran: waktu.tahunAjaran, kelas: kelas, catatan: catatan };
+}
+
+function pesanPengingat(namaWali, k, waktu, linkLhm) {
+  const rincian = k.kurang.map(function (x) {
+    if (x.kosong.length === x.total) {
+      return '• *' + x.nama + '*: belum ada nilai sama sekali';
+    }
+    return '• *' + x.nama + '*: ' + x.kosong.length + ' dari ' + x.total +
+           ' siswa belum — ' + ringkasDaftar(x.kosong);
+  });
+
+  return (
+    'Assalamu’alaikum Bapak/Ibu ' + namaWali + ' 🙏\n\n' +
+    'Pengingat nilai *Kelas ' + k.namaKelas + '* bulan *' + waktu.bulan + '* ' +
+    '(T.A. ' + waktu.tahunAjaran + '). Per hari ini yang belum terisi:\n\n' +
+    rincian.join('\n') + '\n\n' +
+    'Mohon dilengkapi sebelum akhir bulan supaya rapor yang dibaca orang tua ' +
+    'ikut lengkap. Kalau bulan ini memang tidak ada penilaian untuk salah ' +
+    'satunya, bagian itu boleh diabaikan.' +
+    (linkLhm ? '\n\nInput/Edit LHM: ' + linkLhm : '') +
+    '\n\n—\n' + NAMA_SEKOLAH + '\n' +
+    '_Pesan otomatis, tidak perlu dibalas._'
+  );
+}
+
+/** Mengirim satu pesan lewat Fonnte. Tidak pernah melempar. */
+function kirimWaPengingat(token, target, pesan) {
+  let respons;
+  try {
+    respons = UrlFetchApp.fetch(API_FONNTE, {
+      method: 'post',
+      headers: { Authorization: token },
+      payload: { target: target, message: pesan },
+      muteHttpExceptions: true,
+    });
+  } catch (e) {
+    return { ok: false, alasan: e.message };
+  }
+
+  const kode = respons.getResponseCode();
+  if (kode < 200 || kode >= 300) return { ok: false, alasan: 'HTTP ' + kode };
+
+  // Fonnte menjawab HTTP 200 juga untuk penolakan ("status": false),
+  // mis. kuota habis atau perangkat terputus.
+  let isi = null;
+  try { isi = JSON.parse(respons.getContentText()); } catch (e) { /* bukan JSON */ }
+  if (isi && isi.status === false) return { ok: false, alasan: isi.reason || 'ditolak Fonnte' };
+  return { ok: true };
+}
+
+function laporanPengingat(rencana, sudahDikirim) {
+  const baris = [
+    'SEKOLAH: ' + NAMA_SEKOLAH,
+    'Diperiksa: nilai bulan ' + rencana.bulan + ', tahun ajaran ' + rencana.tahunAjaran,
+    '',
+  ];
+
+  rencana.kelas.forEach(function (k) {
+    if (!k.kurang.length) {
+      baris.push('Kelas ' + k.namaKelas + ': lengkap, tidak dikirimi pengingat.');
+      return;
+    }
+    const bagian = k.kurang.map(function (x) {
+      return x.nama + ' ' + (x.kosong.length === x.total ? 'kosong semua' : x.kosong.length + '/' + x.total);
+    });
+    baris.push('Kelas ' + k.namaKelas + ': belum lengkap (' + bagian.join(', ') + ')');
+    k.penerima.forEach(function (p) {
+      baris.push('   → ' + p.nama + ' ' + p.nomor.join(', ') + ': ' +
+                 (sudahDikirim ? p.hasil : 'akan dikirimi'));
+    });
+    k.tanpaNomor.forEach(function (n) {
+      baris.push('   ✗ ' + n + ': tidak bisa dikirimi');
+    });
+    if (!k.penerima.length && !k.tanpaNomor.length) {
+      baris.push('   ✗ Kelas ini tidak punya wali kelas di sheet ' + SHEET_USER + '.');
+    }
+  });
+
+  if (rencana.catatan.length) {
+    baris.push('', 'PERLU DIPERIKSA:');
+    rencana.catatan.forEach(function (c) { baris.push('- ' + c); });
+  }
+  return baris.join('\n');
+}
+
+/** Ada yang harus diketahui manusia: masalah data, kelas tanpa penerima, atau kiriman gagal. */
+function perluPerhatianPengingat(rencana, sudahDikirim) {
+  if (rencana.catatan.length) return true;
+  return rencana.kelas.some(function (k) {
+    if (!k.kurang.length) return false;
+    if (!k.penerima.length) return true;
+    return sudahDikirim && k.penerima.some(function (p) {
+      return String(p.hasil).indexOf('GAGAL') === 0;
+    });
+  });
+}
+
+function linkLhmAman() {
+  try {
+    return linkLhmRapi();
+  } catch (e) {
+    return null;   // Salah ketik LINK_LHM sudah dilaporkan sinkronisasi; pengingat tetap jalan.
+  }
+}
+
+function tampilkanDialogPengingat(judul, isi) {
+  try {
+    SpreadsheetApp.getUi().alert(judul, isi, SpreadsheetApp.getUi().ButtonSet.OK);
+  } catch (e) {
+    // Dipanggil dari pemicu, bukan dari menu -- cukup ke Logger.
+  }
+}
