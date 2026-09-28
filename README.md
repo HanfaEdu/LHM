@@ -60,6 +60,9 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 6. Jalankan **SiPaGi → Sinkronkan Sekarang**, lalu pasang pemicu harian.
 7. Jalankan berkas di `migrasi/` secara berurutan di Supabase SQL Editor.
 8. Opsional — hidupkan layanan WhatsApp: `docs/LAYANAN_WA.md`.
+9. Opsional — pengingat WhatsApp tiap tanggal 28 untuk wali kelas yang
+   nilainya belum lengkap: ikuti "CARA PASANG" di bagian **PENGINGAT WALI
+   KELAS** di akhir `sync.js`.
 
 **Kenapa GAS tidak bicara langsung ke Supabase:** Supabase memblokir
 kunci `sb_secret_...` kalau permintaan terdeteksi berasal dari browser,
