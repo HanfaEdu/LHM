@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { nomorWa } from '@/lib/nomor-wa';
 import { susunBalasan } from '@/lib/wa-balasan';
+import { memintaTautan } from '@/lib/wa-kata-kunci';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 
 export const dynamic = 'force-dynamic';
@@ -232,6 +233,20 @@ export async function POST(request) {
      murid berarti mengirimkannya ke seluruh anggota grup sekaligus. */
   if (String(badan.group || '').trim()) {
     return NextResponse.json({ ok: true, lewat: 'grup' });
+  }
+
+  /* --- Hanya pesan yang meminta tautan yang dijawab ------------------
+     Nomor WhatsApp sekolah juga dipakai percakapan biasa: tanya SPP,
+     izin sakit, konfirmasi kegiatan. Tanpa saringan ini, orang tua yang
+     bertanya soal seragam ikut menerima tautan rapor anaknya di tengah
+     percakapan dengan manusia.
+
+     Yang tidak memuat kata kunci juga TIDAK dicatat ke wa_pesan. Pesan
+     itu bukan permintaan tautan, dan mencatat nomornya berarti menyimpan
+     jejak percakapan pribadi orang tua dengan sekolah -- persis yang
+     sengaja dihindari sejak awal dengan tidak menyimpan isi pesan. */
+  if (!memintaTautan(badan.message || badan.pesan || '')) {
+    return NextResponse.json({ ok: true, lewat: 'tanpa kata kunci' });
   }
 
   const pengirim = nomorWa(badan.sender || badan.pengirim || '');
