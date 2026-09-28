@@ -41,7 +41,7 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 | `migrasi/` | Perubahan skema susulan. Dijalankan berurutan, sekali masing-masing. |
 | `docs/PERBAIKAN_SPREADSHEET.md` | Audit rumus + daftar perbaikan sebelum sync pertama. |
 | `docs/AKSES_ORANG_TUA.md` | Cara menerbitkan tautan untuk orang tua (token saja secara default). |
-| `docs/LAYANAN_WA.md` | Layanan WhatsApp: orang tua meminta ulang tautan rapor lewat chat. |
+| `docs/LAYANAN_WA.md` | Layanan WhatsApp: orang tua mengetik `akademik`, tautan rapor dibalas otomatis. |
 | `docs/TAHUN_AJARAN_BARU.md` | Yang disiapkan tiap naik tahun ajaran — dan yang tidak perlu disentuh. |
 
 ## Urutan penyiapan

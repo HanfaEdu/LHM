@@ -24,6 +24,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { nomorWa, nomorWaDaftar, nomorWaTampil } from '../lib/nomor-wa.js';
 import { susunBalasan } from '../lib/wa-balasan.js';
+import { memintaTautan } from '../lib/wa-kata-kunci.js';
 
 let gagal = 0;
 const periksa = (nama, syarat) => {
@@ -88,6 +89,32 @@ const dariFonnte = '6281234567890';
 periksa('semua ragam tulisan bertemu di satu bentuk dengan kiriman Fonnte',
   ['081234567890', '0812-3456-7890', '+62 812 3456 7890', '81234567890',
    '62 812 3456 7890'].every((v) => nomorWa(v) === dariFonnte));
+
+// ===================================================================
+console.log('\n--- kata kunci pemicu (lib/wa-kata-kunci.js) ---');
+// ===================================================================
+
+periksa('kata kunci utama dikenali', memintaTautan('akademik'));
+periksa('huruf besar diabaikan', memintaTautan('AKADEMIK'));
+
+/* Yang mengetik adalah orang tua di HP, bukan orang yang mengisi
+   formulir. Menuntut pesan berisi kata kunci SAJA akan mendiamkan
+   sebagian besar dari mereka. */
+periksa('menempel di dalam kalimat', memintaTautan('Assalamualaikum, akademik'));
+periksa('berakhiran -nya tetap kena', memintaTautan('akademiknya dong bu'));
+periksa('alias yang tidak diumumkan tetap dilayani',
+  memintaTautan('rapor') && memintaTautan('rapornya') && memintaTautan('nilai') &&
+  memintaTautan('LHM') && memintaTautan('sipagi'));
+
+/* Inilah yang menjadi alasan seluruh saringan ini ada: nomor sekolah
+   juga dipakai percakapan biasa, dan bot tidak boleh menyela. */
+periksa('percakapan biasa tidak memicu apa pun',
+  !memintaTautan('Bu, besok anak saya izin sakit') &&
+  !memintaTautan('assalamualaikum') &&
+  !memintaTautan('p') &&
+  !memintaTautan('info seragam') &&
+  !memintaTautan('terima kasih bu'));
+periksa('pesan kosong tidak memicu', !memintaTautan('') && !memintaTautan(null));
 
 // ===================================================================
 console.log('\n--- isi balasan (lib/wa-balasan.js) ---');

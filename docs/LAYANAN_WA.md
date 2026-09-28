@@ -1,6 +1,6 @@
 # Layanan WhatsApp untuk Orang Tua
 
-Orang tua mengirim pesan **apa pun** ke nomor WhatsApp sekolah. Sistem
+Orang tua mengetik **`akademik`** ke nomor WhatsApp sekolah. Sistem
 mengenali nomor pengirimnya sebagai orang tua siswa tertentu, lalu
 membalas dengan tautan rapor anaknya sendiri.
 
@@ -22,6 +22,47 @@ yang diterbitkan kepala sekolah di halaman *Tautan Orang Tua*. Layanan ini
 tidak membuat token baru dan tidak mengubah apa pun; ia hanya membuat
 tautan itu bisa diminta lagi kapan saja tanpa menghubungi wali kelas.
 
+## Kata kunci: `akademik`
+
+Yang dikirim orang tua cukup satu kata:
+
+```
+akademik
+```
+
+Boleh huruf besar atau kecil, boleh menempel di dalam kalimat
+("Assalamualaikum, akademik"), dan boleh berakhiran -nya
+("akademiknya"). Beberapa kata lain juga diterima diam-diam sebagai
+jaring pengaman bagi yang salah ingat — `rapor`, `raport`, `nilai`,
+`capaian`, `lhm`, `sipagi` — tetapi yang **disosialisasikan cukup satu**,
+supaya tidak membingungkan.
+
+**Pesan yang tidak memuat kata kunci tidak dibalas sama sekali, dan tidak
+dicatat.** Inilah yang membuat layanan ini bisa berbagi nomor dengan
+percakapan biasa: orang tua yang bertanya soal SPP, izin sakit, atau
+kegiatan tidak akan disela balasan otomatis berisi tautan rapor. Pesan
+seperti itu juga tidak meninggalkan jejak di `wa_pesan` — ia bukan
+permintaan tautan, dan mencatat nomornya berarti menyimpan jejak
+percakapan pribadi orang tua dengan sekolah.
+
+Kalau sekolah ingin bot tidak pernah menyela percakapan sama sekali,
+persempit daftar alias di `lib/wa-kata-kunci.js`. Kata seperti `rapor`
+dan `nilai` memang wajar muncul dalam percakapan biasa; keduanya
+dibiarkan karena pada pesan semacam itu tautannya justru relevan,
+sedangkan kegagalan sebaliknya lebih merugikan — orang tua yang mengetik
+`rapor` lalu didiamkan akan menyimpulkan layanannya rusak.
+
+### Contoh sosialisasi ke orang tua
+
+> Ayah/Bunda dapat meminta tautan laporan akademik Ananda kapan saja.
+> Cukup kirim WhatsApp ke **[nomor sekolah]** dengan mengetik:
+>
+> **akademik**
+>
+> Tautannya akan dikirim otomatis dalam beberapa detik. Bila Ayah/Bunda
+> memiliki lebih dari satu anak di sekolah ini, seluruh tautannya dikirim
+> sekaligus.
+
 ## Kenapa nomor pengirim, bukan isi pesan
 
 Percobaan sebelumnya meminta orang tua mengetik `Nama-Kelas`
@@ -37,8 +78,12 @@ yang tidak bisa ditambal dengan kalimat yang lebih baik:
 
 Nomor pengirim tidak punya dua masalah itu: ia diverifikasi WhatsApp
 sendiri, tidak bisa salah ketik, dan sudah tercatat di kolom "No WA" Master
-Rekap sejak awal. Karena itu **isi pesannya tidak dibaca sama sekali** —
-"assalamu'alaikum", "p", dan stiker sama-sama dijawab dengan benar.
+Rekap sejak awal.
+
+Kata kunci `akademik` tidak mengembalikan kelemahan itu, karena keduanya
+menjawab pertanyaan yang berbeda: **siapa** tetap sepenuhnya ditentukan
+nomor pengirim, sedangkan kata kunci hanya menentukan **kapan** sistem
+menjawab. Isi pesan tidak pernah dipakai mengenali anak siapa.
 
 Konsekuensi yang perlu diketahui: balasan hanya sebaik isi kolom "No WA".
 Jalankan **SiPaGi → Cek Kesehatan Data** di Master Rekap; ia menyebutkan
@@ -191,6 +236,7 @@ datang dalam beberapa detik.
 
 | Keadaan | Balasan |
 |---|---|
+| Pesan tanpa kata kunci | **Tidak dibalas, tidak dicatat** |
 | Nomor cocok, tautan aktif | Tautan rapor tiap anak yang cocok |
 | Nomor cocok, tautan belum diterbitkan | "Data Ananda sudah kami temukan, tautannya belum diterbitkan" |
 | Nomor tidak dikenali | Diarahkan ke wali kelas — **paling banyak 2 balasan per 24 jam** |
