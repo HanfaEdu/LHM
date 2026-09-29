@@ -86,7 +86,7 @@ export default function LoginPage() {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          SiPaDi
+          SiPaGi
         </h1>
         <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '10px' }}>
           Sistem Perkembangan Akademik Digital Terintegrasi Sekolah BIAS

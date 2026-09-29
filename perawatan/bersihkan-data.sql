@@ -18,7 +18,7 @@
 --   siswa, kelas, penempatan, nilai_bulanan, users_access
 --
 -- Semuanya berasal dari Master Rekap. Menghapusnya tidak menghilangkan
--- apa pun: jalankan SiPaDi → Sinkronkan Sekarang dan semuanya kembali.
+-- apa pun: jalankan SiPaGi → Sinkronkan Sekarang dan semuanya kembali.
 --
 --
 -- YANG TIDAK BISA DIBANGUN ULANG  ← BACA BAGIAN INI
@@ -207,7 +207,7 @@ ORDER  BY table_name DESC;
 -- ===================================================================
 -- SESUDAH INI
 -- ===================================================================
--- 1. Buka Master Rekap → menu SiPaDi → Sinkronkan Sekarang.
+-- 1. Buka Master Rekap → menu SiPaGi → Sinkronkan Sekarang.
 --    Dasbor kosong sampai langkah ini selesai, dan tidak ada yang bisa
 --    masuk sebelum users_access terisi kembali.
 --

@@ -253,7 +253,7 @@ export default function DasborWaliKelas() {
           <div className={gaya.kartu}>
             <p className={gaya.kosong}>
               Belum ada nilai yang tersinkron untuk kelas ini. Jalankan menu
-              SiPaDi → Sinkronkan Sekarang di Master Rekap.
+              SiPaGi → Sinkronkan Sekarang di Master Rekap.
             </p>
           </div>
         ) : (

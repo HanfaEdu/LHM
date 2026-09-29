@@ -280,8 +280,8 @@ berhari-hari):
    tersimpan di repositori). Periksa juga kelima baris konfigurasi
    sekolah — untuk Kudus nilainya sudah benar apa adanya.
 3. Jalankan `migrasi/001-multi-sekolah.sql` di Supabase → SQL Editor.
-4. Jalankan **SiPaDi → Cek Kesehatan Data**, baca dua baris teratasnya.
-5. Jalankan **SiPaDi → Sinkronkan Sekarang** satu kali, lalu buka satu
+4. Jalankan **SiPaGi → Cek Kesehatan Data**, baca dua baris teratasnya.
+5. Jalankan **SiPaGi → Sinkronkan Sekarang** satu kali, lalu buka satu
    tautan rapor untuk memastikan semuanya masih terbaca.
 
 **Kode Apps Script diganti SEBELUM migrasi, bukan sesudahnya.** Urutan
@@ -362,11 +362,11 @@ Supabase sama sekali.
    `APP_URL` dan `SYNC_SECRET` **tetap sama** — satu penerapan Vercel
    melayani semua sekolah.
 
-3. Jalankan **SiPaDi → Cek Kesehatan Data** lebih dulu. Dua baris
+3. Jalankan **SiPaGi → Cek Kesehatan Data** lebih dulu. Dua baris
    paling atas laporannya menyebut sekolah yang akan disinkronkan
    berikut alamat input LHM-nya. **Baca kedua baris itu.** Kalau masih tertulis sekolah asal salinan, berarti langkah 2
    terlewat — dan melanjutkan berarti menimpa data sekolah itu.
-4. Jalankan **SiPaDi → Sinkronkan Sekarang**. Baris sekolah, kelas,
+4. Jalankan **SiPaGi → Sinkronkan Sekarang**. Baris sekolah, kelas,
    siswa, dan nilai terbentuk sendiri.
 5. Daftarkan kepala sekolah dan wali kelasnya di sheet `users_access`
    milik Master Rekap itu. Mereka otomatis menjadi milik sekolah

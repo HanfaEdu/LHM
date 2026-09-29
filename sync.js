@@ -1,7 +1,7 @@
 /**
  * ===================================================================
  * GOOGLE APPS SCRIPT — SINKRONISASI MASTER REKAP -> SUPABASE
- * Sistem Rapor Digital (SiPaDi) — SD Yaumi Fatimah Kudus
+ * Sistem Rapor Digital (SiPaGi) — SD Yaumi Fatimah Kudus
  * ===================================================================
  *
  * CARA PASANG
@@ -209,7 +209,7 @@ const SHEET_USER = 'users_access';
 /** Menu manual di Google Sheets, supaya tidak perlu menunggu tengah malam. */
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu('SiPaDi')
+    .createMenu('SiPaGi')
     .addItem('Sinkronkan Sekarang', 'sinkronkanSemua')
     .addItem('Cek Kesehatan Data (tanpa kirim)', 'cekKesehatanData')
     .addToUi();
@@ -459,6 +459,121 @@ function cekKesehatanData() {
     }
   });
 
+  /* 3c. Nomor WA orang tua yang kosong atau jelas keliru.
+
+     Nomor inilah yang dipakai layanan WhatsApp untuk mengenali pengirim
+     pesan sebagai orang tua siswa tertentu (docs/LAYANAN_WA.md). Siswa
+     tanpa nomor yang terbaca tidak akan pernah dikenali: orang tuanya
+     menerima balasan "nomor belum terdaftar" dan mengira sekolah salah,
+     padahal selnya memang kosong sejak awal.
+
+     Pemeriksaan di sini SENGAJA longgar dan hanya menangkap yang jelas
+     salah -- kosong, atau angkanya terlalu sedikit/terlalu banyak.
+     Aturan yang sebenarnya ada di lib/nomor-wa.js di sisi aplikasi, dan
+     dialah yang menentukan. Menyalin aturan lengkapnya ke sini hanya
+     akan membuat dua salinan yang menyimpang diam-diam. */
+  if (!isi.adaKolomNoWa) {
+    temuan.push(
+      'Kolom "No WA" tidak ditemukan di header Sheet1. Layanan WhatsApp ' +
+      'tidak akan mengenali satu pun orang tua sampai kolom itu ada.'
+    );
+  } else {
+    const tanpaWa = [];
+    const waMeragukan = [];
+    isi.roster.forEach(function (s) {
+      /* Dipecah dulu per nomor, bukan dihitung angkanya sekaligus.
+
+         Satu sel yang sah kerap memuat DUA nomor -- ayah dan ibu --
+         dipisah koma atau ganti baris. Menghitung seluruh angkanya
+         sekaligus menghasilkan 26 digit, dan pemeriksaan panjang lalu
+         menuduh sel yang justru paling benar. Peringatan palsu yang
+         muncul di setiap keluarga berorang tua lengkap akan membuat
+         seluruh laporan Cek Kesehatan Data berhenti dipercaya. */
+      const potongan = nomorDiSel(s.noWa);
+
+      if (!potongan.length) {
+        tanpaWa.push(s.namaLengkap);
+      } else if (potongan.some(function (x) { return x.length < 10 || x.length > 15; })) {
+        waMeragukan.push(s.namaLengkap + ' ("' + s.noWa + '")');
+      }
+    });
+
+    if (tanpaWa.length) {
+      temuan.push(
+        tanpaWa.length + ' siswa belum punya isi kolom "No WA": ' +
+        ringkasDaftar(tanpaWa) + '. Orang tuanya tidak akan bisa meminta ' +
+        'tautan rapor lewat WhatsApp.'
+      );
+    }
+    if (waMeragukan.length) {
+      temuan.push(
+        waMeragukan.length + ' nomor WA tidak berbentuk nomor HP yang wajar: ' +
+        ringkasDaftar(waMeragukan) + '. Periksa kembali isinya.'
+      );
+    }
+  }
+
+  /* 3d. Nomor yang dipakai lebih dari satu siswa.
+
+     Sistem menyimpulkan "kakak-adik" SEMATA-MATA dari kesamaan nomor --
+     ia tidak punya data keluarga sama sekali. Kalau memang kakak-adik,
+     inilah yang diinginkan: orang tuanya menerima seluruh tautan
+     anaknya dalam satu pesan, dan tidak ada yang perlu diubah.
+
+     Yang ditangkap pemeriksaan ini adalah kemungkinan yang satunya:
+     nomor keluarga A tersalin ke baris siswa keluarga B. Nomornya sah,
+     bentuknya benar, dan tidak ada satu pun galat yang muncul -- tetapi
+     orang tua A akan menerima tautan rapor anak keluarga B, dan tidak
+     ada yang memberi tahu siapa pun. Hanya manusia yang bisa
+     membedakan kedua keadaan itu, jadi yang dilakukan di sini adalah
+     menyodorkannya untuk dikonfirmasi, bukan menolaknya. */
+  if (isi.adaKolomNoWa) {
+    const kelasTiapSiswa = {};
+    isi.nilai.forEach(function (n) {
+      if (n.nis && !kelasTiapSiswa[n.nis]) kelasTiapSiswa[n.nis] = n.nama_kelas;
+    });
+
+    const pemakaiNomor = {};
+    isi.roster.forEach(function (s) {
+      nomorDiSel(s.noWa).forEach(function (angka) {
+        const kunciNomor = ekorNomor(angka);
+        if (!pemakaiNomor[kunciNomor]) {
+          pemakaiNomor[kunciNomor] = { contoh: angka, siswa: [] };
+        }
+        // Satu siswa yang menulis nomor sama dua kali di selnya sendiri
+        // bukan dua siswa yang berbagi nomor.
+        const daftar = pemakaiNomor[kunciNomor].siswa;
+        const sudahAda = daftar.filter(function (x) { return x.nis === s.nis; }).length > 0;
+        if (!sudahAda) {
+          daftar.push({ nis: s.nis, nama: s.namaLengkap });
+        }
+      });
+    });
+
+    const berbagiNomor = [];
+    Object.keys(pemakaiNomor).forEach(function (kunciNomor) {
+      const pakai = pemakaiNomor[kunciNomor];
+      if (pakai.siswa.length < 2) return;
+      berbagiNomor.push(
+        pakai.contoh + ' (' +
+        pakai.siswa.map(function (x) {
+          const kelas = kelasTiapSiswa[x.nis];
+          return x.nama + (kelas ? ' kelas ' + kelas : '');
+        }).join(', ') + ')'
+      );
+    });
+
+    if (berbagiNomor.length) {
+      temuan.push(
+        berbagiNomor.length + ' nomor WA dipakai lebih dari satu siswa: ' +
+        ringkasDaftar(berbagiNomor) + '. Kalau mereka memang kakak-adik, ini ' +
+        'BENAR dan tidak perlu diubah — orang tuanya akan menerima seluruh ' +
+        'tautan anaknya dalam satu pesan. Kalau bukan, salah satu orang tua ' +
+        'akan menerima tautan rapor anak orang lain.'
+      );
+    }
+  }
+
   // 4. Kapasitas blok 25 baris/bulan — peringatkan kalau sudah mepet (>=23)
   KELAS_DIHARAPKAN.forEach(function (k) {
     const siswaKelas = unik(
@@ -654,8 +769,9 @@ function bacaMasterRekap() {
   if (kol.targetPengMtk === -1)    kolPgHilang.push('Target MTK');
   if (kol.capaianPengMtk === -1)   kolPgHilang.push('Capaian MTK');
 
-  const roster = [];            // {nis, namaLengkap, namaPanggilan} — dedup per NIS
+  const roster = [];            // {nis, namaLengkap, namaPanggilan, noWa} — dedup per NIS
   const rosterTerlihat = {};
+  const rosterPerNis = {};      // nis -> baris roster, untuk melengkapi No WA
   const kelasMap = {};          // 'tahunAjaran|namaKelas' -> {tahunAjaran, namaKelas, waliKelas, targetAkademik}
   const nilai = [];
   const targetTeksBermasalah = [];
@@ -674,9 +790,30 @@ function bacaMasterRekap() {
     const nis = normalNis(r[kol.nis]);
     const namaPanggilan = kol.namaSiswa !== -1 ? teks(r[kol.namaSiswa]) : '';
 
+    /* Nomor WA orang tua ikut dibawa roster.
+
+       Kolomnya sudah dibaca sejak versi pertama tetapi tidak pernah
+       dikirim ke mana-mana. Sekarang ia menjadi tulang punggung layanan
+       WhatsApp (docs/LAYANAN_WA.md): nomor pengirim pesan itulah yang
+       dicocokkan untuk menemukan anaknya.
+
+       Diambil dari baris terisi yang PERTAMA ditemui, lalu tidak ditimpa
+       baris berikutnya -- kecuali yang tersimpan masih kosong. Satu siswa
+       muncul 12 kali (sekali per bulan) dan sebagian besar guru hanya
+       mengisi No WA di baris bulan pertama. */
+    const noWaBaris = kol.noWa !== -1 ? teksNoWa(r[kol.noWa]) : '';
+
     if (nis && !rosterTerlihat[nis]) {
       rosterTerlihat[nis] = true;
-      roster.push({ nis: nis, namaLengkap: namaLengkap, namaPanggilan: namaPanggilan || namaLengkap });
+      const baru = {
+        nis: nis, namaLengkap: namaLengkap,
+        namaPanggilan: namaPanggilan || namaLengkap,
+        noWa: noWaBaris,
+      };
+      roster.push(baru);
+      rosterPerNis[nis] = baru;
+    } else if (nis && noWaBaris && !rosterPerNis[nis].noWa) {
+      rosterPerNis[nis].noWa = noWaBaris;
     }
 
     const kunciKelas = tahunAjaran + '|' + namaKelas;
@@ -728,6 +865,10 @@ function bacaMasterRekap() {
     nilai: nilai,
     targetTeksBermasalah: unik(targetTeksBermasalah),
     kolPgHilang: kolPgHilang,
+    // Cek Kesehatan Data perlu membedakan "seluruh sel No WA kosong"
+    // dari "kolomnya memang tidak ada" -- dua masalah dengan dua
+    // perbaikan yang sama sekali berbeda.
+    adaKolomNoWa: kol.noWa !== -1,
   };
 }
 
@@ -931,6 +1072,9 @@ function sinkronkanDariMaster(isi) {
         nis: nisGlobal(s.nis),
         nis_lokal: s.nis,
         nama_lengkap: s.namaLengkap, nama_panggilan: s.namaPanggilan,
+        // Dibakukan menjadi 62xxx oleh /api/sync, bukan di sini -- lihat
+        // lib/nomor-wa.js. Yang dikirim adalah isi sel apa adanya.
+        no_wa: s.noWa || null,
         updated_at: new Date().toISOString(),
       };
     }), 'nis');
@@ -1144,10 +1288,71 @@ function kirim(tabel, data, kolomKonflik, kembalikan) {
   return kembalikan ? JSON.parse(respons.getContentText()).data : null;
 }
 
+/**
+ * Daftar nama untuk pesan temuan: paling banyak lima, sisanya dihitung.
+ *
+ * Tanpa pembatas ini, satu Master Rekap yang kolom No WA-nya belum diisi
+ * sama sekali akan memuntahkan 150 nama ke dalam satu kotak dialog --
+ * dan seluruh temuan lain di bawahnya ikut tak terbaca.
+ */
+function ringkasDaftar(daftar) {
+  if (daftar.length <= 5) return daftar.join(', ');
+  return daftar.slice(0, 5).join(', ') + ', dan ' + (daftar.length - 5) + ' lainnya';
+}
+
 /** Sel -> teks bersih. */
 function teks(v) {
   if (v === null || v === undefined) return '';
   return String(v).trim().replace(/\s+/g, ' ');
+}
+
+/**
+ * Sel "No WA" -> teks, dengan GANTI BARIS dipertahankan sebagai pemisah.
+ *
+ * teks() biasa meratakan setiap runtun spasi -- termasuk ganti baris --
+ * menjadi satu spasi. Untuk kolom mana pun yang lain itu benar, tetapi
+ * di sini ia justru menghapus satu-satunya tanda bahwa sel itu memuat
+ * DUA nomor: Alt+Enter di dalam satu sel adalah cara yang sangat wajar
+ * menulis nomor ayah di baris pertama dan nomor ibu di baris kedua.
+ * Begitu ganti barisnya berubah menjadi spasi, kedua nomor melebur
+ * menjadi satu deret 26 digit yang ditolak seluruhnya -- dan orang tua
+ * yang nomornya sebenarnya sah tidak pernah dikenali.
+ *
+ * Ganti baris diubah menjadi koma, bukan sekadar dipertahankan, supaya
+ * seluruh sisi sistem cukup mengenal satu bentuk pemisah.
+ */
+function teksNoWa(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/[\r\n]+/g, ', ').trim().replace(/[ \t]+/g, ' ');
+}
+
+/**
+ * Angka-angka yang berdiri sendiri di dalam satu sel "No WA".
+ *
+ * Pemisahnya sama dengan yang dikenali lib/nomor-wa.js di sisi aplikasi:
+ * koma, titik koma, garis miring, ganti baris, dan kata "dan". Spasi
+ * sengaja TIDAK memisahkan -- dua nomor berspasi tidak bisa dibedakan
+ * dari satu nomor panjang yang salah ketik.
+ */
+function nomorDiSel(nilai) {
+  return String(nilai || '')
+    .split(/[,;\/\n]|\bdan\b/i)
+    .map(function (x) { return x.replace(/\D/g, ''); })
+    .filter(function (x) { return x; });
+}
+
+/**
+ * Kunci pembanding antar-nomor: sembilan angka terakhir.
+ *
+ * 08123456789, 628123456789, dan 8123456789 adalah nomor yang SAMA
+ * ditulis tiga cara; yang berbeda hanya awalannya. Membandingkan
+ * ekornya membuat ketiganya bertemu tanpa perlu menyalin seluruh aturan
+ * pembakuan dari lib/nomor-wa.js ke dalam berkas ini -- salinan aturan
+ * yang menyimpang diam-diam justru bahaya yang lebih besar daripada
+ * pembandingan yang sedikit longgar di sini.
+ */
+function ekorNomor(angka) {
+  return angka.length > 9 ? angka.slice(-9) : angka;
 }
 
 /**

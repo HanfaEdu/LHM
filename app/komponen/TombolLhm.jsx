@@ -38,7 +38,7 @@ export default function TombolLhm({ alamat, className = '' }) {
       Input/Edit LHM
       {/* Panah serong: penanda baku bahwa tautan ini keluar dari aplikasi
           dan terbuka di tab lain. Tanpa itu, wali kelas yang menekannya
-          mengira dirinya masih di dalam SiPaDi. */}
+          mengira dirinya masih di dalam SiPaGi. */}
       <ArrowUpRight size={18} className={gaya.panah} aria-hidden="true" />
       <span className={gaya.luar}>(terbuka di tab baru)</span>
     </a>

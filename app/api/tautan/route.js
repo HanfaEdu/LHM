@@ -85,7 +85,7 @@ async function pastikanBerwenang(request) {
   if (!profil.sekolah_id) {
     return {
       galat:
-        'Akun ini belum terhubung ke sekolah mana pun. Jalankan SiPaDi → ' +
+        'Akun ini belum terhubung ke sekolah mana pun. Jalankan SiPaGi → ' +
         'Sinkronkan Sekarang di Master Rekap, lalu coba lagi.',
       status: 403,
     };

@@ -66,7 +66,7 @@ function manifestNetral(token) {
  */
 function berkasIkon(huruf) {
   return [192, 512].map((u) => ({
-    src: huruf ? `/ikon/siswa-${u}-${huruf}.png` : `/ikon/sipadi-${u}.png`,
+    src: huruf ? `/ikon/siswa-${u}-${huruf}.png` : `/ikon/sipagi-${u}.png`,
     sizes: `${u}x${u}`,
     type: 'image/png',
     purpose: 'any maskable',

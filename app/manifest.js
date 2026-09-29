@@ -23,8 +23,8 @@ export default function manifest() {
        sekolahnya masing-masing sudah tampil di kepala dasbor setelah
        mereka masuk. Menyebut satu sekolah di sini justru keliru bagi
        semua yang lain. */
-    name: 'SiPaDi — Dasbor Akademik',
-    short_name: 'SiPaDi',
+    name: 'SiPaGi — Dasbor Akademik',
+    short_name: 'SiPaGi',
     description:
       'Dasbor capaian akademik, Tahfidz, dan Tahsin untuk wali kelas dan kepala sekolah.',
     lang: 'id',
@@ -39,7 +39,7 @@ export default function manifest() {
     categories: ['education'],
     icons: [
       {
-        src: '/ikon/sipadi-192.png',
+        src: '/ikon/sipagi-192.png',
         sizes: '192x192',
         type: 'image/png',
         // 'any maskable' sekaligus: seluruh isi ikon sudah dirancang
@@ -49,7 +49,7 @@ export default function manifest() {
         purpose: 'any maskable',
       },
       {
-        src: '/ikon/sipadi-512.png',
+        src: '/ikon/sipagi-512.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any maskable',

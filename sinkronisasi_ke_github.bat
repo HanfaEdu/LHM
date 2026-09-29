@@ -1,9 +1,9 @@
 @echo off
-title SiPaDi - Sinkronisasi Pembaruan ke GitHub
+title SiPaGi - Sinkronisasi Pembaruan ke GitHub
 color 0E
 
 echo =========================================================================
-echo  SISTEM PERKEMBANGAN AKADEMIK DIGITAL TERINTEGRASI (SiPaDi)
+echo  SISTEM RAPOR DIGITAL (SiPaGi)
 echo  Mengirim Pembaruan Kode Terbaru ke GitHub Anda...
 echo =========================================================================
 echo.

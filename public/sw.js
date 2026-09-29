@@ -1,5 +1,5 @@
 /* ===================================================================
-   SERVICE WORKER — SiPaDi / Akademik SD Yaumi Fatimah Kudus
+   SERVICE WORKER — SiPaGi / Akademik SD Yaumi Fatimah Kudus
    ===================================================================
    Ditulis tangan, bukan memakai pustaka pembangkit. Isinya memang hanya
    sebanyak ini, dan pustaka seperti next-pwa menambah satu lapisan
@@ -21,7 +21,7 @@
 // Dinaikkan setiap kali isi berkas ini berubah. Singgahan versi lama
 // dibuang saat versi baru aktif.
 const VERSI = 'v1';
-const SINGGAHAN = `sipadi-${VERSI}`;
+const SINGGAHAN = `sipagi-${VERSI}`;
 
 /** Berkas yang alamatnya mengandung sidik isi, jadi tidak pernah basi. */
 function berkasTetap(alamat) {

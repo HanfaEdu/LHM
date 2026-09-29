@@ -342,6 +342,12 @@ export default function DasborKepalaSekolah() {
                 <Link href="/dashboard/kepala-sekolah/tautan" className={gaya.tombolAksi}>
                   Tautan Orang Tua
                 </Link>
+                <Link href="/dashboard/kepala-sekolah/log-wa" className={gaya.tombolAksi}>
+                  Log WA
+                </Link>
+                <Link href="/dashboard/kepala-sekolah/log-akses" className={gaya.tombolAksi}>
+                  Akses Rapor
+                </Link>
                 <TombolCetak onClick={cetak} />
                 <TombolKeluar />
               </div>

@@ -5,12 +5,12 @@ import PendaftarSW from './komponen/PendaftarSW';
  * Identitas yang terlihat orang luar: judul tab peramban dan pratinjau
  * tautan di WhatsApp.
  *
- * "SiPaDi" sengaja tidak dipakai di sini. Nama itu berguna di dalam
+ * "SiPaGi" sengaja tidak dipakai di sini. Nama itu berguna di dalam
  * sekolah, tetapi orang tua yang menerima tautan di WhatsApp tidak punya
  * konteks apa pun untuk memahaminya -- yang terbaca hanya singkatan asing
  * di atas sebuah tautan, dan tautan asing justru mengurangi kepercayaan.
  * Nama sekolah dan kata yang langsung dimengerti jauh lebih meyakinkan.
- * SiPaDi tetap tampil di halaman masuk, yang hanya dilihat guru dan
+ * SiPaGi tetap tampil di halaman masuk, yang hanya dilihat guru dan
  * kepala sekolah.
  *
  * Judul ini juga sengaja TIDAK memuat nama siswa. Pratinjau WhatsApp
@@ -19,7 +19,15 @@ import PendaftarSW from './komponen/PendaftarSW';
  * tuanya. Nama anak hanya muncul setelah tautannya benar-benar dibuka.
  */
 
-const alamatResmi = process.env.NEXT_PUBLIC_SITE_URL || 'https://akademik-sdyaumi.vercel.app';
+/* Alamat cadangan, dipakai HANYA ketika NEXT_PUBLIC_SITE_URL kosong --
+   yaitu saat dijalankan lokal. Di Vercel, next.config.mjs selalu
+   mengisinya dari VERCEL_PROJECT_PRODUCTION_URL.
+
+   PUNYA TANGGAL KEDALUWARSA. Nilai ini ikut basi setiap kali domain
+   produksi diganti, dan basinya tidak terlihat: yang rusak hanya gambar
+   pratinjau WhatsApp, yang tidak pernah dilihat siapa pun dari dalam
+   sekolah. Kalau domainnya berganti lagi, ganti baris ini juga. */
+const alamatResmi = process.env.NEXT_PUBLIC_SITE_URL || 'https://akademik-bias.vercel.app';
 
 /* Judul dan keterangan di sini adalah cadangan untuk halaman yang tidak
    punya metadata sendiri (halaman masuk, halaman pengalihan). Sengaja
@@ -36,7 +44,7 @@ export const metadata = {
   /* Safari mengambil nama ikon layar utama dari meta ini, bukan dari
      short_name di manifest. Halaman rapor menimpanya dengan nama anak
      masing-masing (lihat app/rapor/[token]/layout.jsx). */
-  appleWebApp: { capable: true, title: 'SiPaDi', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: 'SiPaGi', statusBarStyle: 'default' },
   openGraph: {
     title: 'Akademik — Sekolah BIAS',
     description:

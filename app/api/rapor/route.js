@@ -193,6 +193,13 @@ export async function POST(request) {
     .eq('token', token)
     .then(() => {}, () => {});
 
+  // Riwayatnya (migrasi 006) -- akses_ortu.terakhir_dibuka di atas cuma
+  // menyimpan yang TERBARU. Gagal diam-diam kalau migrasinya belum
+  // dijalankan, sama seperti update di atas.
+  db.from('akses_dibuka')
+    .insert({ nis })
+    .then(() => {}, () => {});
+
   return NextResponse.json({
     anak: { nama_lengkap: anak.nama_lengkap, nama_panggilan: anak.nama_panggilan },
     sekolah: { nama: namaSekolah, jenjang: jenjangSekolah },
