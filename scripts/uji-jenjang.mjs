@@ -65,6 +65,12 @@ const nilai = siswa.map((s, i) => ({
   capaian_tahfidz: 4 + (i % 3),
   target_tahsin: 4,
   capaian_tahsin: 3 + (i % 3),
+  // Kolom poin PG. Sengaja ikut DIISI di data SD juga: dasbor SD tidak
+  // boleh menampilkannya, sama seperti dasbor PG tidak boleh menampilkan IPA.
+  target_peng_bindo: 2,
+  capaian_peng_bindo: 1 + (i % 3),
+  target_peng_mtk: 3,
+  capaian_peng_mtk: 2 + (i % 3),
 }));
 
 function tabel(jenjang, peran) {
@@ -107,6 +113,22 @@ function jalankanServer() {
 }
 
 let gagal = 0;
+
+/* PG: B. Indonesia & Matematika berbentuk poin tahapan (lib/poin.js),
+   dan nama materi Tahsin-nya huruf hijaiyah -- bukan bab tajwid SD. */
+function periksaPoinPg(teks) {
+  periksa('PG: B. Indonesia tampil sebagai tahapan ("tulisan nama...")', /tulisan nama/.test(teks));
+  periksa('PG: Matematika tampil sebagai tahapan ("konsep bilangan ...")', /konsep bilangan/.test(teks));
+  periksa('PG: Tahsin memakai peta PG (huruf hijaiyah)', /ت/.test(teks));
+  periksa('PG: peta Tahsin SD TIDAK dipakai', !/Dhummah|Tanwin/.test(teks));
+  periksa('PG: tidak ada "target 90" / sebaran nilai 0-100',
+    !/target 90|Sebaran Nilai|99–100/.test(teks));
+}
+
+function periksaSd(teks) {
+  periksa('SD: Tahsin memakai peta SD', /Tanwin|Dhummah/.test(teks));
+  periksa('SD: kolom poin PG TIDAK ikut tampil', !/tulisan nama|konsep bilangan/.test(teks));
+}
 function periksa(nama, syarat, keterangan = '') {
   if (!syarat) gagal += 1;
   console.log(`${syarat ? 'OK   ' : 'GAGAL'} ${nama}${keterangan ? ` — ${keterangan}` : ''}`);
@@ -192,8 +214,10 @@ try {
       if (jenjang === 'PG') {
         periksa('IPA TIDAK tampil sama sekali', !adaIPA,
           adaIPA ? 'masih ada "IPA" di halaman' : 'bersih');
+        periksaPoinPg(teks);
       } else {
         periksa('IPA tampil (jenjang SD tidak boleh ikut kehilangan IPA)', adaIPA);
+        periksaSd(teks);
       }
 
       await page.close();
@@ -230,6 +254,8 @@ try {
                 target_akademik: 90,
                 target_tahfidz: 5, capaian_tahfidz: 4 + i, nama_tahfidz: 'Al Falaq',
                 target_tahsin: 4, capaian_tahsin: 3 + i, nama_tahsin: 'Fathah',
+                target_peng_bindo: 2, capaian_peng_bindo: 1 + i,
+                target_peng_mtk: 3, capaian_peng_mtk: 2 + i,
               }
             : {
                 bulan: b, rata_b_indo: null, rata_mtk: null, rata_ipa: null,
@@ -243,6 +269,8 @@ try {
               rata_b_indo: 76 + j * 3 + i, rata_mtk: 74 + j * 4, rata_ipa: 80 + j * 2,
               target_tahfidz: 5, capaian_tahfidz: 4 + (j % 3),
               target_tahsin: 4, capaian_tahsin: 3 + (j % 2),
+              target_peng_bindo: 2, capaian_peng_bindo: 1 + (j % 3),
+              target_peng_mtk: 3, capaian_peng_mtk: 2 + (j % 2),
             })),
           ])),
         }),
@@ -262,8 +290,10 @@ try {
     if (jenjang === 'PG') {
       periksa('IPA TIDAK tampil sama sekali', !adaIPA,
         adaIPA ? 'masih ada "IPA" di halaman' : 'bersih');
+      periksaPoinPg(teks);
     } else {
       periksa('IPA tampil', adaIPA);
+      periksaSd(teks);
     }
     await page.close();
   }

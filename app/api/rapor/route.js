@@ -1,7 +1,8 @@
 import { createHash } from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { BULAN_AJARAN, getQuranLevelName } from '@/quran_mapping';
+import { BULAN_AJARAN } from '@/quran_mapping';
+import { namaPoin } from '@/lib/poin';
 import { adaIsiBulan, potongTargetBulanKosong } from '@/lib/statistik';
 
 export const dynamic = 'force-dynamic';
@@ -128,7 +129,8 @@ export async function POST(request) {
     .from('nilai_bulanan')
     .select(
       'nis, bulan, urutan_bulan, rata_b_indo, rata_mtk, rata_ipa, ' +
-        'target_tahfidz, capaian_tahfidz, target_tahsin, capaian_tahsin'
+        'target_tahfidz, capaian_tahfidz, target_tahsin, capaian_tahsin, ' +
+        'target_peng_bindo, capaian_peng_bindo, target_peng_mtk, capaian_peng_mtk'
     )
     .eq('kelas_id', kelas.id);
 
@@ -156,10 +158,17 @@ export async function POST(request) {
       target_akademik: angka(kelas.target_akademik) ?? 90,
       target_tahfidz: angka(b.target_tahfidz),
       capaian_tahfidz: angka(b.capaian_tahfidz),
-      nama_tahfidz: getQuranLevelName('tahfidz', b.capaian_tahfidz),
+      // Nama poin mengikuti jenjang: poin 2 Tahfidz di PG "Al Fatihah",
+      // di SD "An Nass" (lib/poin.js).
+      nama_tahfidz: namaPoin('tahfidz', b.capaian_tahfidz, jenjangSekolah),
       target_tahsin: angka(b.target_tahsin),
       capaian_tahsin: angka(b.capaian_tahsin),
-      nama_tahsin: getQuranLevelName('tahsin', b.capaian_tahsin),
+      nama_tahsin: namaPoin('tahsin', b.capaian_tahsin, jenjangSekolah),
+      // Playgroup: B. Indonesia & Matematika berbentuk poin.
+      target_peng_bindo: angka(b.target_peng_bindo),
+      capaian_peng_bindo: angka(b.capaian_peng_bindo),
+      target_peng_mtk: angka(b.target_peng_mtk),
+      capaian_peng_mtk: angka(b.capaian_peng_mtk),
     };
   }));
 
@@ -178,6 +187,10 @@ export async function POST(request) {
         capaian_tahfidz: angka(r.capaian_tahfidz),
         target_tahsin: angka(r.target_tahsin),
         capaian_tahsin: angka(r.capaian_tahsin),
+        target_peng_bindo: angka(r.target_peng_bindo),
+        capaian_peng_bindo: angka(r.capaian_peng_bindo),
+        target_peng_mtk: angka(r.target_peng_mtk),
+        capaian_peng_mtk: angka(r.capaian_peng_mtk),
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'id'));
 

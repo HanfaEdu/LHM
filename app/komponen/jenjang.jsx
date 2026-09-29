@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import { mapelUntuk } from '@/lib/statistik';
+import { mapelSkor, mapelUntuk } from '@/lib/statistik';
+import { poinUntuk } from '@/lib/poin';
 
 /**
  * Jenjang sekolah yang sedang dilihat (PG, TK, SD, SMP, SMA).
@@ -33,4 +34,20 @@ export function useMapel() {
 /** True kalau mapel ini dinilai pada jenjang yang sedang dilihat. */
 export function usePakaiMapel(kunci) {
   return useMapel().some((m) => m.kunci === kunci);
+}
+
+/** Mapel bernilai 0-100 saja (kosong di PG) -- grafik, sebaran, rata-rata. */
+export function useMapelSkor() {
+  return mapelSkor(useMapel());
+}
+
+/** Jenjang yang sedang dilihat, untuk memilih peta nama poin (lib/poin.js). */
+export function useJenjang() {
+  return useContext(KonteksJenjang);
+}
+
+/** Ukuran berbentuk poin pada jenjang ini: Tahfidz, Tahsin, dan di PG
+    juga B. Indonesia & Matematika. */
+export function usePoin() {
+  return poinUntuk(useContext(KonteksJenjang));
 }
