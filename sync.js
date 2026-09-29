@@ -493,6 +493,20 @@ function cekKesehatanData() {
     );
   }
 
+  /* 6b. Kolom nilai PG (Target/Capaian B. Indo, MTK) -- hanya relevan
+     untuk sekolah berjenjang PG. Tanpa kolom ini, Matematika dan
+     B. Indonesia akan tersinkron kosong terus-menerus, dan sinkronisasi
+     tetap melapor "berhasil" -- persis jenis kegagalan senyap yang
+     dijaga pemeriksaan lain di fungsi ini. */
+  if (jenjangRapi() === 'PG' && isi.kolPgHilang && isi.kolPgHilang.length) {
+    temuan.push(
+      'Sekolah ini berjenjang PG, tapi kolom berikut tidak ditemukan di ' +
+      'Sheet1: ' + isi.kolPgHilang.join(', ') + '. Nilai Matematika/' +
+      'B. Indonesia akan tersinkron kosong sampai kolomnya ditambahkan ' +
+      '-- ejaan judul kolom harus sama persis.'
+    );
+  }
+
   /* 7. Kolom "Cakupan Jenjang" di sheet users_access.
 
      Diperiksa di sini juga -- bukan hanya saat sinkronisasi -- supaya
@@ -612,6 +626,15 @@ function bacaMasterRekap() {
     capaianTahfidz: header.indexOf('Capaian Tahfidz'),
     targetTahsin:   header.indexOf('Target Tahsin'),
     capaianTahsin:  header.indexOf('Capaian Tahsin'),
+
+    /* Khusus PG: Matematika & B. Indonesia berbentuk target/capaian modul
+       (seperti Tahfidz/Tahsin), bukan rata-rata 0-100 -- lihat
+       docs/RINGKASAN_SISTEM.md. Kosong/tidak ditemukan di Master Rekap SD
+       -- aman, sama seperti rataIpa yang kosong di Master Rekap PG. */
+    targetPengBindo:  header.indexOf('Target B. Indo'),
+    capaianPengBindo: header.indexOf('Capaian B. Indo'),
+    targetPengMtk:    header.indexOf('Target MTK'),
+    capaianPengMtk:   header.indexOf('Capaian MTK'),
   };
   if (kol.namaKelas === -1 || kol.bulan === -1 || kol.tahunAjaran === -1 || kol.namaLengkap === -1) {
     throw new Error(
@@ -619,6 +642,17 @@ function bacaMasterRekap() {
       'ditemukan di header Sheet1. Header tidak boleh diubah namanya.'
     );
   }
+
+  /* Kolom PG tidak dianggap krusial di sini (skrip yang sama dipakai SD
+     dan PG), tapi tetap dicatat supaya cekKesehatanData() bisa
+     memperingatkan sekolah PG yang belum menambahkannya -- tanpa
+     peringatan ini, Matematika/B. Indonesia akan tersinkron kosong terus
+     menerus TANPA satu pun pesan galat. */
+  const kolPgHilang = [];
+  if (kol.targetPengBindo === -1)  kolPgHilang.push('Target B. Indo');
+  if (kol.capaianPengBindo === -1) kolPgHilang.push('Capaian B. Indo');
+  if (kol.targetPengMtk === -1)    kolPgHilang.push('Target MTK');
+  if (kol.capaianPengMtk === -1)   kolPgHilang.push('Capaian MTK');
 
   const roster = [];            // {nis, namaLengkap, namaPanggilan} — dedup per NIS
   const rosterTerlihat = {};
@@ -677,6 +711,12 @@ function bacaMasterRekap() {
       capaian_tahfidz: poinQuran(r[kol.capaianTahfidz], 'tahfidz', namaKelas, targetTeksBermasalah),
       target_tahsin:   poinQuran(r[kol.targetTahsin],   'tahsin',  namaKelas, targetTeksBermasalah),
       capaian_tahsin:  poinQuran(r[kol.capaianTahsin],  'tahsin',  namaKelas, targetTeksBermasalah),
+      /* Target/capaian PG: angka modul biasa, bukan nama surah/bab --
+         tidak butuh poinQuran(), cukup angka() seperti rata_b_indo. */
+      target_peng_bindo:  angka(r[kol.targetPengBindo]),
+      capaian_peng_bindo: angka(r[kol.capaianPengBindo]),
+      target_peng_mtk:    angka(r[kol.targetPengMtk]),
+      capaian_peng_mtk:   angka(r[kol.capaianPengMtk]),
     });
   }
 
@@ -687,6 +727,7 @@ function bacaMasterRekap() {
     kelasMap: kelasMap,
     nilai: nilai,
     targetTeksBermasalah: unik(targetTeksBermasalah),
+    kolPgHilang: kolPgHilang,
   };
 }
 
@@ -729,7 +770,9 @@ function isiTargetKeBulanBerikutnya(nilai) {
         b.rata_mtk !== null ||
         b.rata_ipa !== null ||
         b.capaian_tahfidz !== null ||
-        b.capaian_tahsin !== null
+        b.capaian_tahsin !== null ||
+        b.capaian_peng_bindo !== null ||
+        b.capaian_peng_mtk !== null
       ) {
         batas = i;
       }
@@ -737,12 +780,22 @@ function isiTargetKeBulanBerikutnya(nilai) {
 
     let tahfidzTerakhir = null;
     let tahsinTerakhir = null;
+    let pengBindoTerakhir = null;
+    let pengMtkTerakhir = null;
     baris.forEach(function (b, i) {
       if (b.target_tahfidz !== null) tahfidzTerakhir = b.target_tahfidz;
       else if (tahfidzTerakhir !== null && i <= batas) b.target_tahfidz = tahfidzTerakhir;
 
       if (b.target_tahsin !== null) tahsinTerakhir = b.target_tahsin;
       else if (tahsinTerakhir !== null && i <= batas) b.target_tahsin = tahsinTerakhir;
+
+      // PG: Target Matematika/B. Indonesia diteruskan dengan aturan yang
+      // sama persis dengan Tahfidz/Tahsin di atas.
+      if (b.target_peng_bindo !== null) pengBindoTerakhir = b.target_peng_bindo;
+      else if (pengBindoTerakhir !== null && i <= batas) b.target_peng_bindo = pengBindoTerakhir;
+
+      if (b.target_peng_mtk !== null) pengMtkTerakhir = b.target_peng_mtk;
+      else if (pengMtkTerakhir !== null && i <= batas) b.target_peng_mtk = pengMtkTerakhir;
     });
   });
 }
@@ -918,6 +971,10 @@ function sinkronkanDariMaster(isi) {
         capaian_tahfidz: n.capaian_tahfidz,
         target_tahsin: n.target_tahsin,
         capaian_tahsin: n.capaian_tahsin,
+        target_peng_bindo: n.target_peng_bindo,
+        capaian_peng_bindo: n.capaian_peng_bindo,
+        target_peng_mtk: n.target_peng_mtk,
+        capaian_peng_mtk: n.capaian_peng_mtk,
         disinkron_pada: new Date().toISOString(),
       };
     });
