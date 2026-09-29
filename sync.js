@@ -1555,10 +1555,14 @@ const NAMA_TAHSIN = {
  * diperiksa: target diteruskan otomatis dari bulan sebelumnya.
  */
 const KOLOM_PENGINGAT = [
-  { judul: 'Rata B. Indo', nama: 'B. Indonesia' },
-  { judul: 'Rata MTK', nama: 'Matematika' },
+  // SD: B. Indonesia & Matematika berupa rata-rata 0-100.
+  { judul: 'Rata B. Indo', nama: 'B. Indonesia', bukanJenjang: ['PG'] },
+  { judul: 'Rata MTK', nama: 'Matematika', bukanJenjang: ['PG'] },
   // Playgroup tidak menilai IPA -- sama dengan MAPEL_PER_JENJANG di lib/statistik.js.
   { judul: 'Rata IPA', nama: 'IPA', bukanJenjang: ['PG'] },
+  // PG: B. Indonesia & Matematika berupa poin tahapan (sync-pg.js).
+  { judul: 'Capaian B. Indo', nama: 'B. Indonesia', hanyaJenjang: ['PG'] },
+  { judul: 'Capaian MTK', nama: 'Matematika', hanyaJenjang: ['PG'] },
   { judul: 'Capaian Tahfidz', nama: 'Tahfidz' },
   { judul: 'Capaian Tahsin', nama: 'Tahsin' },
 ];
@@ -1782,6 +1786,7 @@ function hitungPengingatWaliKelas(tabelNilai, tabelUser, sekarang, jenjang) {
   const kolomDicek = [];
   KOLOM_PENGINGAT.forEach(function (k) {
     if (k.bukanJenjang && k.bukanJenjang.indexOf(jenjang) !== -1) return;
+    if (k.hanyaJenjang && k.hanyaJenjang.indexOf(jenjang) === -1) return;
     const i = judul.indexOf(k.judul);
     if (i === -1) {
       catatan.push('Kolom "' + k.judul + '" tidak ada di header ' + SHEET_REKAP_MASTER + ', jadi tidak diperiksa.');
