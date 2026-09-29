@@ -25,6 +25,7 @@ import {
   rekapQuran,
 } from '@/lib/statistik';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
+import PenandaTarget, { LEGENDA_PENANDA_TARGET } from '@/app/komponen/PenandaTarget';
 import { useUkuranGrafik } from '@/app/komponen/cetak';
 import { useJenjang, useMapel, useMapelSkor, usePoin } from '@/app/komponen/jenjang';
 import gaya from './dasbor.module.css';
@@ -293,6 +294,10 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
   /* Dipakai untuk seluruh ukuran berbentuk poin -- Tahfidz dan Tahsin di
      semua jenjang, plus B. Indonesia & Matematika di PG (lib/poin.js). */
   const { kCapaian, kTarget, warna, label } = infoPoin(jenis);
+  /* PG: target berbeda per siswa (masuk di bulan yang berbeda), jadi
+     digambar sebagai penanda di atas tiap batang, bukan garis yang
+     menyambung dari satu anak ke anak berikutnya. SD tidak berubah. */
+  const targetPerSiswa = String(jenjang || '').toUpperCase() === 'PG';
 
   const data = baris
     .map((b) => ({ nama: anonim ? b.label : b.nama_panggilan, ...b }))
@@ -346,8 +351,9 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
             content={
               <LegendaGrafik
                 bulatanTarget
-                tambahan={
-                  adaDibawahTarget
+                tambahan={[
+                  ...(targetPerSiswa ? [LEGENDA_PENANDA_TARGET] : []),
+                  ...(adaDibawahTarget
                     ? [
                         {
                           kunci: 'dibawah',
@@ -356,8 +362,8 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
                           warnaTepi: 'var(--kritis)',
                         },
                       ]
-                    : undefined
-                }
+                    : []),
+                ]}
               />
             }
           />
@@ -398,16 +404,28 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
               );
             })}
           </Bar>
-          <Line
-            isAnimationActive={!ukuran.cetak}
-            dataKey={kTarget}
-            name="Target"
-            stroke="var(--target)"
-            strokeWidth={2}
-            strokeDasharray="4 4"
-            dot={false}
-            connectNulls
-          />
+          {targetPerSiswa ? (
+            <Line
+              isAnimationActive={!ukuran.cetak}
+              dataKey={kTarget}
+              name="Target"
+              stroke="none"
+              legendType="none"
+              dot={<PenandaTarget />}
+              activeDot={false}
+            />
+          ) : (
+            <Line
+              isAnimationActive={!ukuran.cetak}
+              dataKey={kTarget}
+              name="Target"
+              stroke="var(--target)"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+              connectNulls
+            />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

@@ -22,6 +22,7 @@ import { Printer, WifiOff } from 'lucide-react';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import TombolPasang from '@/app/komponen/TombolPasang';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
+import PenandaTarget, { LEGENDA_PENANDA_TARGET } from '@/app/komponen/PenandaTarget';
 import {
   KonteksCetak,
   usePersiapanCetak,
@@ -1041,14 +1042,20 @@ function GrafikSatuUkuran({
   const jenjang = useJenjang();
   const baris = semuaBaris.filter((r) => r[kunci] !== null && r[kunci] !== undefined);
 
-  // Target akademik tetap sepanjang tahun, sedangkan target poin
-  // (Tahfidz/Tahsin, dan B. Indonesia/Matematika di PG) berubah tiap bulan
-  // DAN bisa berbeda per siswa -- PG menerima siswa baru sepanjang tahun,
-  // sehingga anak yang baru masuk wajar punya target lebih rendah. Karena
-  // itu targetnya dibaca dari baris masing-masing siswa.
-  const targetBaris = (r) =>
-    jenisQuran ? r[`target_${jenisQuran}`] ?? null : targetAkademik ?? null;
-  const target = baris.some((r) => targetBaris(r) !== null) ? true : null;
+  // Target akademik tetap sepanjang tahun, sedangkan target Tahfidz/Tahsin
+  // berubah tiap bulan -- karena itu diambil dari baris bulan ini, bukan
+  // dari satu angka di tingkat kelas. Di SD seluruh siswa satu kelas
+  // berbagi target yang sama, jadi baris pertama yang terisi sudah mewakili.
+  const target = jenisQuran
+    ? baris.map((r) => r[`target_${jenisQuran}`]).find((v) => v !== null && v !== undefined) ??
+      null
+    : targetAkademik ?? null;
+
+  // PG berbeda: siswa masuk di bulan yang berbeda-beda, jadi target poin
+  // tiap anak berbeda. Targetnya dibaca dari baris masing-masing dan
+  // digambar sebagai penanda di atas tiap batang (PenandaTarget), bukan
+  // satu garis yang menyambung dari anak ke anak.
+  const targetPerSiswa = Boolean(jenisQuran) && String(jenjang || '').toUpperCase() === 'PG';
 
   if (!baris.length) {
     return (
@@ -1072,7 +1079,10 @@ function GrafikSatuUkuran({
           height={ukuranGrafik.height}
         >
           <ComposedChart
-            data={baris.map((r) => ({ ...r, target: targetBaris(r) }))}
+            data={baris.map((r) => ({
+              ...r,
+              target: targetPerSiswa ? r[`target_${jenisQuran}`] ?? null : target,
+            }))}
             margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
           >
             <CartesianGrid stroke="var(--garis)" vertical={false} />
@@ -1100,7 +1110,14 @@ function GrafikSatuUkuran({
                   : [nilai, namaSeri]
               }
             />
-            <Legend content={<LegendaGrafik bulatanTarget={Boolean(jenisQuran)} />} />
+            <Legend
+              content={
+                <LegendaGrafik
+                  bulatanTarget={Boolean(jenisQuran)}
+                  tambahan={targetPerSiswa ? [LEGENDA_PENANDA_TARGET] : undefined}
+                />
+              }
+            />
             {/* fill dipasang di Bar semata-mata agar kotak warna di legenda
                 ikut berwarna: Recharts mengambil warna legenda dari fill
                 milik Bar, bukan dari Cell, sehingga tanpa ini kotaknya
@@ -1124,7 +1141,17 @@ function GrafikSatuUkuran({
             </Bar>
             {/* Ditaruh sesudah Bar supaya garisnya tergambar di atas batang,
                 bukan tertimbun di belakangnya. */}
-            {target !== null && (
+            {targetPerSiswa ? (
+              <Line
+                isAnimationActive={!ukuranGrafik.cetak}
+                dataKey="target"
+                name="Target"
+                stroke="none"
+                legendType="none"
+                dot={<PenandaTarget />}
+                activeDot={false}
+              />
+            ) : target !== null && (
               <Line
                 isAnimationActive={!ukuranGrafik.cetak}
                 dataKey="target"
