@@ -33,7 +33,8 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 | Berkas | Keterangan |
 |---|---|
 | `schema.sql` | Skema Supabase. Jalankan di SQL Editor, aman diulang. |
-| `sync.js` | Google Apps Script. Dipasang di file Master Rekap. |
+| `sync.js` | Google Apps Script untuk sekolah berjenjang SD/TK. Dipasang di file Master Rekap. |
+| `sync-pg.js` | Sama seperti `sync.js`, untuk sekolah berjenjang PG (B. Indonesia/Matematika berbentuk target/capaian modul, bukan rata-rata). |
 | `quran_mapping.js` | Peta poin → nama surah (Tahfidz) & bab materi (Tahsin). |
 | `app/rapor/[token]/` | Dashboard orang tua (tautan pribadi, tanpa login). |
 | `app/api/rapor/` | Endpoint server: verifikasi token (PIN opsional) + penyamaran nama sekelas. |
@@ -53,7 +54,8 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
    `secret`/`service_role`, dipakai server saja), dan `SYNC_SHARED_SECRET`
    (string acak buatan sendiri — kunci rahasia khusus antara GAS dan
    endpoint `/api/sync`, **bukan** kunci Supabase). Redeploy setelah diisi.
-4. Pasang `sync.js` di Apps Script file Master Rekap, isi `APP_URL`
+4. Pasang `sync.js` (SD/TK) atau `sync-pg.js` (PG) — sesuai jenjang
+   sekolah ini — di Apps Script file Master Rekap, isi `APP_URL`
    (domain Vercel Anda) dan `SYNC_SECRET` (samakan persis dengan
    `SYNC_SHARED_SECRET` di langkah 3) di bagian atas berkas.
 5. Jalankan menu **SiPaGi → Cek Kesehatan Data** untuk memastikan bersih.

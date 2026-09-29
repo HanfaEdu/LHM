@@ -1,15 +1,15 @@
 /**
  * ===================================================================
  * GOOGLE APPS SCRIPT — SINKRONISASI MASTER REKAP -> SUPABASE
- * Sistem Rapor Digital (SiPaGi) — SD Yaumi Fatimah Kudus
+ * Sistem Rapor Digital (SiPaGi) — UNTUK JENJANG PG
  * ===================================================================
  *
- * UNTUK JENJANG SD/TK. Master Rekap-nya menilai B. Indonesia/Matematika
- * sebagai rata-rata 0-100 (kolom "Rata B. Indo"/"Rata MTK"/"Rata IPA").
- *
- * Untuk sekolah berjenjang PG — Master Rekap-nya menilai B. Indonesia/
- * Matematika sebagai target/capaian modul, seperti Tahfidz/Tahsin —
- * pakai `sync-pg.js`, BUKAN file ini. Selebihnya kedua file identik.
+ * Master Rekap PG menilai B. Indonesia/Matematika sebagai target/capaian
+ * modul (kolom "Target B. Indo"/"Capaian B. Indo"/"Target MTK"/
+ * "Capaian MTK"), seperti Tahfidz/Tahsin — BUKAN rata-rata 0-100 seperti
+ * SD. Itu satu-satunya perbedaan dari `sync.js`; kalau sekolah Anda
+ * berjenjang SD atau TK dan Master Rekap-nya masih memakai kolom
+ * "Rata B. Indo"/"Rata MTK"/"Rata IPA", pakai `sync.js`, BUKAN file ini.
  *
  * CARA PASANG
  * -----------
@@ -25,26 +25,22 @@
  * CATATAN ARSITEKTUR
  * ------------------
  * Script ini membaca SATU sheet saja: `Sheet1` di Master Rekap, yang
- * berisi 7 blok IMPORTRANGE (satu per kelas) yang sudah digabung wali
- * kelas. Ini lebih sederhana daripada membuka 7 file kelas satu per
+ * berisi satu blok IMPORTRANGE per kelas yang sudah digabung wali
+ * kelas. Ini lebih sederhana daripada membuka tiap file kelas satu per
  * satu — setiap baris sudah membawa kolom "Kelas" sendiri, sehingga
  * script ini tidak perlu tahu batas antar-blok sama sekali.
  *
  * Konsekuensinya: script ini bergantung pada IMPORTRANGE tetap hidup.
- * Untuk menjaga itu, `cekKesehatanData()` memvalidasi bahwa ketujuh
+ * Untuk menjaga itu, `cekKesehatanData()` memvalidasi bahwa seluruh
  * kelas di KELAS_DIHARAPKAN benar-benar muncul dengan jumlah siswa
  * yang wajar — kalau otorisasi salah satu file kelas putus, IMPORTRANGE
  * untuk kelas itu diam-diam kosong (bukan error keras), dan validasi
  * inilah yang menangkapnya sebelum data lompong ikut tersinkron.
  *
- * Sumber tiap blok (untuk keperluan investigasi bila IMPORTRANGE putus):
- *   Kelas 1  -> https://docs.google.com/spreadsheets/d/1ni-fA-2z6sDIjOV0WojK3KjOnBk2D9mvwqCSLbMVhqU
- *   Kelas 2A -> https://docs.google.com/spreadsheets/d/1ZRQk2OniU9a6py1JlNlgvKRnQlnu74XvD4oGf5mDc30
- *   Kelas 2B -> https://docs.google.com/spreadsheets/d/1mPPXLgRUi3udMbkSyEwJJha857IRQqXQNEVvhGG1Bxo
- *   Kelas 3  -> https://docs.google.com/spreadsheets/d/1-xj70IwyCD5YAvnf2Icimu4D6qRsp-zdL2mnDFRvwRI
- *   Kelas 4  -> https://docs.google.com/spreadsheets/d/1cv2W0S-0XZPJMoS_XqNlnowChGp9wODd0SCdxIu9bek
- *   Kelas 5  -> https://docs.google.com/spreadsheets/d/1CTR3F1mqzcTMYppMJH68id3lM8T5ofMPfPCmhPUVMk4
- *   Kelas 6  -> https://docs.google.com/spreadsheets/d/13ylW9o1lZ79WoFyeZqngrmbZCYXvey7L5LOnzni03oc
+ * Sumber tiap blok berbeda per sekolah PG (Jepara/Kudus/Pati/Juwana) —
+ * catat alamat file kelas milik sekolah Anda sendiri di sini sebagai
+ * pengingat, sama seperti daftar 7 kelas di `sync.js` versi SDYFK:
+ *   Kelas ... -> https://docs.google.com/spreadsheets/d/...
  */
 
 // ===================================================================
@@ -91,16 +87,19 @@ const SYNC_SECRET = 'ISI_DENGAN_KUNCI_RAHASIA_YANG_SAMA_DENGAN_VERCEL';
  *   SDYFJ  -> 'SD Yaumi Fatimah Juwana'   area 'Pati Raya'
  *   TKYFJ  -> 'TK Yaumi Fatimah Juwana'   area 'Pati Raya'
  *   SDBK   -> 'SD BIAS Klaten'            area 'Klaten-Solo'
+ *   PGYFK  -> 'PG Yaumi Fatimah Kudus'    area 'Pati Raya'
+ *   PGYFJ  -> 'PG Yaumi Fatimah Jepara'   area 'Pati Raya'
+ *   PGYFP  -> 'PG Yaumi Fatimah Pati'     area 'Pati Raya'
  *
  * Kodenya sendiri TIDAK diterjemahkan oleh sistem: yang tampil di kepala
  * dasbor adalah NAMA_SEKOLAH di bawah, apa adanya. Jadi sekolah baru
  * dengan penamaan seperti apa pun cukup mengisi dua baris ini -- tidak
  * ada daftar di dalam kode yang perlu ikut ditambah.
  */
-const KODE_SEKOLAH = 'SDYFK';
-const NAMA_SEKOLAH = 'SD Yaumi Fatimah Kudus';
-const AREA_SEKOLAH = 'Pati Raya';   // Tim Manajemen; boleh dikosongkan
-const JENJANG_SEKOLAH = 'SD';       // PG | TK | SD | SMP | SMA
+const KODE_SEKOLAH = 'ISIKODE';       // pola <jenjang><singkatan>, mis. PGYFK -- maks 16 karakter
+const NAMA_SEKOLAH = 'ISI_NAMA_LENGKAP_SEKOLAH_INI';  // tampil apa adanya di kepala dasbor
+const AREA_SEKOLAH = 'Pati Raya';   // Tim Manajemen; SAMA PERSIS antar sekolah se-area
+const JENJANG_SEKOLAH = 'PG';       // PG | TK | SD | SMP | SMA
 
 /**
  * Jenjang yang dikenal sistem.
@@ -138,7 +137,7 @@ function jenjangRapi() {
  * Harus diawali https:// -- alamat http biasa ditolak oleh peramban HP
  * ketika dibuka dari halaman yang sudah https.
  */
-const LINK_LHM = 'https://laporan-akademik.vercel.app/';
+const LINK_LHM = 'ISI_DENGAN_ALAMAT_APLIKASI_INPUT_LHM_SEKOLAH_INI';
 
 /**
  * KENAPA LEWAT PROXY, BUKAN LANGSUNG KE SUPABASE
@@ -178,7 +177,7 @@ const LINK_LHM = 'https://laporan-akademik.vercel.app/';
  * Boleh dikosongkan ([]) kalau daftar kelasnya belum tetap: pemeriksaan
  * IMPORTRANGE dilewati, pemeriksaan lain tetap berjalan.
  */
-const KELAS_DIHARAPKAN = ['1', '2A', '2B', '3', '4', '5', '6'];
+const KELAS_DIHARAPKAN = ['ISI_SESUAI_NAMA_KELAS_DI_MASTER_REKAP'];  // mis. ['PG Kecil', 'PG Besar 1', 'PG Besar 2']
 
 /** Batas panjang nama kelas, mengikuti kolom kelas.nama_kelas. */
 const MAKS_NAMA_KELAS = 20;
@@ -615,6 +614,20 @@ function cekKesehatanData() {
     );
   }
 
+  /* 6b. Kolom nilai PG (Target/Capaian B. Indo, MTK) -- hanya relevan
+     untuk sekolah berjenjang PG. Tanpa kolom ini, Matematika dan
+     B. Indonesia akan tersinkron kosong terus-menerus, dan sinkronisasi
+     tetap melapor "berhasil" -- persis jenis kegagalan senyap yang
+     dijaga pemeriksaan lain di fungsi ini. */
+  if (jenjangRapi() === 'PG' && isi.kolPgHilang && isi.kolPgHilang.length) {
+    temuan.push(
+      'Sekolah ini berjenjang PG, tapi kolom berikut tidak ditemukan di ' +
+      'Sheet1: ' + isi.kolPgHilang.join(', ') + '. Nilai Matematika/' +
+      'B. Indonesia akan tersinkron kosong sampai kolomnya ditambahkan ' +
+      '-- ejaan judul kolom harus sama persis.'
+    );
+  }
+
   /* 7. Kolom "Cakupan Jenjang" di sheet users_access.
 
      Diperiksa di sini juga -- bukan hanya saat sinkronisasi -- supaya
@@ -734,6 +747,15 @@ function bacaMasterRekap() {
     capaianTahfidz: header.indexOf('Capaian Tahfidz'),
     targetTahsin:   header.indexOf('Target Tahsin'),
     capaianTahsin:  header.indexOf('Capaian Tahsin'),
+
+    /* Khusus PG: Matematika & B. Indonesia berbentuk target/capaian modul
+       (seperti Tahfidz/Tahsin), bukan rata-rata 0-100 -- lihat
+       docs/RINGKASAN_SISTEM.md. Kosong/tidak ditemukan di Master Rekap SD
+       -- aman, sama seperti rataIpa yang kosong di Master Rekap PG. */
+    targetPengBindo:  header.indexOf('Target B. Indo'),
+    capaianPengBindo: header.indexOf('Capaian B. Indo'),
+    targetPengMtk:    header.indexOf('Target MTK'),
+    capaianPengMtk:   header.indexOf('Capaian MTK'),
   };
   if (kol.namaKelas === -1 || kol.bulan === -1 || kol.tahunAjaran === -1 || kol.namaLengkap === -1) {
     throw new Error(
@@ -741,6 +763,17 @@ function bacaMasterRekap() {
       'ditemukan di header Sheet1. Header tidak boleh diubah namanya.'
     );
   }
+
+  /* Kolom PG tidak dianggap krusial di sini (skrip yang sama dipakai SD
+     dan PG), tapi tetap dicatat supaya cekKesehatanData() bisa
+     memperingatkan sekolah PG yang belum menambahkannya -- tanpa
+     peringatan ini, Matematika/B. Indonesia akan tersinkron kosong terus
+     menerus TANPA satu pun pesan galat. */
+  const kolPgHilang = [];
+  if (kol.targetPengBindo === -1)  kolPgHilang.push('Target B. Indo');
+  if (kol.capaianPengBindo === -1) kolPgHilang.push('Capaian B. Indo');
+  if (kol.targetPengMtk === -1)    kolPgHilang.push('Target MTK');
+  if (kol.capaianPengMtk === -1)   kolPgHilang.push('Capaian MTK');
 
   const roster = [];            // {nis, namaLengkap, namaPanggilan, noWa} — dedup per NIS
   const rosterTerlihat = {};
@@ -821,6 +854,12 @@ function bacaMasterRekap() {
       capaian_tahfidz: poinQuran(r[kol.capaianTahfidz], 'tahfidz', namaKelas, targetTeksBermasalah),
       target_tahsin:   poinQuran(r[kol.targetTahsin],   'tahsin',  namaKelas, targetTeksBermasalah),
       capaian_tahsin:  poinQuran(r[kol.capaianTahsin],  'tahsin',  namaKelas, targetTeksBermasalah),
+      /* Target/capaian PG: angka modul biasa, bukan nama surah/bab --
+         tidak butuh poinQuran(), cukup angka() seperti rata_b_indo. */
+      target_peng_bindo:  angka(r[kol.targetPengBindo]),
+      capaian_peng_bindo: angka(r[kol.capaianPengBindo]),
+      target_peng_mtk:    angka(r[kol.targetPengMtk]),
+      capaian_peng_mtk:   angka(r[kol.capaianPengMtk]),
     });
   }
 
@@ -831,6 +870,7 @@ function bacaMasterRekap() {
     kelasMap: kelasMap,
     nilai: nilai,
     targetTeksBermasalah: unik(targetTeksBermasalah),
+    kolPgHilang: kolPgHilang,
     // Cek Kesehatan Data perlu membedakan "seluruh sel No WA kosong"
     // dari "kolomnya memang tidak ada" -- dua masalah dengan dua
     // perbaikan yang sama sekali berbeda.
@@ -877,7 +917,9 @@ function isiTargetKeBulanBerikutnya(nilai) {
         b.rata_mtk !== null ||
         b.rata_ipa !== null ||
         b.capaian_tahfidz !== null ||
-        b.capaian_tahsin !== null
+        b.capaian_tahsin !== null ||
+        b.capaian_peng_bindo !== null ||
+        b.capaian_peng_mtk !== null
       ) {
         batas = i;
       }
@@ -885,12 +927,22 @@ function isiTargetKeBulanBerikutnya(nilai) {
 
     let tahfidzTerakhir = null;
     let tahsinTerakhir = null;
+    let pengBindoTerakhir = null;
+    let pengMtkTerakhir = null;
     baris.forEach(function (b, i) {
       if (b.target_tahfidz !== null) tahfidzTerakhir = b.target_tahfidz;
       else if (tahfidzTerakhir !== null && i <= batas) b.target_tahfidz = tahfidzTerakhir;
 
       if (b.target_tahsin !== null) tahsinTerakhir = b.target_tahsin;
       else if (tahsinTerakhir !== null && i <= batas) b.target_tahsin = tahsinTerakhir;
+
+      // PG: Target Matematika/B. Indonesia diteruskan dengan aturan yang
+      // sama persis dengan Tahfidz/Tahsin di atas.
+      if (b.target_peng_bindo !== null) pengBindoTerakhir = b.target_peng_bindo;
+      else if (pengBindoTerakhir !== null && i <= batas) b.target_peng_bindo = pengBindoTerakhir;
+
+      if (b.target_peng_mtk !== null) pengMtkTerakhir = b.target_peng_mtk;
+      else if (pengMtkTerakhir !== null && i <= batas) b.target_peng_mtk = pengMtkTerakhir;
     });
   });
 }
@@ -1069,6 +1121,10 @@ function sinkronkanDariMaster(isi) {
         capaian_tahfidz: n.capaian_tahfidz,
         target_tahsin: n.target_tahsin,
         capaian_tahsin: n.capaian_tahsin,
+        target_peng_bindo: n.target_peng_bindo,
+        capaian_peng_bindo: n.capaian_peng_bindo,
+        target_peng_mtk: n.target_peng_mtk,
+        capaian_peng_mtk: n.capaian_peng_mtk,
         disinkron_pada: new Date().toISOString(),
       };
     });

@@ -20,7 +20,7 @@ serta rapor untuk orang tua lewat tautan pribadi.
 - Repositori: `HanfaEdu/LHM` — cabang kerja `claude/rapor-digital-system-1ye6i9`, selalu didorong juga ke `main`
 - Aplikasi: Next.js (App Router, JavaScript, bukan TypeScript) di Vercel
 - Database: Supabase (Postgres) — proyek **Database LHM**, `inuhrnogwcqbuhdiezwn`
-- Pengisian nilai: Google Spreadsheet + Google Apps Script (`sync.js`)
+- Pengisian nilai: Google Spreadsheet + Google Apps Script (`sync.js` untuk SD/TK, `sync-pg.js` untuk PG — isinya identik kecuali cara membaca Matematika/B. Indonesia)
 - Bahasa kode, komentar, dan antarmuka: **Indonesia**
 
 Pemilik sistem **bukan programmer**. Penjelasan perlu memakai bahasa
@@ -204,7 +204,8 @@ berganti dalam sesi login yang sama. Dijaga `scripts/uji-jenjang.mjs`.
 ada kolom "Sekolah" per baris; identitasnya ditulis sekali di
 konfigurasi skrip.
 
-Konfigurasi per sekolah di `sync.js` (bagian paling atas):
+Konfigurasi per sekolah di `sync.js` (SD/TK) atau `sync-pg.js` (PG) —
+bagian paling atas, bentuknya sama di kedua berkas:
 
 ```js
 const APP_URL     = '…';            // domain Vercel — TIDAK ada di GitHub
@@ -224,8 +225,8 @@ const KELAS_DIHARAPKAN = ['1','2A','2B','3','4','5','6'];  // maks 20 karakter p
   memotong)
 - `AREA_SEKOLAH` salah ketik satu huruf → sekolah itu tidak terlihat biro
 
-Menyalin `sync.js` dari GitHub selalu perlu mengisi ulang `APP_URL` dan
-`SYNC_SECRET`.
+Menyalin `sync.js`/`sync-pg.js` dari GitHub selalu perlu mengisi ulang
+`APP_URL` dan `SYNC_SECRET`.
 
 ---
 
