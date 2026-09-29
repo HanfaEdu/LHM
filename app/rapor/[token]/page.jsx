@@ -14,7 +14,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { BULAN_AJARAN, TAHFIDZ_MAPPING, TAHSIN_MAPPING, getQuranLevelName } from '@/quran_mapping';
+import { BULAN_AJARAN } from '@/quran_mapping';
+import { infoPoin, namaPoin, petaPoin, poinUntuk } from '@/lib/poin';
 import { bulanBawaan, bulanBerdata } from '@/lib/statistik';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import { Printer, WifiOff } from 'lucide-react';
@@ -26,7 +27,7 @@ import {
   usePersiapanCetak,
   useUkuranGrafik as ukuranGrafikCetak,
 } from '@/app/komponen/cetak';
-import { KonteksJenjang, useMapel } from '@/app/komponen/jenjang';
+import { KonteksJenjang, useJenjang, useMapelSkor, usePoin } from '@/app/komponen/jenjang';
 import gaya from './rapor.module.css';
 
 /* Dikunci pada KUNCI KOLOM, bukan nama pendek: warnanya lalu tidak
@@ -39,6 +40,14 @@ const WARNA = {
   target: 'var(--target)',
   tahfidz: 'var(--seri-1)',
   tahsin: 'var(--seri-3)',
+};
+
+/* Warna aksen kartu per ukuran poin -- lihat rapor.module.css. */
+const KELAS_KARTU = {
+  peng_bindo: gaya.kartuPengBindo,
+  peng_mtk: gaya.kartuPengMtk,
+  tahfidz: gaya.kartuTahfidz,
+  tahsin: gaya.kartuTahsin,
 };
 
 /* ================================================================
@@ -377,19 +386,20 @@ export default function HalamanRapor({ params }) {
 
         <GrafikAkademik bulanan={data.bulanan} target={data.kelas.target_akademik} />
 
+        {/* Tahfidz & Tahsin di semua jenjang; di PG juga B. Indonesia dan
+            Matematika, yang di sana berbentuk poin tahapan (lib/poin.js).
+            Dihitung lewat poinUntuk(), bukan usePoin(): komponen ini yang
+            memasang Provider-nya, jadi tidak bisa ikut membacanya. */}
         <div className={gaya.tumpuk}>
-          <GrafikQuran
-            jenis="tahfidz"
-            judul="Capaian Tahfidz"
-            bulanan={data.bulanan}
-            warna={WARNA.tahfidz}
-          />
-          <GrafikQuran
-            jenis="tahsin"
-            judul="Capaian Tahsin"
-            bulanan={data.bulanan}
-            warna={WARNA.tahsin}
-          />
+          {poinUntuk(data.sekolah?.jenjang).map((p) => (
+            <GrafikQuran
+              key={p.jenis}
+              jenis={p.jenis}
+              judul={`Capaian ${p.label}`}
+              bulanan={data.bulanan}
+              warna={p.warna}
+            />
+          ))}
         </div>
 
         {/* Posisi di kelas naik ke atas tabel: inilah yang dicari orang tua
@@ -434,8 +444,12 @@ export default function HalamanRapor({ params }) {
    ================================================================ */
 function GrafikAkademik({ bulanan, target }) {
   const ukuranGrafik = useUkuranGrafik();
-  const mapel = useMapel();
+  const mapel = useMapelSkor();
+  // PG tidak punya mapel bernilai 0-100: B. Indonesia & Matematika-nya
+  // tampil sebagai kartu poin bersama Tahfidz/Tahsin.
   const adaIsi = bulanan.some((b) => mapel.some((m) => b[m.kunci] !== null));
+
+  if (!mapel.length) return null;
 
   return (
     <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
@@ -519,17 +533,15 @@ function GrafikAkademik({ bulanan, target }) {
    ================================================================ */
 function GrafikQuran({ jenis, judul, bulanan, warna }) {
   const ukuranGrafik = useUkuranGrafik();
-  const kolomCapaian = jenis === 'tahfidz' ? 'capaian_tahfidz' : 'capaian_tahsin';
-  const kolomTarget = jenis === 'tahfidz' ? 'target_tahfidz' : 'target_tahsin';
+  const jenjang = useJenjang();
+  const { kCapaian: kolomCapaian, kTarget: kolomTarget, label } = infoPoin(jenis);
 
-  const adaIsi = bulanan.some((b) => b[kolomCapaian] !== null);
+  // `!= null`, bukan `!== null`: salinan luring yang tersimpan sebelum
+  // kolom PG ada tidak membawa kolomnya sama sekali (undefined).
+  const adaIsi = bulanan.some((b) => b[kolomCapaian] != null);
 
   return (
-    <section
-      className={`${gaya.kartu} ${
-        jenis === 'tahfidz' ? gaya.kartuTahfidz : gaya.kartuTahsin
-      }`}
-    >
+    <section className={`${gaya.kartu} ${KELAS_KARTU[jenis]}`}>
       <h2 className={gaya.judulKartu}>{judul}</h2>
       <p className={gaya.ketKartu}>
         Batang menunjukkan capaian, titik merah menunjukkan target bulan itu.
@@ -564,7 +576,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
                 contentStyle={kotakTooltip}
                 formatter={(nilai, nama) => {
                   if (nilai === null || nilai === undefined) return ['belum dinilai', nama];
-                  return [`${nilai} — ${getQuranLevelName(jenis, nilai)}`, nama];
+                  return [`${nilai} — ${namaPoin(jenis, nilai, jenjang)}`, nama];
                 }}
               />
               <Legend content={<LegendaGrafik bulatanTarget />} />
@@ -591,10 +603,10 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
           </ResponsiveContainer>
         </div>
       ) : (
-        <p className={gaya.kosong}>Belum ada capaian {jenis} yang diinput.</p>
+        <p className={gaya.kosong}>Belum ada capaian {label} yang diinput.</p>
       )}
 
-      <p className={gaya.narasi}>{narasiQuran(jenis, bulanan)}</p>
+      <p className={gaya.narasi}>{narasiQuran(jenis, bulanan, jenjang)}</p>
       <KeteranganQuran jenis={jenis} />
     </section>
   );
@@ -610,7 +622,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
  * di sebelah grafik pada rapor cetak.
  */
 function KeteranganQuran({ jenis }) {
-  const peta = jenis === 'tahfidz' ? TAHFIDZ_MAPPING : TAHSIN_MAPPING;
+  const peta = petaPoin(jenis, useJenjang());
   const daftar = Object.entries(peta)
     .map(([poin, nama]) => ({ poin: Number(poin), nama }))
     .sort((a, b) => a.poin - b.poin);
@@ -618,7 +630,7 @@ function KeteranganQuran({ jenis }) {
   return (
     <details className={gaya.keterangan}>
       <summary>
-        Lihat keterangan seluruh capaian {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
+        Lihat keterangan seluruh capaian {infoPoin(jenis).label}
         {/* Jumlah poin disebutkan di label, bukan disembunyikan di balik
             lipatan. Tanpa angka ini, "Lihat keterangan" tidak memberi
             petunjuk apa pun tentang ada berapa isinya -- dan tombol yang
@@ -630,7 +642,7 @@ function KeteranganQuran({ jenis }) {
           menggantikannya saat dicetak; summary-nya sendiri disembunyikan
           lewat @media print. */}
       <p className={gaya.judulCetak}>
-        Keterangan capaian {jenis === 'tahfidz' ? 'Tahfidz' : 'Tahsin'}
+        Keterangan capaian {infoPoin(jenis).label}
       </p>
       <ol className={gaya.daftarKeterangan}>
         {daftar.map((d) => (
@@ -666,7 +678,12 @@ function TitikTargetBerpendar({ cx, cy, value }) {
    Tabel 12 bulan
    ================================================================ */
 function TabelBulanan({ bulanan }) {
-  const mapel = useMapel();
+  const mapel = useMapelSkor();
+  const poin = usePoin();
+  const jenjang = useJenjang();
+  // PG: seluruh ukurannya berbentuk poin, jadi kelompok "Nilai Rata-Rata"
+  // beserta kolom "Target 90"-nya tidak ditampilkan.
+  const adaSkor = mapel.length > 0;
   const wadahGulir = useRef(null);
   const sudahDigoyang = useRef(false);
   const [adaLagiKanan, setAdaLagiKanan] = useState(false);
@@ -798,21 +815,14 @@ function TabelBulanan({ bulanan }) {
   }, []);
 
   const rata = (kolom) => {
-    const angka = bulanan.map((b) => b[kolom]).filter((v) => v !== null);
+    const angka = bulanan.map((b) => b[kolom]).filter((v) => v != null);
     if (!angka.length) return null;
     return angka.reduce((a, b) => a + b, 0) / angka.length;
   };
 
   // Jumlah bulan yang benar-benar sudah terisi dipakai sebagai ringkasan di
   // kepala lipatan, supaya orang tua tahu ada berapa isinya tanpa membuka.
-  const bulanTerisi = bulanan.filter(
-    (b) =>
-      b.rata_b_indo !== null ||
-      b.rata_mtk !== null ||
-      b.rata_ipa !== null ||
-      b.capaian_tahfidz !== null ||
-      b.capaian_tahsin !== null
-  ).length;
+  const bulanTerisi = bulanan.filter(bulanBerdata).length;
 
   return (
     <section className={`${gaya.kartu} ${gaya.kartuRincian}`}>
@@ -844,20 +854,21 @@ function TabelBulanan({ bulanan }) {
             <tr>
               <th rowSpan={2}>No</th>
               <th rowSpan={2}>Bulan</th>
-              {/* +1 untuk kolom Target akademik yang selalu ada. */}
-              <th colSpan={mapel.length + 1}>Nilai Rata-Rata</th>
-              <th colSpan={2}>Tahfidz</th>
-              <th colSpan={2}>Tahsin</th>
+              {/* +1 untuk kolom Target akademik. */}
+              {adaSkor && <th colSpan={mapel.length + 1}>Nilai Rata-Rata</th>}
+              {poin.map((p) => (
+                <th key={p.jenis} colSpan={2}>{p.label}</th>
+              ))}
             </tr>
             <tr>
               {mapel.map((m) => (
                 <th key={m.kunci}>{m.label}</th>
               ))}
-              <th>Target</th>
-              <th>Capaian</th>
-              <th>Target</th>
-              <th>Capaian</th>
-              <th>Target</th>
+              {adaSkor && <th>Target</th>}
+              {poin.map((p) => [
+                <th key={`c-${p.jenis}`}>Capaian</th>,
+                <th key={`t-${p.jenis}`}>Target</th>,
+              ])}
             </tr>
           </thead>
           <tbody>
@@ -873,27 +884,22 @@ function TabelBulanan({ bulanan }) {
                   {mapel.map((m) => (
                     <td key={m.kunci}>{tampil(b[m.kunci])}</td>
                   ))}
-                  <td className={gaya.batasKelompok}>
-                    {berjalan ? b.target_akademik : <span className={gaya.kosong}>–</span>}
-                  </td>
-                  <td>
-                    {b.capaian_tahfidz === null ? (
-                      <span className={gaya.kosong}>–</span>
-                    ) : (
-                      `${b.capaian_tahfidz} · ${b.nama_tahfidz}`
-                    )}
-                  </td>
-                  <td className={gaya.batasKelompok}>
-                    {tampilPoin(b.target_tahfidz, 'tahfidz')}
-                  </td>
-                  <td>
-                    {b.capaian_tahsin === null ? (
-                      <span className={gaya.kosong}>–</span>
-                    ) : (
-                      `${b.capaian_tahsin} · ${b.nama_tahsin}`
-                    )}
-                  </td>
-                  <td>{tampilPoin(b.target_tahsin, 'tahsin')}</td>
+                  {adaSkor && (
+                    <td className={gaya.batasKelompok}>
+                      {berjalan ? b.target_akademik : <span className={gaya.kosong}>–</span>}
+                    </td>
+                  )}
+                  {/* Garis pemisah kelompok di kanan tiap kolom Target,
+                      kecuali kelompok terakhir -- sama seperti dulu. */}
+                  {poin.map((p, j) => [
+                    <td key={`c-${p.jenis}`}>{tampilPoin(b[p.kCapaian], p.jenis, jenjang)}</td>,
+                    <td
+                      key={`t-${p.jenis}`}
+                      className={j < poin.length - 1 ? gaya.batasKelompok : undefined}
+                    >
+                      {tampilPoin(b[p.kTarget], p.jenis, jenjang)}
+                    </td>,
+                  ])}
                 </tr>
               );
             })}
@@ -908,7 +914,7 @@ function TabelBulanan({ bulanan }) {
                   berarti apa-apa. Diisi tanda hubung, bukan dibiarkan
                   kosong, supaya barisnya tidak terlihat seperti tabel
                   yang gagal termuat. */}
-              {[0, 1, 2, 3, 4].map((i) => (
+              {Array.from({ length: (adaSkor ? 1 : 0) + poin.length * 2 }, (_, i) => (
                 <td key={i}>
                   <span className={gaya.kosong}>–</span>
                 </td>
@@ -950,7 +956,8 @@ function PerbandinganKelas({
   targetAkademik,
   tahunAjaran,
 }) {
-  const mapel = useMapel();
+  const mapel = useMapelSkor();
+  const poin = usePoin();
   const bulanTersedia = useMemo(
     () => BULAN_AJARAN.filter((b) => perbandingan[b]?.length),
     [perbandingan]
@@ -974,11 +981,11 @@ function PerbandinganKelas({
   const semuaBaris = perbandingan[bulan] || [];
 
   /* Mapel akademiknya mengikuti jenjang sekolah -- Playgroup tidak
-     menilai IPA. Tahfidz dan Tahsin selalu ada di jenjang mana pun. */
+     menilai IPA, dan B. Indonesia & Matematika-nya berbentuk poin.
+     Tahfidz dan Tahsin selalu ada di jenjang mana pun. */
   const UKURAN = [
     ...mapel.map((m) => ({ kunci: m.kunci, nama: m.label, jenisQuran: null })),
-    { kunci: 'capaian_tahfidz', nama: 'Tahfidz', jenisQuran: 'tahfidz' },
-    { kunci: 'capaian_tahsin', nama: 'Tahsin', jenisQuran: 'tahsin' },
+    ...poin.map((p) => ({ kunci: p.kCapaian, nama: p.label, jenisQuran: p.jenis })),
   ];
 
   return (
@@ -1031,16 +1038,17 @@ function GrafikSatuUkuran({
   targetAkademik,
 }) {
   const ukuranGrafik = useUkuranGrafik();
+  const jenjang = useJenjang();
   const baris = semuaBaris.filter((r) => r[kunci] !== null && r[kunci] !== undefined);
 
-  // Target akademik tetap sepanjang tahun, sedangkan target Tahfidz/Tahsin
-  // berubah tiap bulan -- karena itu diambil dari baris bulan ini, bukan
-  // dari satu angka di tingkat kelas. Seluruh siswa satu kelas berbagi
-  // target yang sama, jadi baris pertama yang terisi sudah mewakili.
-  const target = jenisQuran
-    ? baris.map((r) => r[`target_${jenisQuran}`]).find((v) => v !== null && v !== undefined) ??
-      null
-    : targetAkademik ?? null;
+  // Target akademik tetap sepanjang tahun, sedangkan target poin
+  // (Tahfidz/Tahsin, dan B. Indonesia/Matematika di PG) berubah tiap bulan
+  // DAN bisa berbeda per siswa -- PG menerima siswa baru sepanjang tahun,
+  // sehingga anak yang baru masuk wajar punya target lebih rendah. Karena
+  // itu targetnya dibaca dari baris masing-masing siswa.
+  const targetBaris = (r) =>
+    jenisQuran ? r[`target_${jenisQuran}`] ?? null : targetAkademik ?? null;
+  const target = baris.some((r) => targetBaris(r) !== null) ? true : null;
 
   if (!baris.length) {
     return (
@@ -1064,7 +1072,7 @@ function GrafikSatuUkuran({
           height={ukuranGrafik.height}
         >
           <ComposedChart
-            data={baris.map((r) => ({ ...r, target }))}
+            data={baris.map((r) => ({ ...r, target: targetBaris(r) }))}
             margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
           >
             <CartesianGrid stroke="var(--garis)" vertical={false} />
@@ -1088,7 +1096,7 @@ function GrafikSatuUkuran({
               contentStyle={kotakTooltip}
               formatter={(nilai, namaSeri) =>
                 jenisQuran && nilai !== null && nilai !== undefined
-                  ? [`${nilai} — ${getQuranLevelName(jenisQuran, nilai)}`, namaSeri]
+                  ? [`${nilai} — ${namaPoin(jenisQuran, nilai, jenjang)}`, namaSeri]
                   : [nilai, namaSeri]
               }
             />
@@ -1165,17 +1173,15 @@ function narasiAkademik(bulanan, target, mapel) {
   )}. ${penilaian}`;
 }
 
-function narasiQuran(jenis, bulanan) {
-  const kolom = jenis === 'tahfidz' ? 'capaian_tahfidz' : 'capaian_tahsin';
-  const kolomTarget = jenis === 'tahfidz' ? 'target_tahfidz' : 'target_tahsin';
-  const terisi = bulanan.filter((b) => b[kolom] !== null);
+function narasiQuran(jenis, bulanan, jenjang) {
+  const { kCapaian: kolom, kTarget: kolomTarget, kata: label } = infoPoin(jenis);
+  const terisi = bulanan.filter((b) => b[kolom] != null);
   if (!terisi.length) return 'Narasi akan muncul setelah capaian pertama diinput.';
 
   const akhir = terisi[terisi.length - 1];
-  const nama = getQuranLevelName(jenis, akhir[kolom]);
-  const label = jenis === 'tahfidz' ? 'hafalan' : 'materi';
+  const nama = namaPoin(jenis, akhir[kolom], jenjang);
 
-  if (akhir[kolomTarget] === null) {
+  if (akhir[kolomTarget] == null) {
     return `Sampai bulan ${akhir.bulan}, ${label} telah mencapai ${nama} (poin ${akhir[kolom]}).`;
   }
 
@@ -1227,7 +1233,7 @@ function tampil(nilai) {
 }
 
 /** Poin Qur'an beserta nama surah/materinya, atau "–" bila belum ada. */
-function tampilPoin(poin, jenis) {
+function tampilPoin(poin, jenis, jenjang) {
   if (poin === null || poin === undefined) return <span className={gaya.kosong}>–</span>;
-  return `${poin} · ${getQuranLevelName(jenis, poin)}`;
+  return `${poin} · ${namaPoin(jenis, poin, jenjang)}`;
 }

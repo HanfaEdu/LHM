@@ -163,10 +163,11 @@ const LINK_LHM = 'https://laporan-akademik.vercel.app/';
  * blok kelas itu diam-diam kosong -- bukan galat keras -- dan tanpa
  * daftar ini, data lompong akan ikut tersinkron tanpa ada yang tahu.
  *
- * WAJIB DISESUAIKAN TIAP SEKOLAH. Isinya harus ditulis SAMA PERSIS
- * dengan yang ada di Master Rekap, termasuk besar-kecil hurufnya. Nama
- * kelas bebas -- sistem membacanya apa adanya, tidak pernah menganggapnya
- * angka:
+ * WAJIB DISESUAIKAN TIAP SEKOLAH. Tulis seperti di Master Rekap; besar-
+ * kecil huruf dan awalan "Kelas " tidak berpengaruh, karena daftar ini
+ * dirapikan dengan aturan yang sama seperti kolom Kelas (normalKelas():
+ * "PG Kecil" dibaca "PG KECIL"). Nama kelas bebas -- sistem tidak pernah
+ * menganggapnya angka:
  *
  *   SD  : ['1', '2A', '2B', '3', '4', '5', '6']
  *   PG  : ['Kumbang', 'Capung']   atau  ['PG Kecil', 'PG Besar']
@@ -179,6 +180,18 @@ const LINK_LHM = 'https://laporan-akademik.vercel.app/';
  * IMPORTRANGE dilewati, pemeriksaan lain tetap berjalan.
  */
 const KELAS_DIHARAPKAN = ['1', '2A', '2B', '3', '4', '5', '6'];
+
+/**
+ * KELAS_DIHARAPKAN yang sudah dirapikan seperti kolom Kelas.
+ *
+ * Tanpa ini, 'PG Kecil' di daftar tidak pernah cocok dengan 'PG KECIL'
+ * hasil normalKelas(), dan Cek Kesehatan Data melaporkan seluruh kelas
+ * "TIDAK ditemukan" padahal datanya ada -- peringatan palsu yang membuat
+ * peringatan sungguhan ikut tidak dipercaya.
+ */
+function kelasDiharapkan() {
+  return KELAS_DIHARAPKAN.map(normalKelas).filter(function (k) { return k; });
+}
 
 /** Batas panjang nama kelas, mengikuti kolom kelas.nama_kelas. */
 const MAKS_NAMA_KELAS = 20;
@@ -340,6 +353,7 @@ function identitasSekolah() {
  */
 function cekKesehatanData() {
   const temuan = [];
+  const diharapkan = kelasDiharapkan();
   let isi;
 
   try {
@@ -354,7 +368,7 @@ function cekKesehatanData() {
   const kelasDitemukan = {};
   isi.nilai.forEach(function (n) { kelasDitemukan[n.nama_kelas] = true; });
 
-  KELAS_DIHARAPKAN.forEach(function (k) {
+  diharapkan.forEach(function (k) {
     if (!kelasDitemukan[k]) {
       temuan.push(
         'Kelas ' + k + ' TIDAK ditemukan di Master Rekap. Kemungkinan ' +
@@ -366,7 +380,7 @@ function cekKesehatanData() {
   });
 
   // 2. Untuk kelas yang muncul, apakah jumlah siswanya wajar (bukan 0)?
-  KELAS_DIHARAPKAN.forEach(function (k) {
+  diharapkan.forEach(function (k) {
     if (!kelasDitemukan[k]) return;
     const siswaKelas = unik(
       isi.nilai.filter(function (n) { return n.nama_kelas === k && n.nis; })
@@ -402,9 +416,9 @@ function cekKesehatanData() {
      daftar di konfigurasi belum disesuaikan -- dan selama belum
      disesuaikan, pemeriksaan IMPORTRANGE tidak menjaga kelas itu sama
      sekali. */
-  if (KELAS_DIHARAPKAN.length) {
+  if (diharapkan.length) {
     const tidakTerdaftar = Object.keys(kelasDitemukan).filter(function (k) {
-      return k && KELAS_DIHARAPKAN.indexOf(k) === -1;
+      return k && diharapkan.indexOf(k) === -1;
     });
     if (tidakTerdaftar.length) {
       temuan.push(
@@ -582,7 +596,7 @@ function cekKesehatanData() {
   }
 
   // 4. Kapasitas blok 25 baris/bulan — peringatkan kalau sudah mepet (>=23)
-  KELAS_DIHARAPKAN.forEach(function (k) {
+  diharapkan.forEach(function (k) {
     const siswaKelas = unik(
       isi.nilai.filter(function (n) { return n.nama_kelas === k && n.nis; })
                .map(function (n) { return n.nis; })
@@ -615,6 +629,20 @@ function cekKesehatanData() {
     );
   }
 
+  /* 6c. Wali kelas di users_access yang kelasnya tidak ada di Master Rekap.
+
+     Cara paling wajar menyiapkan sekolah baru adalah menyalin Master Rekap
+     yang sudah jadi -- dan sheet users_access ikut tersalin berikut email
+     guru sekolah ASAL. users_access.email adalah kunci unik lintas sekolah,
+     jadi begitu salinan itu tersinkron, akun guru sekolah asal berpindah
+     menjadi milik sekolah ini dan dasbor mereka sendiri mendadak kosong.
+     Tidak ada satu pun galat -- bagi database itu sekadar pembaruan.
+
+     Tanda yang paling bisa diandalkan: wali kelas yang kelasnya tidak ada
+     di Master Rekap ini. Kepala sekolah dan direktur tidak bisa diperiksa
+     dengan cara ini, jadi mereka disebut juga sebagai pengingat. */
+  temuanUserAccess(isi).forEach(function (t) { temuan.push(t); });
+
   /* 7. Kolom "Cakupan Jenjang" di sheet users_access.
 
      Diperiksa di sini juga -- bukan hanya saat sinkronisasi -- supaya
@@ -635,6 +663,48 @@ function cekKesehatanData() {
  * dikosongkan (sah, tetapi berarti lintas jenjang; disebutkan supaya
  * tidak terjadi tanpa disadari).
  */
+function temuanUserAccess(isi) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
+  if (!sheet) return [];
+  const tabel = sheet.getDataRange().getValues();
+
+  const kelasAda = {};
+  isi.nilai.forEach(function (n) { kelasAda[n.nama_kelas] = true; });
+
+  const asing = [];
+  const pimpinan = [];
+  for (let i = 1; i < tabel.length; i++) {
+    const email = teks(tabel[i][0]).toLowerCase();
+    if (!email) continue;
+    const role = teks(tabel[i][2]).toLowerCase();
+    if (role === 'wali_kelas') {
+      const k = normalKelas(tabel[i][3]);
+      if (!kelasAda[k]) asing.push(email + ' (kelas "' + teks(tabel[i][3]) + '")');
+    } else if (role === 'kepala_sekolah' || role === 'direktur_area') {
+      pimpinan.push(email + ' (' + role + ')');
+    }
+  }
+
+  const temuan = [];
+  if (asing.length) {
+    temuan.push(
+      asing.length + ' wali kelas di sheet users_access mengampu kelas yang ' +
+      'TIDAK ada di Master Rekap ini: ' + ringkasDaftar(asing) + '. Kalau ' +
+      'sheet ini salinan dari sekolah lain, KOSONGKAN dulu dan isi dengan ' +
+      'guru sekolah ini saja -- kalau tersinkron, akun-akun itu berpindah ' +
+      'menjadi milik sekolah ini dan kehilangan akses ke sekolah asalnya.'
+    );
+    if (pimpinan.length) {
+      temuan.push(
+        'Periksa juga akun pimpinan di users_access, pastikan memang milik ' +
+        'sekolah ini: ' + ringkasDaftar(pimpinan) + '. Satu email hanya bisa ' +
+        'terdaftar di SATU Master Rekap.'
+      );
+    }
+  }
+  return temuan;
+}
+
 function temuanCakupanJenjang() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
   if (!sheet) return [];
@@ -922,6 +992,15 @@ function nisGlobal(nisLokal) {
  */
 function kodeSekolahRapi() {
   const rapi = String(KODE_SEKOLAH || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  /* Nilai contoh 'ISIKODE' lolos semua aturan bentuk di bawah -- tanpa
+     pemeriksaan ini, sekolah yang lupa mengisinya tersinkron sebagai
+     sekolah bernama "ISI_NAMA_..." dan kodenya terkunci selamanya. */
+  if (rapi.indexOf('ISI') === 0 || /^ISI_/.test(String(NAMA_SEKOLAH || ''))) {
+    throw new Error(
+      'KODE_SEKOLAH/NAMA_SEKOLAH masih berisi contoh. Isi dengan kode dan ' +
+      'nama sekolah ini di bagian konfigurasi paling atas skrip.'
+    );
+  }
   if (rapi.length < 2) {
     throw new Error(
       'KODE_SEKOLAH belum diisi dengan benar. Isi dengan huruf dan angka ' +

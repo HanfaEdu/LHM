@@ -12,7 +12,8 @@ import {
   siswaDalamKelas,
   susunBulananSiswa,
 } from '@/lib/data-dasbor';
-import { bulanBawaan, ketuntasan, mapelUntuk, narasiKelas } from '@/lib/statistik';
+import { bulanBawaan, ketuntasanMapel, mapelSkor, mapelUntuk, narasiKelas } from '@/lib/statistik';
+import { poinUntuk } from '@/lib/poin';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
@@ -35,6 +36,14 @@ import { KonteksCetak, usePersiapanCetak } from '@/app/komponen/cetak';
 import { KonteksJenjang } from '@/app/komponen/jenjang';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import gaya from '../dasbor.module.css';
+
+/* Warna aksen kartu per ukuran poin -- lihat dasbor.module.css. */
+const KELAS_KARTU = {
+  peng_bindo: gaya.kartuPengBindo,
+  peng_mtk: gaya.kartuPengMtk,
+  tahfidz: gaya.kartuTahfidz,
+  tahsin: gaya.kartuTahsin,
+};
 
 export default function DasborWaliKelas() {
   const router = useRouter();
@@ -146,6 +155,12 @@ export default function DasborWaliKelas() {
      membaca konteks yang disediakannya sendiri -- ia hanya akan menerima
      nilai bawaannya. */
   const mapel = mapelUntuk(sekolah?.jenjang);
+  /* Di PG B. Indonesia & Matematika berbentuk poin dengan target per
+     siswa, jadi grafik nilai 0-100, sebaran nilai, dan "target 90" tidak
+     berlaku di sana -- keduanya tampil sebagai kartu poin di bawah,
+     bersama Tahfidz dan Tahsin. */
+  const adaSkor = mapelSkor(mapel).length > 0;
+  const poin = poinUntuk(sekolah?.jenjang);
 
   // Telusur satu siswa sepanjang tahun ajaran. Wali kelas hanya memegang
   // satu kelas, jadi cukup satu pilihan (nama) -- tidak perlu memilih kelas
@@ -261,21 +276,25 @@ export default function DasborWaliKelas() {
             <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
               <h2 className={gaya.judulKartu}>Ketuntasan {bulan}</h2>
               <p className={gaya.ketKartu}>
-                Persentase siswa yang mencapai target {target}. Siswa yang belum
-                dinilai tidak ikut dihitung.
+                {adaSkor
+                  ? `Persentase siswa yang mencapai target ${target}.`
+                  : 'Persentase siswa yang capaiannya sudah mencapai target masing-masing bulan ini.'}{' '}
+                Siswa yang belum dinilai tidak ikut dihitung.
               </p>
               <div className={gaya.barisMeter}>
                 {mapel.map((m) => (
                   <MeterKetuntasan
                     key={m.kunci}
                     label={m.label}
-                    hasil={ketuntasan(baris, m.kunci, target)}
+                    hasil={ketuntasanMapel(baris, m, target)}
                   />
                 ))}
               </div>
               <p className={gaya.narasi}>{narasiKelas(baris, target, bulan, mapel)}</p>
             </section>
 
+            {adaSkor && (
+            <>
             <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
               <h2 className={gaya.judulKartu}>Capaian Hasil Belajar per Siswa</h2>
               <p className={gaya.ketKartu}>
@@ -293,27 +312,21 @@ export default function DasborWaliKelas() {
               </p>
               <TabelDistribusi baris={baris} />
             </section>
+            </>
+            )}
 
             <div className={gaya.tumpuk2}>
-              <section className={`${gaya.kartu} ${gaya.kartuTahfidz}`}>
-                <h2 className={gaya.judulKartu}>Capaian Tahfidz</h2>
-                <p className={gaya.ketKartu}>
-                  Batang bergaris tepi merah menandai siswa yang masih di bawah target.
-                </p>
-                <GrafikKelasQuran jenis="tahfidz" baris={baris} />
-                <RekapQuran jenis="tahfidz" baris={baris} />
-                <KeteranganQuran jenis="tahfidz" />
-              </section>
-
-              <section className={`${gaya.kartu} ${gaya.kartuTahsin}`}>
-                <h2 className={gaya.judulKartu}>Capaian Tahsin</h2>
-                <p className={gaya.ketKartu}>
-                  Batang bergaris tepi merah menandai siswa yang masih di bawah target.
-                </p>
-                <GrafikKelasQuran jenis="tahsin" baris={baris} />
-                <RekapQuran jenis="tahsin" baris={baris} />
-                <KeteranganQuran jenis="tahsin" />
-              </section>
+              {poin.map((p) => (
+                <section key={p.jenis} className={`${gaya.kartu} ${KELAS_KARTU[p.jenis]}`}>
+                  <h2 className={gaya.judulKartu}>Capaian {p.label}</h2>
+                  <p className={gaya.ketKartu}>
+                    Batang bergaris tepi merah menandai siswa yang masih di bawah target.
+                  </p>
+                  <GrafikKelasQuran jenis={p.jenis} baris={baris} />
+                  <RekapQuran jenis={p.jenis} baris={baris} />
+                  <KeteranganQuran jenis={p.jenis} />
+                </section>
+              ))}
             </div>
 
             <section className={`${gaya.kartu} ${gaya.kartuTindak}`}>
@@ -363,30 +376,23 @@ export default function DasborWaliKelas() {
 
             {bulananSiswa && (
               <>
-                <h3 className={gaya.subJudulKartu} style={{ marginTop: '1.25rem' }}>
-                  Capaian Akademik
-                </h3>
-                <GrafikTahunanAkademik bulanan={bulananSiswa} target={target} />
+                {adaSkor && (
+                  <>
+                    <h3 className={gaya.subJudulKartu} style={{ marginTop: '1.25rem' }}>
+                      Capaian Akademik
+                    </h3>
+                    <GrafikTahunanAkademik bulanan={bulananSiswa} target={target} />
+                  </>
+                )}
 
                 <div className={gaya.tumpuk2} style={{ marginTop: '0.5rem' }}>
-                  <div>
-                    <h3 className={gaya.subJudulKartu}>Tahfidz</h3>
-                    <GrafikTahunanQuran
-                      jenis="tahfidz"
-                      bulanan={bulananSiswa}
-                      warna="var(--seri-1)"
-                    />
-                    <KeteranganQuran jenis="tahfidz" />
-                  </div>
-                  <div>
-                    <h3 className={gaya.subJudulKartu}>Tahsin</h3>
-                    <GrafikTahunanQuran
-                      jenis="tahsin"
-                      bulanan={bulananSiswa}
-                      warna="var(--seri-3)"
-                    />
-                    <KeteranganQuran jenis="tahsin" />
-                  </div>
+                  {poin.map((p) => (
+                    <div key={p.jenis}>
+                      <h3 className={gaya.subJudulKartu}>{p.label}</h3>
+                      <GrafikTahunanQuran jenis={p.jenis} bulanan={bulananSiswa} />
+                      <KeteranganQuran jenis={p.jenis} />
+                    </div>
+                  ))}
                 </div>
 
                 {/* Angka pastinya, di bawah grafik yang memperlihatkan
