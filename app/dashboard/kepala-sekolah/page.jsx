@@ -38,6 +38,7 @@ import {
   rekapQuran,
 } from '@/lib/statistik';
 import { poinUntuk } from '@/lib/poin';
+import { tampilKelas } from '@/lib/kelas';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
@@ -281,7 +282,7 @@ export default function DasborKepalaSekolah() {
        di jenjang Playgroup IPA tidak dinilai, dan kolom yang selalu null
        akan tetap menyisakan batang kosong di grafik. */
     .map((r) => ({
-      nama: r.kelas.nama_kelas,
+      nama: tampilKelas(r.kelas.nama_kelas, sekolah?.jenjang),
       ...Object.fromEntries(
         mapel.map((m, i) => [m.label, r.perMapel[i]?.persen ?? null])
       ),
@@ -499,7 +500,7 @@ export default function DasborKepalaSekolah() {
                           setFokus(String(fokus) === String(r.kelas.id) ? '' : String(r.kelas.id))
                         }
                       >
-                        {r.kelas.nama_kelas}
+                        {tampilKelas(r.kelas.nama_kelas, sekolah?.jenjang)}
                       </button>
                     </td>
                     <td className={gaya.kiri}>{r.kelas.wali_kelas || '–'}</td>
@@ -543,7 +544,9 @@ export default function DasborKepalaSekolah() {
             <div>
               <h2 className={gaya.judulKartu}>
                 Rincian Per Kelas
-                {kelasFokus ? ` · Kelas ${kelasFokus.kelas.nama_kelas} · ${bulan}` : ''}
+                {kelasFokus
+                  ? ` · Kelas ${tampilKelas(kelasFokus.kelas.nama_kelas, sekolah?.jenjang)} · ${bulan}`
+                  : ''}
               </h2>
               <p className={gaya.ketKartu} style={{ margin: 0 }}>
                 {kelasFokus
@@ -561,7 +564,7 @@ export default function DasborKepalaSekolah() {
                 <option value="">— pilih kelas —</option>
                 {ringkasan.map((r) => (
                   <option key={r.kelas.id} value={r.kelas.id}>
-                    {r.kelas.nama_kelas}
+                    {tampilKelas(r.kelas.nama_kelas, sekolah?.jenjang)}
                   </option>
                 ))}
               </select>
@@ -593,7 +596,7 @@ export default function DasborKepalaSekolah() {
 
           {kelasFokus && kelasFokus.jumlah === 0 && (
             <p className={gaya.kosong}>
-              Kelas {kelasFokus.kelas.nama_kelas} belum punya nilai untuk bulan {bulan}.
+              Kelas {tampilKelas(kelasFokus.kelas.nama_kelas, sekolah?.jenjang)} belum punya nilai untuk bulan {bulan}.
             </p>
           )}
         </section>
@@ -651,7 +654,7 @@ export default function DasborKepalaSekolah() {
                 <option value="">— pilih kelas —</option>
                 {kelasTahunIni.map((k) => (
                   <option key={k.id} value={k.id}>
-                    {k.nama_kelas}
+                    {tampilKelas(k.nama_kelas, sekolah?.jenjang)}
                   </option>
                 ))}
               </select>

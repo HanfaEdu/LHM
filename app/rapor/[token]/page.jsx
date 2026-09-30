@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { BULAN_AJARAN } from '@/quran_mapping';
 import { infoPoin, namaPoin, petaPoin, poinUntuk } from '@/lib/poin';
+import { tampilKelas } from '@/lib/kelas';
 import { bulanBawaan, bulanBerdata } from '@/lib/statistik';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import { Printer, WifiOff } from 'lucide-react';
@@ -293,6 +294,8 @@ export default function HalamanRapor({ params }) {
   if (!data) return null;
 
   const tahunTampil = tahunAjaran || data.kelas.tahun_ajaran;
+  // Hanya tampilan: PG "PLAYGROUP" -> "Playgroup" (lib/kelas.js).
+  const namaKelas = tampilKelas(data.kelas.nama_kelas, data.sekolah?.jenjang);
 
   return (
     <KonteksCetak.Provider value={modeCetak}>
@@ -302,7 +305,7 @@ export default function HalamanRapor({ params }) {
         <KepalaSekolahan
           namaSekolah={data.sekolah?.nama}
           judul={data.anak.nama_lengkap}
-          keterangan={`Kelas ${data.kelas.nama_kelas}${
+          keterangan={`Kelas ${namaKelas}${
             data.kelas.wali_kelas ? ` · Wali Kelas: ${data.kelas.wali_kelas}` : ''
           }`}
           anak={
@@ -411,7 +414,7 @@ export default function HalamanRapor({ params }) {
         <PerbandinganKelas
           perbandingan={data.perbandingan}
           namaAnak={data.anak.nama_panggilan}
-          namaKelas={data.kelas.nama_kelas}
+          namaKelas={namaKelas}
           targetAkademik={data.kelas.target_akademik}
           tahunAjaran={data.kelas.tahun_ajaran}
         />
@@ -426,7 +429,7 @@ export default function HalamanRapor({ params }) {
           dengan rapor anak lain. Disembunyikan sepenuhnya di layar. */}
       <footer className={gaya.kakiCetak} aria-hidden="true">
         <span>
-          {data.anak.nama_lengkap} · Kelas {data.kelas.nama_kelas}
+          {data.anak.nama_lengkap} · Kelas {namaKelas}
           {tahunTampil ? ` · T.A. ${tahunTampil}` : ''}
         </span>
         <span>

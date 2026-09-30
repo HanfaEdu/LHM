@@ -14,6 +14,7 @@ import {
 } from '@/lib/data-dasbor';
 import { bulanBawaan, ketuntasanMapel, mapelSkor, mapelUntuk, narasiKelas } from '@/lib/statistik';
 import { poinUntuk } from '@/lib/poin';
+import { tampilKelas } from '@/lib/kelas';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
@@ -155,6 +156,8 @@ export default function DasborWaliKelas() {
      membaca konteks yang disediakannya sendiri -- ia hanya akan menerima
      nilai bawaannya. */
   const mapel = mapelUntuk(sekolah?.jenjang);
+  // Hanya tampilan: PG "PLAYGROUP" -> "Playgroup" (lib/kelas.js).
+  const namaKelas = tampilKelas(kelas?.nama_kelas ?? '', sekolah?.jenjang);
   /* Di PG B. Indonesia & Matematika berbentuk poin dengan target per
      siswa, jadi grafik nilai 0-100, sebaran nilai, dan "target 90" tidak
      berlaku di sana -- keduanya tampil sebagai kartu poin di bawah,
@@ -199,7 +202,7 @@ export default function DasborWaliKelas() {
       <div className={gaya.wadah}>
         <KepalaSekolahan
           namaSekolah={sekolah?.nama}
-          judul={`Kelas ${kelas?.nama_kelas ?? ''} · ${bulan || 'belum ada data'}`}
+          judul={`Kelas ${namaKelas} · ${bulan || 'belum ada data'}`}
           keterangan={`${kelas?.wali_kelas || profil?.nama || ''} · Tahun Ajaran ${
             kelas?.tahun_ajaran ?? ''
           }${baris.length ? ` · ${baris.length} siswa` : ''}`}
@@ -220,7 +223,7 @@ export default function DasborWaliKelas() {
                 <select value={kelasId} onChange={(e) => setKelasId(e.target.value)}>
                   {daftarKelas.map((k) => (
                     <option key={k.id} value={k.id}>
-                      {k.nama_kelas} — {k.tahun_ajaran}
+                      {tampilKelas(k.nama_kelas, sekolah?.jenjang)} — {k.tahun_ajaran}
                     </option>
                   ))}
                 </select>
@@ -255,7 +258,7 @@ export default function DasborWaliKelas() {
             bagi siapa pun yang menerimanya seminggu kemudian. */}
         <div className={gaya.judulCetak} aria-hidden="true">
           <span className={gaya.judulCetakUtama}>
-            Laporan Bulanan Kelas {kelas?.nama_kelas ?? ''} · {bulan || '–'}
+            Laporan Bulanan Kelas {namaKelas} · {bulan || '–'}
           </span>
           <span className={gaya.judulCetakSisi}>
             {tanggalCetak ? `Dicetak ${tanggalCetak}` : ''}
@@ -418,7 +421,7 @@ export default function DasborWaliKelas() {
             dan tertumpuk bersama laporan kelas lain. */}
         <footer className={gaya.kakiCetak} aria-hidden="true">
           <span>
-            Kelas {kelas?.nama_kelas ?? ''} · {bulan || '–'}
+            Kelas {namaKelas} · {bulan || '–'}
             {kelas?.tahun_ajaran ? ` · T.A. ${kelas.tahun_ajaran}` : ''}
           </span>
           <span>
