@@ -5,6 +5,7 @@ import { nomorWa } from '@/lib/nomor-wa';
 import { susunBalasan } from '@/lib/wa-balasan';
 import { memintaTautan } from '@/lib/wa-kata-kunci';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
+import { tampilKelas } from '@/lib/kelas';
 
 export const dynamic = 'force-dynamic';
 
@@ -321,7 +322,7 @@ export async function POST(request) {
     // supaya anak yang sudah naik kelas tidak disebut kelas lamanya.
     const { data: penempatan } = await db
       .from('penempatan')
-      .select('nis, kelas:kelas_id (nama_kelas, tahun_ajaran)')
+      .select('nis, kelas:kelas_id (nama_kelas, tahun_ajaran, sekolah:sekolah_id (jenjang))')
       .in('nis', daftarNis);
 
     for (const p of penempatan || []) {
@@ -338,7 +339,10 @@ export async function POST(request) {
     const token = tautanPer.get(s.nis);
     return {
       nama: s.nama_panggilan || s.nama_lengkap,
-      kelas: kelasPer.get(s.nis)?.nama_kelas || null,
+      // Hanya tampilan: PG "PLAYGROUP" -> "Playgroup" (lib/kelas.js).
+      kelas: kelasPer.get(s.nis)?.nama_kelas
+        ? tampilKelas(kelasPer.get(s.nis).nama_kelas, kelasPer.get(s.nis).sekolah?.jenjang)
+        : null,
       tautan: token ? `${asal}/rapor/${token}` : null,
     };
   });

@@ -207,8 +207,10 @@ export async function POST(request) {
 
     // Nama sekolah dilampirkan ke tiap baris supaya biro akademik bisa
     // membedakan "A1" milik Kudus dari "A1" milik Pati -- dan menyaringnya.
-    const { data: sekolah } = await db.from('sekolah').select('id, nama');
+    const { data: sekolah } = await db.from('sekolah').select('id, nama, jenjang');
     const namaSekolah = new Map((sekolah || []).map((x) => [x.id, x.nama]));
+    // Jenjang ikut dikirim hanya untuk TAMPILAN nama kelas PG (lib/kelas.js).
+    const jenjangSekolah = new Map((sekolah || []).map((x) => [x.id, x.jenjang]));
 
     const barisTahunIni = (penempatan || []).filter(
       (p) =>
@@ -233,6 +235,7 @@ export async function POST(request) {
           nama_kelas: p.kelas.nama_kelas,
           sekolah_id: p.kelas.sekolah_id ?? null,
           nama_sekolah: namaSekolah.get(p.kelas.sekolah_id) ?? '',
+          jenjang: jenjangSekolah.get(p.kelas.sekolah_id) ?? null,
           token: a?.token ?? null,
           aktif: a?.aktif ?? null,
           terakhir_dibuka: a?.terakhir_dibuka ?? null,
