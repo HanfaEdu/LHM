@@ -1485,10 +1485,16 @@ function unik(arr) {
   });
 }
 
-// Salinan mapping untuk keperluan script ini (Apps Script tidak bisa
-// meng-import quran_mapping.js). Sumber kebenaran tetap tabel
-// mapping_quran di Supabase; ini hanya untuk memulihkan target yang
-// terlanjur ditulis sebagai teks.
+// Salinan peta JENJANG SD untuk keperluan script ini (Apps Script tidak
+// bisa meng-import lib/poin.js). Dipakai hanya untuk memulihkan target
+// yang terlanjur ditulis sebagai teks, bukan untuk menampilkan apa pun.
+//
+// Yang dibaca rapor orang tua adalah lib/poin.js, dan di sana petanya
+// BERBEDA PER JENJANG: poin 2 Tahfidz di SD "An Nass", di Playgroup
+// "Al Fatihah"; Tahsin SD berupa bab tajwid, Tahsin PG berupa huruf
+// hijaiyah. Kalau kurikulum berubah, lib/poin.js yang harus diubah --
+// daftar di bawah ini dan tabel mapping_quran di Supabase keduanya
+// arsip rujukan SD, bukan sumber kebenaran.
 const NAMA_TAHFIDZ = {
   1: 'Al Faatihah', 2: 'An Nass', 3: 'Al Falaq', 4: 'Al Ikhlas',
   5: 'Al Lahab', 6: 'An Nashr', 7: 'Al Kaafiruun', 8: 'Al Kautsar',

@@ -13,6 +13,15 @@ export const BULAN_AJARAN = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni"
 ];
 
+/**
+ * Peta poin -> nama surah/materi untuk JENJANG SD.
+ *
+ * Bukan peta tunggal seluruh sekolah. lib/poin.js memakai kedua objek di
+ * bawah sebagai peta BAWAAN, dan Playgroup menimpanya dengan petanya
+ * sendiri -- poin 2 Tahfidz di SD "An Nass", di PG "Al Fatihah"; Tahsin
+ * SD bab tajwid, Tahsin PG huruf hijaiyah. Menambah atau mengubah baris
+ * di sini hanya mengubah rapor SD; kurikulum PG diubah di lib/poin.js.
+ */
 export const TAHFIDZ_MAPPING = {
   1: "Al Faatihah",
   2: "An Nass",
