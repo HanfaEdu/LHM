@@ -62,7 +62,8 @@ export const TAHFIDZ_MAPPING = {
   46: "Al Maarij",
   47: "Al Haqqah",
   48: "Al Qalam",
-  49: "Al Mulk"
+  49: "Al Mulk",
+  50: "Al Baqarah"
 };
 
 export const TAHSIN_MAPPING = {
