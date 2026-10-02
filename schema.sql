@@ -269,7 +269,7 @@ INSERT INTO mapping_quran (jenis, poin, nama) VALUES
     ('tahfidz', 43, 'Al Muzzammil'),  ('tahfidz', 44, 'Al Jinn'),
     ('tahfidz', 45, 'Nuh'),           ('tahfidz', 46, 'Al Maarij'),
     ('tahfidz', 47, 'Al Haqqah'),     ('tahfidz', 48, 'Al Qalam'),
-    ('tahfidz', 49, 'Al Mulk')
+    ('tahfidz', 49, 'Al Mulk'),     ('tahfidz', 50, 'Al Baqarah')
 ON CONFLICT (jenis, poin) DO UPDATE SET nama = EXCLUDED.nama;
 
 INSERT INTO mapping_quran (jenis, poin, nama) VALUES

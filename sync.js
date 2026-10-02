@@ -1503,6 +1503,7 @@ const NAMA_TAHFIDZ = {
   39: 'Al Mursalat', 40: 'Al Insan', 41: 'Al Qiyamah', 42: 'Al Muddassir',
   43: 'Al Muzzammil', 44: 'Al Jinn', 45: 'Nuh', 46: 'Al Maarij',
   47: 'Al Haqqah', 48: 'Al Qalam', 49: 'Al Mulk',
+  50: 'Al Baqarah',
 };
 
 const NAMA_TAHSIN = {
