@@ -22,7 +22,11 @@ CREATE TABLE IF NOT EXISTS mapping_quran (
 );
 
 COMMENT ON TABLE mapping_quran IS
-    'Peta poin -> nama surah (tahfidz) atau nama bab materi (tahsin).';
+    'Arsip rujukan peta poin -> nama surah (tahfidz) / bab materi (tahsin) '
+    'untuk jenjang SD. BUKAN sumber kebenaran: yang dibaca halaman rapor '
+    'adalah lib/poin.js, yang petanya berbeda per jenjang (Playgroup punya '
+    'peta Tahfidz dan Tahsin sendiri, dan dua ukuran poin tambahan). Tabel '
+    'ini tidak punya kolom jenjang, jadi isinya hanya berlaku untuk SD.';
 
 -- ===================================================================
 -- BAGIAN 2: IDENTITAS SISWA
