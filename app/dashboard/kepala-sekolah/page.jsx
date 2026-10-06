@@ -752,11 +752,25 @@ function GrafikKetuntasanKelas({ data }) {
         width={ukuran.width}
         height={ukuran.height}
       >
-        <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
+        {/* barGap kecil + barSize tetap (bukan maxBarSize) di tiap Bar:
+            batang mapel satu kelas dirapatkan berdampingan di tengah
+            kategorinya. Dengan maxBarSize, recharts memberi tiap mapel
+            jatah sepertiga/separuh lebar kategori lalu menaruh batang di
+            tengah jatahnya -- pada sekolah PG yang kelasnya sedikit,
+            dua batang satu kelas terpisah ratusan piksel. Kalau ruangnya
+            tidak cukup (banyak kelas di layar HP), recharts sendiri
+            mengecilkan batang supaya tetap muat tanpa bertumpuk. */}
+        <ComposedChart
+          data={data}
+          margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
+          barGap={4}
+        >
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
             dataKey="nama"
-            tick={{ fontSize: 12, fill: 'var(--tinta-lembut)' }}
+            // Nama kelas adalah label utama grafik ini: warna tinta penuh
+            // dan sedikit lebih tebal, bukan abu-abu seperti angka sumbu.
+            tick={{ fontSize: 13, fontWeight: 600, fill: 'var(--tinta)' }}
             tickLine={false}
             axisLine={{ stroke: 'var(--garis)' }}
           />
@@ -819,7 +833,7 @@ function GrafikKetuntasanKelas({ data }) {
               dataKey={m.label}
               fill={WARNA_MAPEL[m.kunci]}
               radius={[4, 4, 0, 0]}
-              maxBarSize={28}
+              barSize={28}
             />
           ))}
         </ComposedChart>
