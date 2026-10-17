@@ -40,6 +40,7 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 | `app/api/rapor/` | Endpoint server: verifikasi token (PIN opsional) + penyamaran nama sekelas. |
 | `app/api/wa/` | Webhook WhatsApp: mengenali nomor pengirim, membalas tautan rapor anaknya. |
 | `migrasi/` | Perubahan skema susulan. Dijalankan berurutan, sekali masing-masing. |
+| `perawatan/pindah-akun/` | Memindahkan semua file Sheets ke akun Google lain (mis. belajar.id → pribadi) dan menyambung ulang IMPORTRANGE otomatis. |
 | `docs/PERBAIKAN_SPREADSHEET.md` | Audit rumus + daftar perbaikan sebelum sync pertama. |
 | `docs/AKSES_ORANG_TUA.md` | Cara menerbitkan tautan untuk orang tua (token saja secara default). |
 | `docs/LAYANAN_WA.md` | Layanan WhatsApp: orang tua mengetik `akademik`, tautan rapor dibalas otomatis. |
