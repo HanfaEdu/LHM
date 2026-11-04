@@ -162,6 +162,10 @@
 .kartuAkademik { --aksen: var(--seri-1); }
 .kartuTahfidz  { --aksen: var(--seri-1); }
 .kartuTahsin   { --aksen: var(--seri-3); }
+/* Playgroup: B. Indonesia & Matematika berbentuk poin, tampil sebagai
+   kartu sejenis Tahfidz/Tahsin. */
+.kartuPengBindo { --aksen: var(--seri-1); }
+.kartuPengMtk   { --aksen: var(--seri-2); }
 .kartuRingkas  { --aksen: var(--emas); }
 .kartuTindak   { --aksen: var(--kritis); }
 .kartuAlat     { --aksen: var(--tinta-samar); }

@@ -27,6 +27,15 @@ const UKURAN = 14;
 const TENGAH = UKURAN / 2;
 
 function Ikon({ warna, warnaTepi, putusPutus, jenis, bulatanTarget }) {
+  // Penanda target per siswa (PenandaTarget.jsx): garis pendek tebal.
+  if (jenis === 'penanda') {
+    return (
+      <svg width={UKURAN} height={UKURAN} viewBox={`0 0 ${UKURAN} ${UKURAN}`} aria-hidden="true">
+        <line x1="1" y1={TENGAH} x2={UKURAN - 1} y2={TENGAH} stroke={warna} strokeWidth="3" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
   // Batang digambar sebagai kotak, sesuai bentuk datanya di grafik.
   if (jenis === 'rect' || jenis === 'square') {
     return (
@@ -133,7 +142,9 @@ export default function LegendaGrafik({
     >
       {tambahanDepan?.map(sisipan)}
 
-      {payload?.map((seri) => (
+      {/* Seri ber-legendType "none" (penanda target per siswa di PG)
+          sudah diwakili keterangan sisipannya sendiri. */}
+      {payload?.filter((seri) => seri.type !== 'none').map((seri) => (
         <li
           key={seri.dataKey ?? seri.value}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}

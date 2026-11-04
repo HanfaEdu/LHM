@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { nomorWa } from '@/lib/nomor-wa';
 import { susunBalasan } from '@/lib/wa-balasan';
+import { memintaTautan } from '@/lib/wa-kata-kunci';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
+import { tampilKelas } from '@/lib/kelas';
 
 export const dynamic = 'force-dynamic';
 
@@ -234,6 +236,20 @@ export async function POST(request) {
     return NextResponse.json({ ok: true, lewat: 'grup' });
   }
 
+  /* --- Hanya pesan yang meminta tautan yang dijawab ------------------
+     Nomor WhatsApp sekolah juga dipakai percakapan biasa: tanya SPP,
+     izin sakit, konfirmasi kegiatan. Tanpa saringan ini, orang tua yang
+     bertanya soal seragam ikut menerima tautan rapor anaknya di tengah
+     percakapan dengan manusia.
+
+     Yang tidak memuat kata kunci juga TIDAK dicatat ke wa_pesan. Pesan
+     itu bukan permintaan tautan, dan mencatat nomornya berarti menyimpan
+     jejak percakapan pribadi orang tua dengan sekolah -- persis yang
+     sengaja dihindari sejak awal dengan tidak menyimpan isi pesan. */
+  if (!memintaTautan(badan.message || badan.pesan || '')) {
+    return NextResponse.json({ ok: true, lewat: 'tanpa kata kunci' });
+  }
+
   const pengirim = nomorWa(badan.sender || badan.pengirim || '');
   if (!pengirim) {
     return NextResponse.json({ ok: true, lewat: 'nomor tidak terbaca' });
@@ -306,7 +322,7 @@ export async function POST(request) {
     // supaya anak yang sudah naik kelas tidak disebut kelas lamanya.
     const { data: penempatan } = await db
       .from('penempatan')
-      .select('nis, kelas:kelas_id (nama_kelas, tahun_ajaran)')
+      .select('nis, kelas:kelas_id (nama_kelas, tahun_ajaran, sekolah:sekolah_id (jenjang))')
       .in('nis', daftarNis);
 
     for (const p of penempatan || []) {
@@ -323,7 +339,10 @@ export async function POST(request) {
     const token = tautanPer.get(s.nis);
     return {
       nama: s.nama_panggilan || s.nama_lengkap,
-      kelas: kelasPer.get(s.nis)?.nama_kelas || null,
+      // Hanya tampilan: PG "PLAYGROUP" -> "Playgroup" (lib/kelas.js).
+      kelas: kelasPer.get(s.nis)?.nama_kelas
+        ? tampilKelas(kelasPer.get(s.nis).nama_kelas, kelasPer.get(s.nis).sekolah?.jenjang)
+        : null,
       tautan: token ? `${asal}/rapor/${token}` : null,
     };
   });

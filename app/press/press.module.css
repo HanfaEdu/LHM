@@ -1308,3 +1308,6 @@
 .obrolanRapat .gelembungMasuk { font-size: 15px; gap: 5px; }
 .obrolanRapat .tautan { font-size: 14px; }
 .pencocok .chip { font-size: 17px; padding: 8px 16px; }
+.kataKunci { background: var(--emas); color: var(--malam); font-weight: 700; padding: 0 6px; border-radius: 6px; }
+.pencocok .pengirim { padding: 14px 24px; }
+.pencocok .hasilCocok { padding: 14px 24px; }

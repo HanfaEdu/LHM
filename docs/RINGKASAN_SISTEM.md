@@ -20,7 +20,7 @@ serta rapor untuk orang tua lewat tautan pribadi.
 - Repositori: `HanfaEdu/LHM` — cabang kerja `claude/rapor-digital-system-1ye6i9`, selalu didorong juga ke `main`
 - Aplikasi: Next.js (App Router, JavaScript, bukan TypeScript) di Vercel
 - Database: Supabase (Postgres) — proyek **Database LHM**, `inuhrnogwcqbuhdiezwn`
-- Pengisian nilai: Google Spreadsheet + Google Apps Script (`sync.js`)
+- Pengisian nilai: Google Spreadsheet + Google Apps Script (`sync.js` untuk SD/TK, `sync-pg.js` untuk PG — isinya identik kecuali cara membaca Matematika/B. Indonesia)
 - Bahasa kode, komentar, dan antarmuka: **Indonesia**
 
 Pemilik sistem **bukan programmer**. Penjelasan perlu memakai bahasa
@@ -174,12 +174,29 @@ mana yang tampil**.
 
 ```js
 // lib/statistik.js
-const MAPEL = [rata_b_indo, rata_mtk, rata_ipa];
-const MAPEL_PER_JENJANG = { PG: ['rata_b_indo', 'rata_mtk'] };
+const MAPEL = [rata_b_indo, rata_mtk, rata_ipa];      // nilai 0-100
+const MAPEL_PER_JENJANG = { PG: [] };                 // PG: tanpa nilai 0-100
+const MAPEL_POIN_PER_JENJANG = { PG: [capaian_peng_bindo, capaian_peng_mtk] };
+
+// lib/poin.js
+poinUntuk('SD') -> tahfidz, tahsin
+poinUntuk('PG') -> peng_bindo, peng_mtk, tahfidz, tahsin
 ```
 
 - **PG tidak menilai IPA.** Meteran, grafik, kolom tabel, legenda,
   dan rapor orang tua semuanya menyembunyikannya.
+- **B. Indonesia & Matematika PG berbentuk POIN TAHAPAN**, bukan nilai
+  0-100 (1 = "tulisan namanya", 1 = "konsep bilangan 1", …), dengan
+  target per siswa per bulan — persis seperti Tahfidz. Disimpan di
+  `capaian_peng_bindo/target_peng_bindo` dan `capaian_peng_mtk/
+  target_peng_mtk` (migrasi 007), diisi `sync-pg.js`. Di dasbor PG
+  keduanya tampil sebagai kartu poin bersama Tahfidz/Tahsin; meteran
+  ketuntasan = % siswa yang capaiannya ≥ targetnya sendiri. Grafik nilai
+  0-100, sebaran nilai, dan "target 90" tidak tampil di PG.
+- **Peta nama poin berbeda per jenjang** (`lib/poin.js`): Tahfidz PG
+  poin 2 = "Al Fatihah" (SD: "An Nass"); Tahsin PG = huruf hijaiyah
+  (SD: bab tajwid). Selalu pakai `namaPoin(jenis, poin, jenjang)`, jangan
+  `getQuranLevelName()` yang hanya tahu peta SD.
 - Jenjang lain (TK, SMP, SMA) belum didaftarkan — jatuh ke daftar penuh.
   **TK belum ditanyakan** apa saja yang dinilai; jangan diasumsikan sama
   dengan PG.
@@ -204,7 +221,8 @@ berganti dalam sesi login yang sama. Dijaga `scripts/uji-jenjang.mjs`.
 ada kolom "Sekolah" per baris; identitasnya ditulis sekali di
 konfigurasi skrip.
 
-Konfigurasi per sekolah di `sync.js` (bagian paling atas):
+Konfigurasi per sekolah di `sync.js` (SD/TK) atau `sync-pg.js` (PG) —
+bagian paling atas, bentuknya sama di kedua berkas:
 
 ```js
 const APP_URL     = '…';            // domain Vercel — TIDAK ada di GitHub
@@ -224,8 +242,8 @@ const KELAS_DIHARAPKAN = ['1','2A','2B','3','4','5','6'];  // maks 20 karakter p
   memotong)
 - `AREA_SEKOLAH` salah ketik satu huruf → sekolah itu tidak terlihat biro
 
-Menyalin `sync.js` dari GitHub selalu perlu mengisi ulang `APP_URL` dan
-`SYNC_SECRET`.
+Menyalin `sync.js`/`sync-pg.js` dari GitHub selalu perlu mengisi ulang
+`APP_URL` dan `SYNC_SECRET`.
 
 ---
 
@@ -265,7 +283,8 @@ Semuanya memakai boneka — **tidak menyentuh Supabase**. Beberapa perlu
 |---|---|
 | `uji-cakupan-jenjang.mjs` | cakupan biro — SQL asli di Postgres sungguhan + kembarannya di JS |
 | `uji-direktur-area.mjs` | dasbor biro, pemilih sekolah, penyaringan tautan |
-| `uji-jenjang.mjs` | PG tanpa IPA di seluruh halaman |
+| `uji-jenjang.mjs` | PG tanpa IPA; B. Indo/MTK PG tampil sebagai poin; peta nama PG vs SD |
+| `uji-sinkron-pg.mjs` | `sync-pg.js`: kolom PG terbaca & diteruskan, kolom hilang menghentikan sinkron, users_access salinan diperingatkan |
 | `uji-cetak-dasbor.mjs` | grafik tercetak tidak rusak (bukti tingkat PDF) |
 | `uji-cetak-rapor.mjs` | cetak rapor orang tua |
 | `uji-tahun-ajaran.mjs` | pergantian tahun ajaran |
@@ -307,8 +326,10 @@ Yang perlu diperiksa di percakapan berikutnya:
 4. **Kolom nilai IPA di Master Rekap PG** — apakah ada tapi kosong, atau
    tidak ada sama sekali? Sinkronisasi tidak masalah dengan kolom hilang,
    tapi perlu dipastikan header yang lain tetap bernama persis.
-5. **Tahfidz/Tahsin di PG** — apakah skala poinnya sama dengan SD?
-   `mapping_quran` dipakai bersama seluruh jenjang.
+5. **Tahfidz/Tahsin di PG** — ~~apakah skala poinnya sama dengan SD?~~
+   Terjawab: **berbeda**. Peta PG ada di `lib/poin.js`, disalin dari
+   kolom Keterangan file kelas PG Kudus. Kalau PG sekolah lain memakai
+   kurikulum berbeda, peta itu perlu dipecah per sekolah.
 6. **Biro PG-TK** — emailnya ditulis **sekali saja** di salah satu dari
    empat sekolah itu, dengan `Cakupan Jenjang` = `PG,TK`.
 7. **`LINK_LHM` masing-masing** — tiap sekolah punya aplikasi input

@@ -304,12 +304,42 @@ console.log('\n--- penanda hidup GET ---');
 }
 
 // ===================================================================
+console.log('\n--- pesan tanpa kata kunci ---');
+// ===================================================================
+{
+  bersihCatatan();
+  /* Nomor ini TERDAFTAR dan punya tautan aktif. Kalau saringan kata
+     kunci putus, pesan percakapan biasa seperti ini akan dijawab tautan
+     rapor di tengah percakapan dengan wali kelas. */
+  const biasa = await kirimWebhook({
+    sender: '6281234567890', message: 'Bu, besok anak saya izin sakit',
+    device: '628111000111',
+  });
+
+  periksa('dijawab 200 tanpa membalas apa pun',
+    biasa.status === 200 && biasa.badan?.lewat === 'tanpa kata kunci' &&
+    terkirimWa.length === 0);
+
+  /* Tidak dicatat sama sekali. Pesan itu bukan permintaan tautan, dan
+     mencatat nomornya berarti menyimpan jejak percakapan pribadi orang
+     tua dengan sekolah -- persis yang dihindari sejak awal dengan tidak
+     menyimpan isi pesan. */
+  periksa('tidak meninggalkan catatan di wa_pesan', pesanTercatat.length === 0);
+
+  const dengan = await kirimWebhook({
+    sender: '6281234567890', message: 'akademik', device: '628111000111',
+  });
+  periksa('nomor yang sama langsung dilayani begitu kata kuncinya ada',
+    dengan.badan?.hasil === 'terkirim' && terkirimWa.length === 1);
+}
+
+// ===================================================================
 console.log('\n--- orang tua yang dikenali ---');
 // ===================================================================
 {
   bersihCatatan();
   const hasil = await kirimWebhook({
-    sender: '6281234567890', message: 'Assalamualaikum bu', device: '628111000111',
+    sender: '6281234567890', message: 'Assalamualaikum bu, akademik', device: '628111000111',
   });
 
   periksa('dijawab 200', hasil.status === 200);
@@ -356,7 +386,7 @@ console.log('\n--- badan permintaan berbentuk JSON ---');
 {
   bersihCatatan();
   const hasil = await kirimWebhook(
-    { data: { sender: '081234567890', message: 'halo', device: '628111000111' } },
+    { data: { sender: '081234567890', message: 'akademik', device: '628111000111' } },
     { jenis: 'json' }
   );
   periksa('bentuk JSON bersarang ikut terbaca', hasil.badan?.hasil === 'terkirim');
@@ -370,7 +400,7 @@ console.log('\n--- nomor yang tidak dikenali ---');
 {
   bersihCatatan();
   const hasil = await kirimWebhook({
-    sender: '6285000000000', message: 'assalamualaikum', device: '628111000111',
+    sender: '6285000000000', message: 'akademik', device: '628111000111',
   });
   periksa('hasil "tidak_dikenal"', hasil.badan?.hasil === 'tidak_dikenal');
   periksa('tetap dibalas, bukan didiamkan', terkirimWa.length === 1);
@@ -385,7 +415,7 @@ console.log('\n--- nomor tak dikenal didiamkan setelah dua balasan ---');
   bersihCatatan();
   const asing = '6285000000001';
   const kirim = () => kirimWebhook({
-    sender: asing, message: 'halo', device: '628111000111',
+    sender: asing, message: 'akademik', device: '628111000111',
   });
 
   const satu = await kirim();
@@ -419,7 +449,7 @@ console.log('\n--- nomor tak dikenal didiamkan setelah dua balasan ---');
      tidak boleh ikut terkena hanya karena kebetulan mengirim sesudahnya. */
   bersihCatatan();
   const ortu = await kirimWebhook({
-    sender: '6281234567890', message: 'p', device: '628111000111',
+    sender: '6281234567890', message: 'akademik', device: '628111000111',
   });
   periksa('orang tua terdaftar tidak ikut terkena batas',
     ortu.badan?.hasil === 'terkirim' && terkirimWa.length === 1);
@@ -432,7 +462,7 @@ console.log('\n--- data masuk sesudah nomor terlanjur didiamkan ---');
   bersihCatatan();
   const belum = '6285000000002';
   const kirim = () => kirimWebhook({
-    sender: belum, message: 'assalamualaikum', device: '628111000111',
+    sender: belum, message: 'akademik', device: '628111000111',
   });
 
   await kirim();
@@ -472,7 +502,7 @@ console.log('\n--- tautan belum diterbitkan ---');
 {
   bersihCatatan();
   const hasil = await kirimWebhook({
-    sender: '6281777888999', message: 'nuwun sewu', device: '628111000111',
+    sender: '6281777888999', message: 'nuwun sewu, akademik', device: '628111000111',
   });
   periksa('hasil "belum_terbit"', hasil.badan?.hasil === 'belum_terbit');
   periksa('nama anak tetap disebut', terkirimWa[0]?.message?.includes('Umar'));
@@ -489,7 +519,7 @@ console.log('\n--- pemilahan antar sekolah ---');
      Kudus. Tanpa pemilahan, data Pati akan terkirim lewat perangkat
      Kudus -- satu aplikasi melayani banyak sekolah. */
   const hasil = await kirimWebhook({
-    sender: '6289999999999', message: 'p', device: '628111000111',
+    sender: '6289999999999', message: 'akademik', device: '628111000111',
   });
   periksa('nomor sekolah lain tidak dikenali di perangkat ini',
     hasil.badan?.hasil === 'tidak_dikenal');
@@ -498,7 +528,7 @@ console.log('\n--- pemilahan antar sekolah ---');
 
   bersihCatatan();
   const benar = await kirimWebhook({
-    sender: '6289999999999', message: 'p', device: '628222000222',
+    sender: '6289999999999', message: 'akademik', device: '628222000222',
   });
   periksa('nomor yang sama dikenali di perangkat sekolahnya sendiri',
     benar.badan?.hasil === 'terkirim');
@@ -528,7 +558,7 @@ console.log('\n--- balasan tidak bisa dialihkan ---');
   /* Webhook palsu yang mencoba mengarahkan tautan ke nomor lain. Field
      `target` sengaja disisipkan; endpoint ini tidak boleh membacanya. */
   await kirimWebhook({
-    sender: '6281234567890', message: 'p', device: '628111000111',
+    sender: '6281234567890', message: 'akademik', device: '628111000111',
     target: '6280000000000', tujuan: '6280000000000',
   });
   periksa('tautan tetap mendarat di nomor pengirim, bukan nomor sisipan',
@@ -542,13 +572,13 @@ console.log('\n--- pembatas laju ---');
   bersihCatatan();
   for (let i = 0; i < 8; i++) {
     await kirimWebhook({
-      sender: '6281234567890', message: 'p', device: '628111000111',
+      sender: '6281234567890', message: 'akademik', device: '628111000111',
     });
   }
   periksa('delapan pesan pertama dijawab', terkirimWa.length === 8);
 
   const kesembilan = await kirimWebhook({
-    sender: '6281234567890', message: 'p', device: '628111000111',
+    sender: '6281234567890', message: 'akademik', device: '628111000111',
   });
   periksa('pesan kesembilan tidak dibalas', terkirimWa.length === 8);
   periksa('pembatasan dicatat sebagai "dibatasi"',
@@ -558,7 +588,7 @@ console.log('\n--- pembatas laju ---');
   /* Batasnya per nomor, bukan per sistem: satu orang tua yang berlebihan
      tidak boleh membungkam seluruh sekolah. */
   const lain = await kirimWebhook({
-    sender: '6281777888999', message: 'p', device: '628111000111',
+    sender: '6281777888999', message: 'akademik', device: '628111000111',
   });
   periksa('nomor lain tetap dilayani', lain.badan?.hasil === 'belum_terbit');
 }

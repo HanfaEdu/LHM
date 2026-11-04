@@ -30,12 +30,15 @@ import {
   adaIsiBulan,
   bulanBawaan,
   bulat,
-  ketuntasan,
+  ketuntasanMapel,
+  mapelSkor,
   mapelUntuk,
   narasiKelas,
   rataRata,
   rekapQuran,
 } from '@/lib/statistik';
+import { poinUntuk } from '@/lib/poin';
+import { tampilKelas } from '@/lib/kelas';
 import {
   CatatanTerbaik,
   GrafikKelasAkademik,
@@ -61,6 +64,14 @@ import { KonteksCetak, usePersiapanCetak } from '@/app/komponen/cetak';
 import { KonteksJenjang, useMapel } from '@/app/komponen/jenjang';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import gaya from '../dasbor.module.css';
+
+/* Warna aksen kartu per ukuran poin -- lihat dasbor.module.css. */
+const KELAS_KARTU = {
+  peng_bindo: gaya.kartuPengBindo,
+  peng_mtk: gaya.kartuPengMtk,
+  tahfidz: gaya.kartuTahfidz,
+  tahsin: gaya.kartuTahsin,
+};
 
 export default function DasborKepalaSekolah() {
   const router = useRouter();
@@ -236,13 +247,18 @@ export default function DasborKepalaSekolah() {
      memasang <KonteksJenjang.Provider>, dan komponen tidak bisa membaca
      konteks yang disediakannya sendiri. */
   const mapel = mapelUntuk(sekolah?.jenjang);
+  /* PG: B. Indonesia & Matematika berbentuk poin -- ketuntasannya tetap
+     masuk tabel dan grafik antar kelas (capaian >= target siswa), tetapi
+     grafik nilai 0-100 dan sebaran nilai tidak berlaku. */
+  const adaSkor = mapelSkor(mapel).length > 0;
+  const poin = poinUntuk(sekolah?.jenjang);
 
   const ringkasan = useMemo(
     () =>
       kelasTahunIni.map((k) => {
         const baris = dataKelas[k.id]?.[bulan] || [];
         const target = Number(k.target_akademik ?? 90);
-        const perMapel = mapel.map((m) => ketuntasan(baris, m.kunci, target));
+        const perMapel = mapel.map((m) => ketuntasanMapel(baris, m, target));
         const semuaPersen = perMapel.filter(Boolean).map((x) => x.persen);
 
         return {
@@ -256,7 +272,8 @@ export default function DasborKepalaSekolah() {
           tahsin: rekapQuran(baris, 'capaian_tahsin', 'target_tahsin'),
         };
       }),
-    [kelasTahunIni, dataKelas, bulan]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [kelasTahunIni, dataKelas, bulan, sekolah?.jenjang]
   );
 
   const grafikKelas = ringkasan
@@ -265,7 +282,7 @@ export default function DasborKepalaSekolah() {
        di jenjang Playgroup IPA tidak dinilai, dan kolom yang selalu null
        akan tetap menyisakan batang kosong di grafik. */
     .map((r) => ({
-      nama: r.kelas.nama_kelas,
+      nama: tampilKelas(r.kelas.nama_kelas, sekolah?.jenjang),
       ...Object.fromEntries(
         mapel.map((m, i) => [m.label, r.perMapel[i]?.persen ?? null])
       ),
@@ -483,7 +500,7 @@ export default function DasborKepalaSekolah() {
                           setFokus(String(fokus) === String(r.kelas.id) ? '' : String(r.kelas.id))
                         }
                       >
-                        {r.kelas.nama_kelas}
+                        {tampilKelas(r.kelas.nama_kelas, sekolah?.jenjang)}
                       </button>
                     </td>
                     <td className={gaya.kiri}>{r.kelas.wali_kelas || '–'}</td>
@@ -527,12 +544,18 @@ export default function DasborKepalaSekolah() {
             <div>
               <h2 className={gaya.judulKartu}>
                 Rincian Per Kelas
-                {kelasFokus ? ` · Kelas ${kelasFokus.kelas.nama_kelas} · ${bulan}` : ''}
+                {kelasFokus
+                  ? ` · Kelas ${tampilKelas(kelasFokus.kelas.nama_kelas, sekolah?.jenjang)} · ${bulan}`
+                  : ''}
               </h2>
               <p className={gaya.ketKartu} style={{ margin: 0 }}>
                 {kelasFokus
-                  ? `${kelasFokus.kelas.wali_kelas || '–'} · ${kelasFokus.jumlah} siswa · target ${kelasFokus.target}`
-                  : 'Pilih satu kelas untuk melihat grafik tiga mapel, sebaran nilai, Tahfidz, dan Tahsin kelas itu.'}
+                  ? `${kelasFokus.kelas.wali_kelas || '–'} · ${kelasFokus.jumlah} siswa${
+                      adaSkor ? ` · target ${kelasFokus.target}` : ''
+                    }`
+                  : adaSkor
+                    ? 'Pilih satu kelas untuk melihat grafik tiga mapel, sebaran nilai, Tahfidz, dan Tahsin kelas itu.'
+                    : 'Pilih satu kelas untuk melihat ketuntasan dan grafik capaian tiap aspek kelas itu.'}
               </p>
             </div>
             <label>
@@ -541,7 +564,7 @@ export default function DasborKepalaSekolah() {
                 <option value="">— pilih kelas —</option>
                 {ringkasan.map((r) => (
                   <option key={r.kelas.id} value={r.kelas.id}>
-                    {r.kelas.nama_kelas}
+                    {tampilKelas(r.kelas.nama_kelas, sekolah?.jenjang)}
                   </option>
                 ))}
               </select>
@@ -562,14 +585,18 @@ export default function DasborKepalaSekolah() {
               <p className={gaya.narasi}>
                 {narasiKelas(kelasFokus.baris, kelasFokus.target, bulan, mapel)}
               </p>
-              <GrafikKelasAkademik baris={kelasFokus.baris} target={kelasFokus.target} />
-              <CatatanTerbaik baris={kelasFokus.baris} />
+              {adaSkor && (
+                <>
+                  <GrafikKelasAkademik baris={kelasFokus.baris} target={kelasFokus.target} />
+                  <CatatanTerbaik baris={kelasFokus.baris} />
+                </>
+              )}
             </>
           )}
 
           {kelasFokus && kelasFokus.jumlah === 0 && (
             <p className={gaya.kosong}>
-              Kelas {kelasFokus.kelas.nama_kelas} belum punya nilai untuk bulan {bulan}.
+              Kelas {tampilKelas(kelasFokus.kelas.nama_kelas, sekolah?.jenjang)} belum punya nilai untuk bulan {bulan}.
             </p>
           )}
         </section>
@@ -577,24 +604,22 @@ export default function DasborKepalaSekolah() {
         {kelasFokus && kelasFokus.jumlah > 0 && (
           <>
 
-            <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
-              <h2 className={gaya.judulKartu}>Sebaran Nilai</h2>
-              <TabelDistribusi baris={kelasFokus.baris} />
-            </section>
+            {adaSkor && (
+              <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
+                <h2 className={gaya.judulKartu}>Sebaran Nilai</h2>
+                <TabelDistribusi baris={kelasFokus.baris} />
+              </section>
+            )}
 
             <div className={gaya.tumpuk2}>
-              <section className={`${gaya.kartu} ${gaya.kartuTahfidz}`}>
-                <h2 className={gaya.judulKartu}>Tahfidz</h2>
-                <GrafikKelasQuran jenis="tahfidz" baris={kelasFokus.baris} />
-                <RekapQuran jenis="tahfidz" baris={kelasFokus.baris} />
-                <KeteranganQuran jenis="tahfidz" />
-              </section>
-              <section className={`${gaya.kartu} ${gaya.kartuTahsin}`}>
-                <h2 className={gaya.judulKartu}>Tahsin</h2>
-                <GrafikKelasQuran jenis="tahsin" baris={kelasFokus.baris} />
-                <RekapQuran jenis="tahsin" baris={kelasFokus.baris} />
-                <KeteranganQuran jenis="tahsin" />
-              </section>
+              {poin.map((p) => (
+                <section key={p.jenis} className={`${gaya.kartu} ${KELAS_KARTU[p.jenis]}`}>
+                  <h2 className={gaya.judulKartu}>{p.label}</h2>
+                  <GrafikKelasQuran jenis={p.jenis} baris={kelasFokus.baris} />
+                  <RekapQuran jenis={p.jenis} baris={kelasFokus.baris} />
+                  <KeteranganQuran jenis={p.jenis} />
+                </section>
+              ))}
             </div>
 
             <section className={`${gaya.kartu} ${gaya.kartuTindak}`}>
@@ -629,7 +654,7 @@ export default function DasborKepalaSekolah() {
                 <option value="">— pilih kelas —</option>
                 {kelasTahunIni.map((k) => (
                   <option key={k.id} value={k.id}>
-                    {k.nama_kelas}
+                    {tampilKelas(k.nama_kelas, sekolah?.jenjang)}
                   </option>
                 ))}
               </select>
@@ -656,19 +681,16 @@ export default function DasborKepalaSekolah() {
               <h3 className={gaya.subJudulKartu} style={{ marginTop: '1.25rem' }}>
                 Capaian Akademik · {siswaTerpilih?.nama_lengkap}
               </h3>
-              <GrafikTahunanAkademik bulanan={bulananSiswa} target={targetSiswa} />
+              {adaSkor && <GrafikTahunanAkademik bulanan={bulananSiswa} target={targetSiswa} />}
 
               <div className={gaya.tumpuk2} style={{ marginTop: '0.5rem' }}>
-                <div>
-                  <h3 className={gaya.subJudulKartu}>Tahfidz</h3>
-                  <GrafikTahunanQuran jenis="tahfidz" bulanan={bulananSiswa} warna="var(--seri-1)" />
-                  <KeteranganQuran jenis="tahfidz" />
-                </div>
-                <div>
-                  <h3 className={gaya.subJudulKartu}>Tahsin</h3>
-                  <GrafikTahunanQuran jenis="tahsin" bulanan={bulananSiswa} warna="var(--seri-3)" />
-                  <KeteranganQuran jenis="tahsin" />
-                </div>
+                {poin.map((p) => (
+                  <div key={p.jenis}>
+                    <h3 className={gaya.subJudulKartu}>{p.label}</h3>
+                    <GrafikTahunanQuran jenis={p.jenis} bulanan={bulananSiswa} />
+                    <KeteranganQuran jenis={p.jenis} />
+                  </div>
+                ))}
               </div>
 
               {/* Angka pastinya di bawah grafik yang memperlihatkan
@@ -730,11 +752,25 @@ function GrafikKetuntasanKelas({ data }) {
         width={ukuran.width}
         height={ukuran.height}
       >
-        <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
+        {/* barGap kecil + barSize tetap (bukan maxBarSize) di tiap Bar:
+            batang mapel satu kelas dirapatkan berdampingan di tengah
+            kategorinya. Dengan maxBarSize, recharts memberi tiap mapel
+            jatah sepertiga/separuh lebar kategori lalu menaruh batang di
+            tengah jatahnya -- pada sekolah PG yang kelasnya sedikit,
+            dua batang satu kelas terpisah ratusan piksel. Kalau ruangnya
+            tidak cukup (banyak kelas di layar HP), recharts sendiri
+            mengecilkan batang supaya tetap muat tanpa bertumpuk. */}
+        <ComposedChart
+          data={data}
+          margin={{ top: 8, right: 16, bottom: 8, left: -8 }}
+          barGap={4}
+        >
           <CartesianGrid stroke="var(--garis)" vertical={false} />
           <XAxis
             dataKey="nama"
-            tick={{ fontSize: 12, fill: 'var(--tinta-lembut)' }}
+            // Nama kelas adalah label utama grafik ini: warna tinta penuh
+            // dan sedikit lebih tebal, bukan abu-abu seperti angka sumbu.
+            tick={{ fontSize: 13, fontWeight: 600, fill: 'var(--tinta)' }}
             tickLine={false}
             axisLine={{ stroke: 'var(--garis)' }}
           />
@@ -797,7 +833,7 @@ function GrafikKetuntasanKelas({ data }) {
               dataKey={m.label}
               fill={WARNA_MAPEL[m.kunci]}
               radius={[4, 4, 0, 0]}
-              maxBarSize={28}
+              barSize={28}
             />
           ))}
         </ComposedChart>

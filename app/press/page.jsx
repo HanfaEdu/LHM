@@ -656,7 +656,7 @@ function Balasan({ s }) {
           <Hp>
             <div className={`${st.obrolan} ${st.obrolanRapat}`}>
               <T s={s} n={1} a="kanan" className={st.gelembungKeluar}>
-                Assalamu’alaikum ustadzah 🙏
+                <span>Assalamu’alaikum, mohon kirim link <mark className={st.kataKunci}>akademik</mark> 🙏</span>
                 <small>07.12 ✓✓</small>
               </T>
               <div className={`${st.mengetik} ${s === 3 ? st.on : ''}`}><i /><i /><i /></div>
@@ -691,9 +691,9 @@ function Balasan({ s }) {
             </div>
           </T>
           <div className={st.chipBaris}>
-            <T s={s} n={4} d={500} className={st.chip}>Isi pesan bebas — yang dikenali nomornya</T>
-            <T s={s} n={4} d={700} className={st.chip}>Satu balasan memuat semua anak</T>
-            <T s={s} n={4} d={900} className={st.chip}>Pesan di grup tidak dibalas</T>
+            <T s={s} n={4} d={500} className={st.chip}>Cukup sertakan kata “akademik”</T>
+            <T s={s} n={4} d={700} className={st.chip}>Yang dikenali nomornya, bukan nama</T>
+            <T s={s} n={4} d={900} className={st.chip}>Percakapan lain tidak dibalas otomatis</T>
           </div>
         </div>
       </div>

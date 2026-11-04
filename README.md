@@ -33,16 +33,18 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 | Berkas | Keterangan |
 |---|---|
 | `schema.sql` | Skema Supabase. Jalankan di SQL Editor, aman diulang. |
-| `sync.js` | Google Apps Script. Dipasang di file Master Rekap. |
+| `sync.js` | Google Apps Script untuk sekolah berjenjang SD/TK. Dipasang di file Master Rekap. |
+| `sync-pg.js` | Sama seperti `sync.js`, untuk sekolah berjenjang PG (B. Indonesia/Matematika berbentuk target/capaian modul, bukan rata-rata). |
 | `quran_mapping.js` | Peta poin → nama surah (Tahfidz) & bab materi (Tahsin). |
 | `app/rapor/[token]/` | Dashboard orang tua (tautan pribadi, tanpa login). |
 | `app/api/rapor/` | Endpoint server: verifikasi token (PIN opsional) + penyamaran nama sekelas. |
 | `app/api/wa/` | Webhook WhatsApp: mengenali nomor pengirim, membalas tautan rapor anaknya. |
 | `app/press/` | Halaman presentasi sistem (`/press`) untuk IFP / smart TV. Data contoh fiktif. |
 | `migrasi/` | Perubahan skema susulan. Dijalankan berurutan, sekali masing-masing. |
+| `perawatan/pindah-akun/` | Memindahkan semua file Sheets ke akun Google lain (mis. belajar.id → pribadi) dan menyambung ulang IMPORTRANGE otomatis. |
 | `docs/PERBAIKAN_SPREADSHEET.md` | Audit rumus + daftar perbaikan sebelum sync pertama. |
 | `docs/AKSES_ORANG_TUA.md` | Cara menerbitkan tautan untuk orang tua (token saja secara default). |
-| `docs/LAYANAN_WA.md` | Layanan WhatsApp: orang tua meminta ulang tautan rapor lewat chat. |
+| `docs/LAYANAN_WA.md` | Layanan WhatsApp: orang tua mengetik `akademik`, tautan rapor dibalas otomatis. |
 | `docs/TAHUN_AJARAN_BARU.md` | Yang disiapkan tiap naik tahun ajaran — dan yang tidak perlu disentuh. |
 
 ## Urutan penyiapan
@@ -54,7 +56,8 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
    `secret`/`service_role`, dipakai server saja), dan `SYNC_SHARED_SECRET`
    (string acak buatan sendiri — kunci rahasia khusus antara GAS dan
    endpoint `/api/sync`, **bukan** kunci Supabase). Redeploy setelah diisi.
-4. Pasang `sync.js` di Apps Script file Master Rekap, isi `APP_URL`
+4. Pasang `sync.js` (SD/TK) atau `sync-pg.js` (PG) — sesuai jenjang
+   sekolah ini — di Apps Script file Master Rekap, isi `APP_URL`
    (domain Vercel Anda) dan `SYNC_SECRET` (samakan persis dengan
    `SYNC_SHARED_SECRET` di langkah 3) di bagian atas berkas.
 5. Jalankan menu **SiPaGi → Cek Kesehatan Data** untuk memastikan bersih.
@@ -63,7 +66,8 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 8. Opsional — hidupkan layanan WhatsApp: `docs/LAYANAN_WA.md`.
 9. Opsional — pengingat WhatsApp tiap tanggal 28 untuk wali kelas yang
    nilainya belum lengkap: ikuti "CARA PASANG" di bagian **PENGINGAT WALI
-   KELAS** di akhir `sync.js`.
+   KELAS** di akhir `sync.js` (atau `sync-pg.js` untuk PG -- bagiannya sama
+   persis, kolom yang diperiksa mengikuti `JENJANG_SEKOLAH`).
 
 **Kenapa GAS tidak bicara langsung ke Supabase:** Supabase memblokir
 kunci `sb_secret_...` kalau permintaan terdeteksi berasal dari browser,

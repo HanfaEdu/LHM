@@ -10,9 +10,11 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const kode = readFileSync(new URL('../sync.js', import.meta.url), 'utf8');
+const kodeSd = readFileSync(new URL('../sync.js', import.meta.url), 'utf8');
+// sync-pg.js memuat bagian pengingat yang sama persis -- diuji juga di bawah.
+const kodePg = readFileSync(new URL('../sync-pg.js', import.meta.url), 'utf8');
 
-function muat({ nilai = [], user = [], token = 'TOKEN-UJI', fonnte = () => ({ status: true }) } = {}) {
+function muat({ nilai = [], user = [], token = 'TOKEN-UJI', fonnte = () => ({ status: true }), kode = kodeSd } = {}) {
   const kiriman = [];
   const dialog = [];
   const tabel = { Sheet1: nilai, users_access: user };
@@ -191,6 +193,44 @@ let lemparToken = null;
 try { tanpaToken.ctx.kirimPengingatWaliKelas(); } catch (e) { lemparToken = e.message; }
 periksa('tanpa FONNTE_TOKEN -> melempar', (lemparToken || '').includes('FONNTE_TOKEN'));
 periksa('tanpa FONNTE_TOKEN -> tidak ada kiriman', tanpaToken.kiriman.length === 0);
+
+/* --- sync-pg.js: kolom PG ------------------------------------------ */
+{
+  const JUDUL_PG = ['Tahun Ajaran', 'Kelas', 'Wali Kelas', 'Nama Lengkap', 'Nama Siswa', 'NISN/NIS',
+    'No WA', 'Bulan', 'Target B. Indo', 'Capaian B. Indo', 'Target MTK', 'Capaian MTK',
+    'Target Tahfidz', 'Capaian Tahfidz', 'Target Tahsin', 'Capaian Tahsin'];
+  const barisPg = (kelas, nama, n = {}) => [
+    kini.tahunAjaran, kelas, 'Ust Siska', nama + ' Lengkap', nama, '1', '', kini.bulan,
+    2, n.bi ?? '', 2, n.mtk ?? '', 3, n.tfz ?? '', 2, n.tsn ?? '',
+  ];
+  const nilaiPg = [
+    JUDUL_PG,
+    barisPg('PG Kecil', 'Naura', { bi: 2, mtk: '', tfz: 3, tsn: 2 }),
+    barisPg('PG Kecil', 'Areefa', { bi: 1, mtk: 2, tfz: 3, tsn: 2 }),
+    barisPg('PG Besar 1', 'Lee', { bi: 5, mtk: 4, tfz: 7, tsn: 5 }),
+  ];
+  const userPg = [
+    JUDUL_USER,
+    ['s@x', 'Ust Siska', 'Wali_Kelas', 'PG Kecil', '', '0812-1111-2222'],
+    ['d@x', 'Ust Dewi', 'Wali_Kelas', 'PG Besar 1', '', '0812-3333-4444'],
+  ];
+
+  const { ctx: cPg } = muat({ kode: kodePg });
+  const r = cPg.hitungPengingatWaliKelas(nilaiPg, userPg, new Date(), 'PG');
+  const kecil = r.kelas.find((k) => k.namaKelas === 'PG KECIL');
+  periksa('PG: kolom "Capaian MTK" diperiksa (Naura belum)',
+    JSON.stringify(kecil?.kurang.find((x) => x.nama === 'Matematika')?.kosong) === '["Naura"]');
+  periksa('PG: tidak ada catatan kolom hilang (Rata B. Indo/MTK/IPA tidak dicari)',
+    r.catatan.length === 0);
+  periksa('PG: wali kelas "PG Kecil" cocok dengan kelas "PG KECIL"',
+    kecil?.penerima[0]?.nomor[0] === '6281211112222');
+  periksa('PG: kelas lengkap tidak dikirimi',
+    r.kelas.find((k) => k.namaKelas === 'PG BESAR 1')?.kurang.length === 0);
+
+  // SD tetap memeriksa Rata B. Indo, bukan Capaian B. Indo.
+  const sd = muat().ctx.hitungPengingatWaliKelas(nilai, user, new Date(), 'SD');
+  periksa('SD: kolom PG tidak dicari', !sd.catatan.some((c) => c.includes('Capaian B. Indo')));
+}
 
 console.log(gagalUji ? `\n${gagalUji} GAGAL\n` : '\nSemua lolos.\n');
 console.log('--- contoh pesan ---\n' + pesan1);

@@ -7,6 +7,7 @@ import { TriangleAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { muatDaftarKelas, muatProfil } from '@/lib/data-dasbor';
 import { buatXlsx, unduhBlob } from '@/lib/xlsx';
+import { tampilKelas } from '@/lib/kelas';
 import KepalaSekolahan from '@/app/komponen/KepalaSekolahan';
 import gaya from '../../dasbor.module.css';
 
@@ -275,6 +276,13 @@ export default function HalamanTautan() {
    * meneruskan satu berkas ini ke seluruh wali kelas, dan tiap wali kelas
    * langsung menemukan lembar kelasnya sendiri.
    */
+  /* Nama kelas untuk DITAMPILKAN (PG: "PLAYGROUP" -> "Playgroup"). Nilai
+     pilihan dan penyaringan tetap memakai nama aslinya. */
+  function labelKelas(namaKelas) {
+    const contoh = sesuaiSekolah.find((d) => d.nama_kelas === namaKelas);
+    return tampilKelas(namaKelas, contoh?.jenjang);
+  }
+
   function unduhExcel() {
     const kelasDiunduh =
       kelasPilih === 'semua' ? daftarKelas : [kelasPilih];
@@ -282,7 +290,7 @@ export default function HalamanTautan() {
     const lembar = kelasDiunduh.map((namaKelas) => {
       const baris = sesuaiSekolah.filter((d) => d.nama_kelas === namaKelas);
       return {
-        nama: `Kelas ${namaKelas}`,
+        nama: `Kelas ${labelKelas(namaKelas)}`,
         baris: [
           ['No', 'NIS', 'Nama Lengkap', 'Nama Panggilan', 'Kelas', 'Status', 'Tautan Rapor'],
           ...baris.map((d, i) => [
@@ -290,7 +298,7 @@ export default function HalamanTautan() {
             d.nis,
             d.nama_lengkap,
             d.nama_panggilan,
-            d.nama_kelas,
+            tampilKelas(d.nama_kelas, d.jenjang),
             !d.token ? 'Belum ada tautan' : d.aktif ? 'Aktif' : 'Nonaktif',
             d.token ? tautanPenuh(d.token) : '',
           ]),
@@ -371,7 +379,7 @@ export default function HalamanTautan() {
                   <option value="semua">Semua kelas</option>
                   {daftarKelas.map((k) => (
                     <option key={k} value={k}>
-                      Kelas {k}
+                      Kelas {labelKelas(k)}
                     </option>
                   ))}
                 </select>
@@ -463,7 +471,7 @@ export default function HalamanTautan() {
                       {banyakSekolah && (
                         <td className={gaya.kiri}>{d.nama_sekolah}</td>
                       )}
-                      <td>{d.nama_kelas}</td>
+                      <td>{tampilKelas(d.nama_kelas, d.jenjang)}</td>
                       <td>
                         {!d.token ? (
                           <span className={gaya.kosong}>belum ada</span>
