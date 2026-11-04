@@ -38,6 +38,7 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 | `app/rapor/[token]/` | Dashboard orang tua (tautan pribadi, tanpa login). |
 | `app/api/rapor/` | Endpoint server: verifikasi token (PIN opsional) + penyamaran nama sekelas. |
 | `app/api/wa/` | Webhook WhatsApp: mengenali nomor pengirim, membalas tautan rapor anaknya. |
+| `app/press/` | Halaman presentasi sistem (`/press`) untuk IFP / smart TV. Data contoh fiktif. |
 | `migrasi/` | Perubahan skema susulan. Dijalankan berurutan, sekali masing-masing. |
 | `docs/PERBAIKAN_SPREADSHEET.md` | Audit rumus + daftar perbaikan sebelum sync pertama. |
 | `docs/AKSES_ORANG_TUA.md` | Cara menerbitkan tautan untuk orang tua (token saja secara default). |
