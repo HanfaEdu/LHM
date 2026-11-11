@@ -172,6 +172,13 @@
 .kartuTindak   { --aksen: var(--kritis); }
 .kartuAlat     { --aksen: var(--tinta-samar); }
 
+/* Penanda bagian "Telusur Satu Siswa". Tidak ada gaya di layar -- di sana
+   bagian ini tampil seperti kartu lain. Kelas ini ada untuk blok cetak di
+   bagian paling bawah berkas: bagian ini tidak pernah ikut laporan
+   bulanan, dan menjadi satu-satunya isi laporan satu siswa. */
+.bagianTelusur {
+}
+
 .judulKartu {
   display: flex;
   align-items: center;
@@ -1447,5 +1454,53 @@
 
   .kakiCetak span:first-child {
     min-width: 0;
+  }
+
+  /* ----------------------------------------------------------------
+     Telusur Satu Siswa: tidak pernah ikut laporan bulanan
+     ----------------------------------------------------------------
+     Bagian ini berisi data SATU siswa yang dipilih di layar. Ikut
+     tercetak, lembar laporan bulanan berisi kotak kosong (siswa belum
+     dipilih) atau data seorang anak yang tidak diminta siapa pun. Tetap
+     tampil dan berfungsi di layar; yang dicetak darinya hanya lewat
+     tombol "Cetak Laporan Siswa" (lihat data-cetak di bawah). */
+  .bagianTelusur {
+    display: none !important;
+  }
+
+  /* ----------------------------------------------------------------
+     Dua sasaran cetak: data-cetak pada .halaman
+     ----------------------------------------------------------------
+     'bulanan' (bawaan, juga untuk Ctrl+P) -- laporan kelas/sekolah.
+     'siswa' (tombol "Cetak Laporan Siswa") -- HANYA bagian Telusur,
+     dengan judul dan kaki yang menyebut nama siswa. Aturan 'siswa' di
+     bawah menimpa .bagianTelusur di atas karena selektornya ber-atribut
+     (kekhususan lebih tinggi), keduanya sama-sama !important. */
+  .halaman[data-cetak='siswa'] .wadah > section:not(.bagianTelusur),
+  .halaman[data-cetak='siswa'] .tumpuk2Luar,
+  .halaman[data-cetak='siswa'] .judulCetakBulanan,
+  .halaman[data-cetak='siswa'] .kakiBulanan {
+    display: none !important;
+  }
+
+  /* Kartu Telusur (tiga grafik dan satu tabel) lebih tinggi dari satu
+     halaman. Dengan break-inside: avoid milik .kartu, peramban melemparnya
+     utuh ke halaman berikutnya dan halaman pertama tinggal berisi kepala
+     halaman saja. Di sini kartunya boleh terbelah; yang dijaga utuh adalah
+     tiap grafik (dan tabel rincian, lewat .tabelBulanan). */
+  .halaman[data-cetak='siswa'] .bagianTelusur {
+    display: block !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .halaman[data-cetak='siswa'] .bagianTelusur .grafik {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .halaman[data-cetak='bulanan'] .judulCetakSiswa,
+  .halaman[data-cetak='bulanan'] .kakiSiswa {
+    display: none !important;
   }
 }

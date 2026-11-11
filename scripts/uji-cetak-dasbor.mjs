@@ -15,6 +15,9 @@
  *   3. Kontrol (dropdown, tombol) benar-benar hilang, dan judul dokumen
  *      serta kaki berulang benar-benar muncul.
  *   4. Jumlah halaman masih wajar.
+ *   5. Dua skenario cetak: laporan BULANAN tidak memuat "Telusur Satu
+ *      Siswa" sama sekali; tombol "Cetak Laporan Siswa" mencetak HANYA
+ *      bagian itu, untuk siswa yang sedang dipilih.
  *
  * Supabase tidak dihubungi sama sekali: seluruh permintaannya dicegat dan
  * dijawab data contoh, dan sesi login dipalsukan lewat localStorage. Jadi
@@ -184,7 +187,7 @@ async function siapkanHalaman(konteks, peran) {
   return page;
 }
 
-async function ukurCetak(page, label) {
+async function ukurCetak(page, label, kirimBeforeprint = true) {
   await page.emulateMedia({ media: 'print' });
 
   /* Dinyalakan dan DIUKUR DALAM SATU evaluate yang sama, tanpa jeda
@@ -197,16 +200,24 @@ async function ukurCetak(page, label) {
      sementara hasil cetak sungguhan di PC keluar dengan batang yang
      menembus garis dasar dan menutupi nama siswa. Jeda pada uji cetak
      menguji halaman yang tidak pernah dicetak siapa pun. */
-  const hasil = await page.evaluate(() => {
-    window.dispatchEvent(new Event('beforeprint'));
-    const svg = [...document.querySelectorAll('.recharts-surface')];
-    const tabel = [...document.querySelectorAll('table')];
-    const lebarBadan = document.body.scrollWidth;
+  /* kirimBeforeprint=false untuk skenario tombol "Cetak Laporan Siswa":
+     di sana halaman sudah disiapkan oleh cetak() milik tombolnya sendiri,
+     jadi beforeprint tidak boleh dikirim lagi (ia hanya akan menyiapkan
+     ulang keadaan yang sama). */
+  const hasil = await page.evaluate((kirim) => {
+    if (kirim) window.dispatchEvent(new Event('beforeprint'));
     /* checkVisibility(), bukan getComputedStyle(el).display: display
        milik elemen sendiri tetap 'block' walau LELUHURNYA yang
        disembunyikan, sehingga pemeriksaan naif menyatakan dropdown masih
        tercetak padahal seluruh baris penyaringnya sudah hilang. */
     const terlihat = (el) => el.checkVisibility();
+    /* Grafik dan tabel dihitung hanya yang TERLIHAT di kertas. Sejak
+       laporan bulanan dan laporan siswa memuat bagian yang berbeda,
+       sebagian grafik sengaja disembunyikan di tiap skenario; yang
+       disembunyikan berlebar 0 dan bukan bagian dari lembar cetak. */
+    const svg = [...document.querySelectorAll('.recharts-surface')].filter(terlihat);
+    const tabel = [...document.querySelectorAll('table')].filter(terlihat);
+    const lebarBadan = document.body.scrollWidth;
     return {
       lebarBadan,
       lebarSvg: svg.map((s) => Math.round(s.getBoundingClientRect().width)),
@@ -254,7 +265,7 @@ async function ukurCetak(page, label) {
          batangnya tinggi menutupi kenyataan bahwa grafik Tahfidz dan
          Tahsin di bawahnya keluar kosong melompong. */
       ...(() => {
-        const perGrafik = [...document.querySelectorAll('.recharts-surface')]
+        const perGrafik = svg
           .map((svg) => {
             const garis = svg.querySelector('.recharts-xAxis .recharts-cartesian-axis-line');
             if (!garis) return null;
@@ -288,7 +299,7 @@ async function ukurCetak(page, label) {
            tengah kategori pertama dan terakhir -- menggantung, dan pada
            grafik berkategori sedikit (tujuh kelas) selisih itu langsung
            terbaca sebagai garis yang kurang panjang. */
-        const celahAmbang = [...document.querySelectorAll('.recharts-surface')]
+        const celahAmbang = svg
           .flatMap((svg) => {
             const ref = svg.querySelector('.recharts-reference-line line');
             const kisi = svg.querySelector('.recharts-cartesian-grid-horizontal line');
@@ -315,7 +326,7 @@ async function ukurCetak(page, label) {
         };
       })(),
     };
-  });
+  }, kirimBeforeprint);
 
   const pdf = join(keluaran, `${label}.pdf`);
   await page.pdf({ path: pdf, format: 'A4', printBackground: true, preferCSSPageSize: true });
@@ -325,96 +336,154 @@ async function ukurCetak(page, label) {
 /* ----------------------------------------------------------------
    Jalan
    ---------------------------------------------------------------- */
+const HALAMAN = [
+  ['wali_kelas', '/dashboard/wali-kelas', 'wali-kelas'],
+  ['kepala_sekolah', '/dashboard/kepala-sekolah', 'kepala-sekolah'],
+];
+
+/* Membuka halaman dan memilih satu siswa. Dibuka pada lebar 390px (HP):
+   di sinilah kesalahan lebar grafik paling merusak, karena selisih
+   layar-kertas paling besar. Tiap skenario memakai halaman SEGAR, supaya
+   keadaan sisa skenario sebelumnya tidak ikut terukur. */
+async function bukaDanPilihSiswa(konteks, peran, jalur) {
+  const page = await siapkanHalaman(konteks, peran);
+  await page.goto(`${ASAL}${jalur}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  /* Kedua penelusuran dibuka supaya isi laporan yang sebenarnya ikut
+     diuji, bukan cuma kepala halamannya. Dipilih lewat posisi bagian,
+     bukan lewat teks label: di dasbor kepala sekolah ada dua label
+     yang sama-sama memuat kata "Kelas". */
+  if (peran === 'kepala_sekolah') {
+    // "Rincian Per Kelas" -- grafik, sebaran, Tahfidz/Tahsin satu kelas.
+    await page.locator('section').filter({ hasText: 'Rincian Per Kelas' })
+      .first().locator('select').first().selectOption('1');
+    await page.waitForTimeout(500);
+    // "Telusur Satu Siswa" -- kelasnya dulu, daftar nama menyusul.
+    const telusur = page.locator('section').filter({ hasText: 'Telusur Satu Siswa' }).first();
+    await telusur.locator('select').first().selectOption('1');
+    await page.waitForTimeout(400);
+  }
+  await page.getByLabel('Nama Siswa').selectOption(siswa[0].nis);
+  await page.waitForTimeout(900);
+  return page;
+}
+
+/* Bidang isi A4 = 210mm - 2x12mm = 186mm = 703px pada 96dpi. */
+const BATAS = 703;
+
+/* Pemeriksaan yang berlaku di KEDUA skenario cetak. */
+function periksaBersama(h) {
+  periksa('grafik memakai lebar kertas, bukan lebar layar',
+    h.lebarSvg.length > 0 && h.lebarSvg.every((l) => l > 600),
+    `lebar SVG: ${[...new Set(h.lebarSvg)].join(', ')}`);
+  periksa('tidak ada grafik yang melewati bidang isi A4',
+    h.lebarSvg.every((l) => l <= BATAS), `batas ${BATAS}px`);
+  periksa('tidak ada tabel yang melewati bidang isi A4',
+    h.lebarTabel.every((l) => l <= BATAS),
+    `lebar tabel: ${[...new Set(h.lebarTabel)].join(', ')}`);
+  periksa('tidak ada isi yang menyembul ke luar halaman',
+    h.kananTerjauh <= BATAS + 1, `tepi terjauh ${h.kananTerjauh}px`);
+  periksa('dropdown tidak ikut tercetak', !h.adaSelect);
+  periksa('tombol tidak ikut tercetak', !h.adaTombol);
+  periksa('batang grafik tidak menembus garis dasar (menimpa nama siswa)',
+    h.tembusTerjauh <= 2, `tembus ${h.tembusTerjauh}px ke bawah garis`);
+  periksa('tidak ada grafik yang keluar kosong',
+    h.jumlahGrafik > 0 && h.grafikKosong === 0,
+    `${h.jumlahGrafik} grafik → ${h.rincianGrafik}`);
+  periksa('kaki mencantumkan nama sekolah',
+    h.teks.includes('SD Yaumi Fatimah Kudus'));
+  periksa('kaki mencantumkan tanggal cetak', h.teks.includes('dicetak'));
+  periksa('daftar keterangan poin tidak ikut tercetak',
+    !h.teks.includes('Lihat keterangan seluruh capaian'));
+}
+
 const server = await jalankanServer();
 const peramban = await chromium.launch();
 const konteks = await peramban.newContext({ viewport: { width: 390, height: 780 } });
+const NAMA_LENGKAP = siswa[0].nama_lengkap;
 
 try {
-  // Sengaja dibuka pada lebar 390px (HP): di sinilah kesalahan lebar
-  // grafik paling merusak, karena selisih layar-kertas paling besar.
-  for (const [peran, jalur, label] of [
-    ['wali_kelas', '/dashboard/wali-kelas', 'wali-kelas'],
-    ['kepala_sekolah', '/dashboard/kepala-sekolah', 'kepala-sekolah'],
-  ]) {
-    console.log(`\n=== ${label} (dibuka pada layar 390px) ===`);
-    const page = await siapkanHalaman(konteks, peran);
-    await page.goto(`${ASAL}${jalur}`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1200);
+  for (const [peran, jalur, label] of HALAMAN) {
+    /* ============================================================
+       Skenario 1 -- laporan BULANAN (Ctrl+P / beforeprint)
+       Bagian "Telusur Satu Siswa" TIDAK BOLEH ikut tercetak, walau
+       siswanya sudah dipilih di layar.
+       ============================================================ */
+    console.log(`\n=== ${label} · cetak bulanan (dibuka pada layar 390px) ===`);
+    {
+      const page = await bukaDanPilihSiswa(konteks, peran, jalur);
 
-    /* Kedua penelusuran dibuka supaya isi laporan yang sebenarnya ikut
-       diuji, bukan cuma kepala halamannya. Dipilih lewat posisi bagian,
-       bukan lewat teks label: di dasbor kepala sekolah ada dua label
-       yang sama-sama memuat kata "Kelas". */
-    if (peran === 'kepala_sekolah') {
-      // "Rincian Per Kelas" -- grafik, sebaran, Tahfidz/Tahsin satu kelas.
-      await page.locator('section').filter({ hasText: 'Rincian Per Kelas' })
-        .first().locator('select').first().selectOption('1');
-      await page.waitForTimeout(500);
-      // "Telusur Satu Siswa" -- kelasnya dulu, daftar nama menyusul.
-      const telusur = page.locator('section').filter({ hasText: 'Telusur Satu Siswa' }).first();
-      await telusur.locator('select').first().selectOption('1');
-      await page.waitForTimeout(400);
-    }
-    await page.getByLabel('Nama Siswa').selectOption(siswa[0].nis);
-    await page.waitForTimeout(900);
+      const isiLayar = await page.locator('body').innerText();
+      periksa('halaman termuat tanpa galat',
+        !isiLayar.includes('Application error'),
+        isiLayar.slice(0, 60).replace(/\n+/g, ' '));
+      periksa('tabel rincian bulanan ada di layar',
+        (await page.locator('table').count()) > 0);
+      periksa('nama surah tampil di tabel', isiLayar.includes('Rincian Bulanan'));
 
-    const isiLayar = await page.locator('body').innerText();
-    periksa('halaman termuat tanpa galat',
-      !isiLayar.includes('Application error'),
-      isiLayar.slice(0, 60).replace(/\n+/g, ' '));
+      /* Telusur harus tetap hidup di LAYAR: yang disembunyikan hanya
+         hasil cetaknya. */
+      periksa('Telusur Satu Siswa tetap tampil di layar',
+        isiLayar.includes('Telusur Satu Siswa'));
+      periksa('tombol "Cetak Laporan Siswa" tampil di layar setelah siswa dipilih',
+        await page.getByRole('button', { name: 'Cetak Laporan Siswa' }).isVisible());
 
-    const adaTabelLayar = await page.locator('table').count();
-    periksa('tabel rincian bulanan ada di layar', adaTabelLayar > 0,
-      `${adaTabelLayar} tabel`);
-    periksa('nama surah tampil di tabel',
-      (await page.locator('body').innerText()).includes('Rincian Bulanan'));
-
-    const h = await ukurCetak(page, label);
-
-    // Bidang isi A4 = 210mm - 2x12mm = 186mm = 703px pada 96dpi.
-    const BATAS = 703;
-    periksa('grafik memakai lebar kertas, bukan lebar layar',
-      h.lebarSvg.length > 0 && h.lebarSvg.every((l) => l > 600),
-      `lebar SVG: ${[...new Set(h.lebarSvg)].join(', ')}`);
-    periksa('tidak ada grafik yang melewati bidang isi A4',
-      h.lebarSvg.every((l) => l <= BATAS), `batas ${BATAS}px`);
-    periksa('tidak ada tabel yang melewati bidang isi A4',
-      h.lebarTabel.every((l) => l <= BATAS),
-      `lebar tabel: ${[...new Set(h.lebarTabel)].join(', ')}`);
-    periksa('tidak ada isi yang menyembul ke luar halaman',
-      h.kananTerjauh <= BATAS + 1, `tepi terjauh ${h.kananTerjauh}px`);
-    periksa('dropdown tidak ikut tercetak', !h.adaSelect);
-    periksa('tombol tidak ikut tercetak', !h.adaTombol);
-    periksa('batang grafik tidak menembus garis dasar (menimpa nama siswa)',
-      h.tembusTerjauh <= 2, `tembus ${h.tembusTerjauh}px ke bawah garis`);
-    periksa('garis ambang membentang penuh ke kedua tepi bidang gambar',
-      h.adaAmbang > 0 && h.celahAmbangTerbesar <= 2,
-      `${h.adaAmbang} garis ambang, celah terbesar ${h.celahAmbangTerbesar}px`);
-    periksa('tidak ada grafik yang keluar kosong',
-      h.jumlahGrafik > 0 && h.grafikKosong === 0,
-      `${h.jumlahGrafik} grafik → ${h.rincianGrafik}`);
-    periksa('judul dokumen tercetak', h.teks.includes('Laporan Bulanan'));
-    periksa('kaki mencantumkan nama sekolah',
-      h.teks.includes('SD Yaumi Fatimah Kudus'));
-    periksa('kaki mencantumkan tanggal cetak', h.teks.includes('dicetak'));
-    periksa('daftar keterangan poin tidak ikut tercetak',
-      !h.teks.includes('Lihat keterangan seluruh capaian'));
-
-    /* Cacat yang pernah terjadi: judul bagian beserta nama siswa/kelas
-       ditulis DI DALAM blok penyaring, dan blok itu disembunyikan
-       seluruhnya saat mencetak -- sehingga lembar setahun penuh keluar
-       tanpa keterangan milik siapa. Tidak terlihat sama sekali di layar. */
-    periksa('nama siswa yang ditelusuri ikut tercetak',
-      h.teks.includes(siswa[0].nama_lengkap), siswa[0].nama_lengkap);
-    periksa('judul bagian penelusuran ikut tercetak',
-      h.teks.includes('Telusur Satu Siswa'));
-    if (peran === 'kepala_sekolah') {
-      periksa('judul rincian per kelas menyebut kelasnya',
-        /Rincian Per Kelas · Kelas 2A/.test(h.teks));
+      const h = await ukurCetak(page, `${label}-bulanan`);
+      periksaBersama(h);
+      periksa('garis ambang membentang penuh ke kedua tepi bidang gambar',
+        h.adaAmbang > 0 && h.celahAmbangTerbesar <= 2,
+        `${h.adaAmbang} garis ambang, celah terbesar ${h.celahAmbangTerbesar}px`);
+      periksa('judul dokumen tercetak', h.teks.includes('Laporan Bulanan'));
+      periksa('judul laporan siswa TIDAK tercetak di laporan bulanan',
+        !h.teks.includes('Laporan Capaian Siswa'));
+      periksa('judul bagian "Telusur Satu Siswa" TIDAK ikut tercetak',
+        !h.teks.includes('Telusur Satu Siswa'));
+      periksa('nama lengkap siswa yang ditelusuri TIDAK ikut tercetak',
+        !h.teks.includes(NAMA_LENGKAP), NAMA_LENGKAP);
+      periksa('tombol "Cetak Laporan Siswa" tidak ikut tercetak',
+        !h.teks.includes('Cetak Laporan Siswa'));
+      if (peran === 'kepala_sekolah') {
+        periksa('judul rincian per kelas menyebut kelasnya',
+          /Rincian Per Kelas · Kelas 2A/.test(h.teks));
+      }
+      console.log(`     PDF: ${h.pdf}`);
+      await page.close();
     }
 
-    console.log(`     PDF: ${h.pdf}`);
-    await page.close();
+    /* ============================================================
+       Skenario 2 -- klik tombol "Cetak Laporan Siswa"
+       Yang tercetak HANYA bagian Telusur untuk siswa terpilih, dengan
+       judul dan kaki yang menyebut nama siswa.
+
+       window.print ditimpa: dialog cetak sungguhan tidak bisa dibuka
+       di peramban tanpa kepala. Penimpa hanya mencatat bahwa print()
+       dipanggil; keadaan halaman (data-cetak, KonteksCetak) yang
+       disiapkan tombolnya tetap utuh, dan itulah yang diukur.
+       ============================================================ */
+    console.log(`\n=== ${label} · tombol "Cetak Laporan Siswa" (dibuka pada layar 390px) ===`);
+    {
+      const page = await bukaDanPilihSiswa(konteks, peran, jalur);
+      await page.evaluate(() => {
+        window.__printDipanggil = false;
+        window.print = () => { window.__printDipanggil = true; };
+      });
+      await page.getByRole('button', { name: 'Cetak Laporan Siswa' }).click();
+      await page.waitForFunction(() => window.__printDipanggil === true, null, { timeout: 5000 });
+
+      const h = await ukurCetak(page, `${label}-siswa`, false);
+      periksaBersama(h);
+      periksa('judul "Laporan Capaian Siswa" tercetak', h.teks.includes('Laporan Capaian Siswa'));
+      periksa('nama lengkap siswa tercetak', h.teks.includes(NAMA_LENGKAP), NAMA_LENGKAP);
+      periksa('kaki menyebut nama siswa dan kelasnya',
+        new RegExp(`${NAMA_LENGKAP} · Kelas 2A`).test(h.teks));
+      periksa('"Rekap Seluruh Kelas" TIDAK tercetak', !h.teks.includes('Rekap Seluruh Kelas'));
+      periksa('"Ketuntasan" TIDAK tercetak', !h.teks.includes('Ketuntasan'));
+      periksa('judul laporan bulanan TIDAK tercetak', !h.teks.includes('Laporan Bulanan'));
+      periksa('tabel rincian bulanan siswa tercetak', h.teks.includes('Rincian Bulanan'));
+      console.log(`     PDF: ${h.pdf}`);
+      await page.close();
+    }
   }
 } finally {
   await peramban.close();
