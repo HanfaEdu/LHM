@@ -888,17 +888,16 @@ function GrafikKetuntasanKelas({ data }) {
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
+            // Label di lajur sumbu sebelah KIRI garis, bukan di dalam bidang
+            // gambar: di dalam, batang yang menjulang melewati ambang selalu
+            // menimpanya (di kelas mana pun letaknya). Di lajur sumbu tidak
+            // ada batang. Angkanya saja; kata "Ambang" sudah ada di legenda.
             label={{
-              value: `Ambang ${AMBANG_KETUNTASAN}%`,
-              position: 'insideTopRight',
+              value: `${AMBANG_KETUNTASAN}%`,
+              position: 'left',
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: 700,
               fill: 'var(--target)',
-              // Halo warna kartu: label sering jatuh di atas batang yang
-              // menjulang ke 100, dan tanpa halo tulisannya hilang di situ.
-              stroke: 'var(--kartu)',
-              strokeWidth: 4,
-              paintOrder: 'stroke',
             }}
           />
         </ComposedChart>
