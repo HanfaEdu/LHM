@@ -12,7 +12,7 @@ import {
   siswaDalamKelas,
   susunBulananSiswa,
 } from '@/lib/data-dasbor';
-import { bulanBawaan, ketuntasanMapel, mapelSkor, mapelUntuk, narasiKelas } from '@/lib/statistik';
+import { barisDinilai, bulanBawaan, ketuntasanMapel, mapelSkor, mapelUntuk, narasiKelas } from '@/lib/statistik';
 import { poinUntuk } from '@/lib/poin';
 import { tampilKelas } from '@/lib/kelas';
 import {
@@ -148,7 +148,10 @@ export default function DasborWaliKelas() {
 
   const kelas = daftarKelas.find((k) => String(k.id) === String(kelasId));
   const daftarBulan = useMemo(() => bulanTerisi(perBulan), [perBulan]);
-  const baris = perBulan[bulan] || [];
+  const terdaftar = perBulan[bulan] || [];
+  // Hanya siswa yang sudah dinilai yang dihitung; baris kosong hasil
+  // sinkronisasi bukan "jumlah siswa yang dinilai".
+  const baris = barisDinilai(terdaftar);
   const target = Number(kelas?.target_akademik ?? 90);
 
   /* Dihitung di sini, TIDAK lewat useMapel(): halaman inilah yang
@@ -205,7 +208,13 @@ export default function DasborWaliKelas() {
           judul={`Kelas ${namaKelas} · ${bulan || 'belum ada data'}`}
           keterangan={`${kelas?.wali_kelas || profil?.nama || ''} · Tahun Ajaran ${
             kelas?.tahun_ajaran ?? ''
-          }${baris.length ? ` · ${baris.length} siswa` : ''}`}
+          }${
+            !baris.length
+              ? ''
+              : baris.length === terdaftar.length
+                ? ` · ${baris.length} siswa`
+                : ` · ${baris.length} dari ${terdaftar.length} siswa sudah dinilai`
+          }`}
           aksi={
             <>
               <TombolLhm alamat={sekolah?.link_lhm} />
@@ -310,8 +319,7 @@ export default function DasborWaliKelas() {
             <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
               <h2 className={gaya.judulKartu}>Sebaran Nilai</h2>
               <p className={gaya.ketKartu}>
-                Setiap nilai masuk tepat satu rentang; nilai 70 dihitung di
-                kelompok 70–79.
+                Nilai dibulatkan lebih dulu; setiap nilai masuk tepat satu rentang.
               </p>
               <TabelDistribusi baris={baris} />
             </section>

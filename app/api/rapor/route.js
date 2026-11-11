@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { BULAN_AJARAN } from '@/quran_mapping';
 import { namaPoin } from '@/lib/poin';
-import { adaIsiBulan, potongTargetBulanKosong } from '@/lib/statistik';
+import { adaIsiBulan, bulanBerdata, potongTargetBulanKosong } from '@/lib/statistik';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,8 +86,39 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Data kelas belum tersedia.' }, { status: 404 });
   }
 
-  const kelas =
-    daftarKelas.find((k) => k.tahun_ajaran === tahunAjaran) || daftarKelas[0];
+  /* Satu tahun ajaran bisa punya lebih dari satu kelas untuk anak yang
+     sama: siswa yang pindah kelas meninggalkan penempatan lama, karena
+     sinkronisasi hanya menambah dan tidak pernah menghapus. Memilih kelas
+     pertama yang cocok bisa mendarat di kelas yang KOSONG -- rapor yang
+     dibuka orang tua lalu tidak berisi apa-apa. Maka yang dipilih kelas
+     yang punya nilai terisi paling banyak; kalau seri, yang paling baru
+     dibuat (id terbesar). */
+  const tahunDipilih = daftarKelas.some((k) => k.tahun_ajaran === tahunAjaran)
+    ? tahunAjaran
+    : daftarKelas[0].tahun_ajaran;
+  const calon = daftarKelas.filter((k) => k.tahun_ajaran === tahunDipilih);
+  let kelas = calon[0];
+  if (calon.length > 1) {
+    const { data: isiCalon } = await db
+      .from('nilai_bulanan')
+      .select(
+        'kelas_id, rata_b_indo, rata_mtk, rata_ipa, capaian_tahfidz, capaian_tahsin, ' +
+          'capaian_peng_bindo, capaian_peng_mtk'
+      )
+      .eq('nis', nis)
+      .in('kelas_id', calon.map((k) => k.id));
+
+    const terisi = new Map(calon.map((k) => [k.id, 0]));
+    (isiCalon || []).forEach((b) => {
+      if (bulanBerdata(b)) terisi.set(b.kelas_id, (terisi.get(b.kelas_id) || 0) + 1);
+    });
+
+    kelas = calon.reduce((terbaik, k) => {
+      const a = terisi.get(k.id);
+      const b = terisi.get(terbaik.id);
+      return a > b || (a === b && k.id > terbaik.id) ? k : terbaik;
+    });
+  }
 
   /* Nama sekolah untuk kepala halaman rapor.
      Query terpisah dan kegagalannya ditelan: pada database yang belum
@@ -222,7 +253,7 @@ export async function POST(request) {
       tahun_ajaran: kelas.tahun_ajaran,
       target_akademik: angka(kelas.target_akademik) ?? 90,
     },
-    tahunAjaranTersedia: daftarKelas.map((k) => k.tahun_ajaran),
+    tahunAjaranTersedia: [...new Set(daftarKelas.map((k) => k.tahun_ajaran))],
     bulanan,
     perbandingan,
   });
