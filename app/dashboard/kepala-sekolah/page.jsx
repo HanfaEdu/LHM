@@ -459,9 +459,9 @@ export default function DasborKepalaSekolah() {
         <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
           <h2 className={gaya.judulKartu}>Ketuntasan Antar Kelas</h2>
           <p className={gaya.ketKartu}>
-            Persentase siswa yang mencapai target pada bulan {bulan}. Garis merah
-            adalah ambang ketuntasan {AMBANG_KETUNTASAN}% — di bawah itu perlu
-            perhatian khusus.
+            Persentase siswa yang mencapai target pada bulan {bulan}. Garis
+            putus-putus adalah ambang ketuntasan {AMBANG_KETUNTASAN}% — di bawah
+            itu perlu perhatian khusus.
           </p>
 
           {grafikKelas.length ? (
@@ -837,12 +837,6 @@ function GrafikKetuntasanKelas({ data }) {
               ReferenceLine tidak pernah muncul di legenda karena ia bukan
               seri, jadi keterangannya disisipkan sendiri lewat
               tambahanDepan di atas -- di posisi yang sama seperti dulu. */}
-          <ReferenceLine
-            y={AMBANG_KETUNTASAN}
-            stroke="var(--target)"
-            strokeWidth={2}
-            strokeDasharray="6 4"
-          />
           {mapel.map((m) => (
             <Bar
               key={m.kunci}
@@ -853,6 +847,26 @@ function GrafikKetuntasanKelas({ data }) {
               barSize={28}
             />
           ))}
+          {/* Digambar SETELAH batang: garis dan labelnya harus berada di atas
+              batang yang menjulang melewati target, bukan tertimbun di bawahnya. */}
+          <ReferenceLine
+            y={AMBANG_KETUNTASAN}
+            stroke="var(--target)"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            label={{
+              value: `Ambang ${AMBANG_KETUNTASAN}%`,
+              position: 'insideTopRight',
+              fontSize: 11,
+              fontWeight: 600,
+              fill: 'var(--target)',
+              // Halo warna kartu: label sering jatuh di atas batang yang
+              // menjulang ke 100, dan tanpa halo tulisannya hilang di situ.
+              stroke: 'var(--kartu)',
+              strokeWidth: 4,
+              paintOrder: 'stroke',
+            }}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

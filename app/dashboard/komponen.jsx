@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -18,6 +19,7 @@ import {
   bulanBerdata,
   bulat,
   capaianTerbaik,
+  capaiTarget,
   distribusi,
   kalimatTerbaik,
   ketuntasan,
@@ -81,6 +83,34 @@ const kotakTooltip = {
   fontSize: 12,
   color: 'var(--tinta)',
 };
+
+/* ================================================================
+   Sakelar urutan batang
+   ================================================================
+   Dua pilihan berdampingan di atas grafik per siswa. Bawaannya urut nama
+   (urutan data masuk); "Urut nilai" menaruh yang paling tertinggal di
+   kiri. Disembunyikan saat cetak, tetapi cetakan mengikuti urutan yang
+   sedang dipilih. */
+function SakelarUrutan({ urutan, ubah }) {
+  return (
+    <div className={gaya.sakelar} role="group" aria-label="Urutan batang">
+      {[
+        ['nama', 'Urut nama'],
+        ['nilai', 'Urut nilai'],
+      ].map(([kunci, label]) => (
+        <button
+          key={kunci}
+          type="button"
+          aria-pressed={urutan === kunci}
+          className={urutan === kunci ? gaya.sakelarAktif : ''}
+          onClick={() => ubah(kunci)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /* ================================================================
    Meter ketuntasan — pengganti gauge di rapor PDF
@@ -179,20 +209,43 @@ export function MeterKetuntasan({ label, hasil }) {
 export function GrafikKelasAkademik({ baris, target, anonim }) {
   const ukuran = useUkuranGrafikDasbor();
   const mapel = useMapelSkor();
+  const [urutan, setUrutan] = useState('nama');
 
   // `target` tidak lagi diikutkan ke tiap baris data: sejak digambar
   // sebagai ReferenceLine, ia bukan lagi seri yang perlu punya nilai per
   // siswa -- dan membiarkannya di sini hanya menambah satu baris "Target
   // 90" yang sama di setiap tooltip.
-  const data = baris.map((b) => ({
+  const dasar = baris.map((b) => ({
     nama: anonim ? b.label : b.nama_panggilan,
     ...b,
   }));
 
-  const adaIsi = data.some((b) => mapel.some((m) => b[m.kunci] !== null));
+  const adaIsi = dasar.some((b) => mapel.some((m) => b[m.kunci] !== null));
   if (!adaIsi) return <p className={gaya.kosong}>Belum ada nilai untuk bulan ini.</p>;
 
+  /* Urut nilai: naik menurut rata-rata mapel yang terisi pada baris itu,
+     sehingga siswa yang paling tertinggal berada di kiri. Baris tanpa satu
+     pun nilai ditaruh di ujung kanan. Array.sort stabil, jadi yang
+     rata-ratanya sama tetap berurut nama. */
+  const data =
+    urutan === 'nilai'
+      ? [...dasar].sort((a, b) => {
+          const ra = rataRata(mapel.map((m) => a[m.kunci]));
+          const rb = rataRata(mapel.map((m) => b[m.kunci]));
+          return (ra ?? Infinity) - (rb ?? Infinity);
+        })
+      : dasar;
+
+  /* Ada batang di bawah target? Keterangan "lebih pucat" hanya dimunculkan
+     kalau memang ada yang pucat -- sama seperti "Di bawah target" pada
+     grafik Tahfidz/Tahsin. */
+  const adaDibawahTarget = data.some((b) =>
+    mapel.some((m) => b[m.kunci] !== null && b[m.kunci] !== undefined && !capaiTarget(b[m.kunci], target))
+  );
+
   return (
+    <>
+    <SakelarUrutan urutan={urutan} ubah={setUrutan} />
     <div className={gaya.grafik}>
       <ResponsiveContainer
         key={ukuran.cetak ? 'cetak' : 'layar'}
@@ -211,16 +264,28 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
             textAnchor="end"
             height={78}
           />
+          {/* 0-100, bukan 0-125: ruang kosong di atas 100 membuat batang
+              tampak pendek. Nilai di atas 100 adalah salah ketik. */}
           <YAxis
-            domain={[0, 125]}
-            ticks={[0, 25, 50, 75, 100, 125]}
+            domain={[0, 100]}
+            ticks={[0, 25, 50, 75, 100]}
+            allowDataOverflow={false}
             tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
             tickLine={false}
             axisLine={false}
           />
+          {/* Nilai asli satu desimal DAN statusnya: 89,6 tampil "dibulatkan
+              90 · tuntas", jadi pembaca tahu mengapa angka yang terbaca
+              "89.6" dihitung tuntas. */}
           <Tooltip
             contentStyle={kotakTooltip}
-            formatter={(v, n) => [v === null ? 'belum dinilai' : bulat(v, 1), n]}
+            formatter={(v, n) => {
+              if (v === null || v === undefined) return ['belum dinilai', n];
+              const asli = bulat(v, 1);
+              const dibulatkan = bulat(v);
+              const catatan = Number(asli) === Number(dibulatkan) ? '' : ` → dibulatkan ${dibulatkan}`;
+              return [`${asli}${catatan} · ${capaiTarget(v, target) ? 'tuntas' : 'di bawah target'}`, n];
+            }}
           />
           <Legend
             content={
@@ -234,6 +299,18 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
                     putusPutus: true,
                   },
                 ]}
+                tambahan={
+                  adaDibawahTarget
+                    ? [
+                        {
+                          kunci: 'pucat',
+                          label: 'Lebih pucat = di bawah target',
+                          warna: 'var(--tinta-lembut)',
+                          pucat: true,
+                        },
+                      ]
+                    : []
+                }
               />
             }
           />
@@ -251,12 +328,6 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
               Konsekuensinya ReferenceLine tidak pernah muncul di legenda
               (ia bukan seri), jadi keterangannya disisipkan sendiri lewat
               tambahanDepan di atas -- di posisi yang sama seperti dulu. */}
-          <ReferenceLine
-            y={target}
-            stroke="var(--target)"
-            strokeWidth={2}
-            strokeDasharray="6 4"
-          />
           {/* Batang, bukan garis. Sumbu X di sini adalah nama siswa --
               kategori yang tidak berurutan. Garis akan menyambungkan Aksara
               ke Alesha seolah nilai satu murid "berubah menjadi" nilai murid
@@ -277,11 +348,39 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
               fill={WARNA_MAPEL[m.kunci]}
               radius={[3, 3, 0, 0]}
               maxBarSize={18}
-            />
+            >
+              {/* Batang di bawah target dipucatkan, bukan diberi warna lain:
+                  warna mapel tetap dikenali, statusnya terbaca di semua
+                  warna. */}
+              {data.map((b, i) => (
+                <Cell key={i} fillOpacity={capaiTarget(b[m.kunci], target) ? 1 : 0.5} />
+              ))}
+            </Bar>
           ))}
+          {/* Digambar SETELAH batang: garis dan labelnya harus berada di atas
+              batang yang menjulang melewati target, bukan tertimbun di bawahnya. */}
+          <ReferenceLine
+            y={target}
+            stroke="var(--target)"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            label={{
+              value: `Target ${target}`,
+              position: 'insideTopRight',
+              fontSize: 11,
+              fontWeight: 600,
+              fill: 'var(--target)',
+              // Halo warna kartu: label sering jatuh di atas batang yang
+              // menjulang ke 100, dan tanpa halo tulisannya hilang di situ.
+              stroke: 'var(--kartu)',
+              strokeWidth: 4,
+              paintOrder: 'stroke',
+            }}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
+    </>
   );
 }
 
@@ -291,6 +390,7 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
 export function GrafikKelasQuran({ jenis, baris, anonim }) {
   const ukuran = useUkuranGrafikDasbor();
   const jenjang = useJenjang();
+  const [urutan, setUrutan] = useState('nama');
 
   /* Dipakai untuk seluruh ukuran berbentuk poin -- Tahfidz dan Tahsin di
      semua jenjang, plus B. Indonesia & Matematika di PG (lib/poin.js). */
@@ -300,19 +400,28 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
      menyambung dari satu anak ke anak berikutnya. SD tidak berubah. */
   const targetPerSiswa = String(jenjang || '').toUpperCase() === 'PG';
 
-  const data = baris
+  const dasar = baris
     .map((b) => ({ nama: anonim ? b.label : b.nama_panggilan, ...b }))
     .filter((b) => b[kCapaian] !== null);
 
-  if (!data.length) {
+  if (!dasar.length) {
     return <p className={gaya.kosong}>Belum ada capaian {label} untuk bulan ini.</p>;
   }
+
+  /* Urut nilai: naik menurut selisih capaian - target, jadi yang paling
+     tertinggal berada di kiri. Siswa tanpa target tidak punya selisih dan
+     ditaruh di ujung kanan. */
+  const selisih = (b) =>
+    b[kTarget] === null || b[kTarget] === undefined ? Infinity : b[kCapaian] - b[kTarget];
+  const data = urutan === 'nilai' ? [...dasar].sort((a, b) => selisih(a) - selisih(b)) : dasar;
 
   const adaDibawahTarget = data.some(
     (b) => b[kTarget] !== null && b[kCapaian] < b[kTarget]
   );
 
   return (
+    <>
+    <SakelarUrutan urutan={urutan} ubah={setUrutan} />
     <div className={gaya.grafik}>
       <ResponsiveContainer
         key={ukuran.cetak ? 'cetak' : 'layar'}
@@ -361,6 +470,7 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
                           label: 'Di bawah target',
                           warna,
                           warnaTepi: 'var(--kritis)',
+                          pucat: true,
                         },
                       ]
                     : []),
@@ -396,6 +506,11 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
                 <Cell
                   key={i}
                   fill={warna}
+                  /* Di bawah target: pucat DAN bergaris tepi merah. Garis
+                     tepi merah saja nyaris tak terlihat di atas batang
+                     jingga (Matematika Playgroup); pucat terbaca di semua
+                     warna. */
+                  fillOpacity={dibawah ? 0.5 : 1}
                   stroke={dibawah ? 'var(--kritis)' : 'none'}
                   /* 2.5px, bukan 1px: pada layar HP batangnya hanya sekitar
                      20px lebar, dan garis setipis 1px di tepi batang
@@ -430,6 +545,7 @@ export function GrafikKelasQuran({ jenis, baris, anonim }) {
         </ComposedChart>
       </ResponsiveContainer>
     </div>
+    </>
   );
 }
 
@@ -777,8 +893,9 @@ export function GrafikTahunanAkademik({ bulanan, target }) {
             height={60}
           />
           <YAxis
-            domain={[0, 125]}
-            ticks={[0, 25, 50, 75, 100, 125]}
+            domain={[0, 100]}
+            ticks={[0, 25, 50, 75, 100]}
+            allowDataOverflow={false}
             tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
             tickLine={false}
             axisLine={false}

@@ -26,7 +26,7 @@
 const UKURAN = 14;
 const TENGAH = UKURAN / 2;
 
-function Ikon({ warna, warnaTepi, putusPutus, jenis, bulatanTarget }) {
+function Ikon({ warna, warnaTepi, putusPutus, jenis, bulatanTarget, pucat }) {
   // Penanda target per siswa (PenandaTarget.jsx): garis pendek tebal.
   if (jenis === 'penanda') {
     return (
@@ -51,6 +51,9 @@ function Ikon({ warna, warnaTepi, putusPutus, jenis, bulatanTarget }) {
           height={UKURAN - (warnaTepi ? 2 : 0)}
           rx="2"
           fill={warna}
+          // Pucat hanya pada isian: garis tepi tetap pekat, sama seperti
+          // batangnya di grafik.
+          fillOpacity={pucat ? 0.5 : 1}
           stroke={warnaTepi || 'none'}
           strokeWidth={warnaTepi ? 2 : 0}
         />
@@ -122,6 +125,7 @@ export default function LegendaGrafik({
         warna={t.warna}
         warnaTepi={t.warnaTepi}
         putusPutus={t.putusPutus}
+        pucat={t.pucat}
       />
       <span style={{ color: 'var(--tinta-lembut)' }}>{t.label}</span>
     </li>

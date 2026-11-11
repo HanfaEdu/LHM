@@ -11,7 +11,8 @@
   --seri-1: #2a78d6; /* B. Indonesia */
   --seri-2: #eb6834; /* Matematika   */
   --seri-3: #1baf7a; /* IPA          */
-  --target: #d03b3b; /* garis target */
+  --target: #3a3936; /* garis target: tinta netral, bukan merah */
+  --kritis: #d03b3b; /* merah khusus untuk galat / di bawah target */
   --sorot: #fff4e6;
   --pendar-diam: rgb(42 120 214 / 0%);
   --pendar-nyala: rgb(42 120 214 / 13%);
@@ -37,7 +38,8 @@
     --seri-1: #3987e5;
     --seri-2: #d95926;
     --seri-3: #199e70;
-    --target: #e66767;
+    --target: #e9e7df;
+    --kritis: #e66767;
     --sorot: #2d2a24;
     --pendar-diam: rgb(57 135 229 / 0%);
     --pendar-nyala: rgb(57 135 229 / 20%);
@@ -342,7 +344,7 @@
 }
 
 .galat {
-  color: var(--target);
+  color: var(--kritis);
   font-size: 0.88rem;
   margin-top: 0.75rem;
 }
@@ -667,7 +669,7 @@
 
    Yang dipakai pastel, bukan pelangi penuh, justru karena halaman ini
    sudah memakai warna untuk menyampaikan arti: biru B. Indonesia,
-   oranye Matematika, hijau IPA, merah target. Pastel berada satu
+   oranye Matematika, hijau IPA, penanda gelap untuk target. Pastel berada satu
    tingkat di bawah semua itu ketegasannya -- cukup terlihat sebagai
    "benda ini hidup dan bisa ditekan", tetapi tidak pernah bisa
    tertukar dengan warna seri data yang pekat di grafik sebelahnya.
@@ -999,6 +1001,9 @@
     --tinta: #000000;
     --tinta-lembut: #333333;
     --tinta-samar: #666666;
+    /* Palet cetak selalu terang: tanpa ini, di perangkat bermode gelap
+       garis target tercetak nyaris putih di atas kertas putih. */
+    --target: #000000;
 
     min-height: auto;
     background: #ffffff;
