@@ -754,11 +754,16 @@ atau garis untuk mapel yang tidak dinilai di PG).
 
 ## 8. Yang perlu jawaban pemilik (tidak menghalangi Fase 1–3)
 
-1. **Pembulatan 89,5 → tuntas**: sudah sesuai kebijakan sekolah? (Bila
-   tidak, alternatifnya menampilkan satu desimal di mana-mana.)
-2. **Fase 4.1**: siapa yang boleh mendaftarkan biro/direktur area —
-   semua sekolah (seperti sekarang) atau hanya sekolah tertentu
-   (`SYNC_KODE_DIREKTUR`)?
+1. ~~Pembulatan 89,5 → tuntas~~ — **dijawab 11 Nov 2026: setuju**
+   (bersama persetujuan Fase 1–3 dan aturan penulisan nama di 1.2).
+2. ~~Fase 4.1: siapa yang boleh mendaftarkan biro/direktur area~~ —
+   **dijawab 11 Nov 2026: tetap seperti sekarang.** Pemilik sendiri yang
+   mengisi baris biro/direktur, di sheet `users_access` sekolahnya
+   sendiri. Jadi `SYNC_KODE_DIREKTUR` tetap dibuat sebagai pilihan dan
+   **dibiarkan kosong** (perilaku sekarang). Catatan untuk pemilik: teks
+   peran `direktur_area` tertulis di kode dan dokumen, jadi bukan
+   rahasia; bila kelak ingin dikunci, cukup isi variabel itu dengan kode
+   sekolah pemilik — cara kerjanya tidak berubah sama sekali.
 3. **Fase 5.4**: setuju 33 penempatan ganda SDYFP (5A/5B) dibersihkan
    dengan berkas `perawatan/penempatan-ganda.sql`?
 4. **Fase 4.3**: tabel potret September dipindah ke skema `arsip`, atau
