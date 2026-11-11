@@ -133,16 +133,41 @@ export function capaianTerbaik(baris, mapel = MAPEL) {
 
 Ganti isi `CatatanTerbaik` di `app/dashboard/komponen.jsx` menjadi daftar
 (bukan satu kalimat). Judul kecil: **"Nilai tertinggi bulan ini"**. Satu
-baris per mapel, dengan aturan penulisan nama:
+baris per mapel.
 
-- 1 peraih → `B. Indo 100 — Aisya`
-- 2–5 peraih → `B. Indo 100 — 4 siswa: Aira, Aisya, Alif, Ammar`
-- lebih dari 5 → `B. Indo 100 — 22 siswa: Aira, Aisya, Alif, dan 19 lainnya`
-- semua siswa yang dinilai (dan lebih dari 1) → `B. Indo 100 — seluruh 24 siswa`
+**Aturan penulisan (sudah diputuskan): sebut SEMUA nama, atau sebut
+jumlahnya saja — tidak pernah sebagian nama.** Menulis "Aira, Aisya,
+Alif, dan 19 lainnya" mengulang cacat yang sedang diperbaiki: yang
+tersebut hanya yang namanya paling awal menurut abjad.
+
+| `peraih.length` | Kalimat |
+|-----------------|---------|
+| 1 | `Matematika: nilai tertinggi 98 diraih Aisya.` |
+| 2–3 | `IPA: nilai tertinggi 100 diraih Aira, Alif, dan Ammar.` (pakai `gabung()` dari 1.3) |
+| 4 atau lebih | `B. Indonesia: 22 dari 24 siswa meraih nilai tertinggi 100.` |
+| sama dengan `dinilai` (dan > 1) | `B. Indonesia: seluruh 24 siswa meraih nilai 100.` |
+
+Baris "seluruh" didahulukan atas baris lain: 2 peraih dari 2 siswa yang
+dinilai ditulis "seluruh 2 siswa", bukan dua nama.
+
+Pembandingnya ("dari 24") adalah `dinilai` — jumlah siswa yang punya
+nilai mapel itu bulan ini — bukan jumlah siswa terdaftar. Nama mapel
+memakai `label` (panjang), jadi tambahkan `label: m.label` pada hasil
+`capaianTerbaik()`.
+
+Untuk 4 peraih atau lebih, namanya tetap bisa dilihat **di layar**:
+di ujung baris ada `<details className={gaya.namaPeraih}>` dengan
+`<summary>lihat nama</summary>` berisi seluruh nama urut abjad, dipisah
+koma. **Di cetakan daftar itu tidak ikut**: `usePersiapanCetak` membuka
+semua `<details>` sebelum mencetak, jadi tambahkan `.namaPeraih` ke
+daftar `display: none !important` di blok `@media print`. Laporan cetak
+cukup memuat kalimat jumlahnya; siapa orangnya sudah terlihat di grafik
+batang di atasnya.
 
 Pakai `<ul className={gaya.daftarTerbaik}>`; gayanya meniru `.narasi`
 (latar lembut, huruf 0.88rem), titik warna kecil di depan tiap baris
-memakai `WARNA_MAPEL[t.kunci]`.
+memakai `WARNA_MAPEL[t.kunci]`. Nama siswa dan angka "22 dari 24" /
+"seluruh 24 siswa" dicetak tebal.
 
 ### 1.3 Narasi kelas: mapel yang seri disebut semua
 
@@ -208,7 +233,13 @@ wajib:
 - `peringatanDini`: siswa bernilai 89.6 **tidak** muncul; 89.4 muncul
   dengan teks "89 (target 90)".
 - `capaianTerbaik`: tiga siswa 100 dan satu 99.6 → `peraih.length 4`,
-  urut abjad; satu siswa saja → `peraih.length 1`.
+  urut abjad; satu siswa saja → `peraih.length 1`; `dinilai` tidak
+  menghitung siswa yang nilainya null.
+- Kalimat nilai tertinggi (pisahkan penyusunnya ke fungsi murni
+  `kalimatTerbaik(t)` di `lib/statistik.js` supaya bisa diuji tanpa
+  peramban; kembalikan `{ teks, tampilNama }`): 1 peraih memuat namanya;
+  3 peraih memuat ketiga nama; 4 dari 24 → memuat "4 dari 24 siswa" dan
+  **tidak** memuat satu nama pun; 24 dari 24 → memuat "seluruh 24 siswa".
 - `narasiKelas`: dua mapel sama-sama 100% → memuat "sama"; satu mapel
   89,6% → **tidak** memuat "Perlu perhatian".
 - `barisDinilai`: baris yang seluruh kolomnya null terbuang.
@@ -713,7 +744,7 @@ atau garis untuk mapel yang tidak dinilai di PG).
 | Hal | Keputusan |
 |-----|-----------|
 | Pembulatan | Bulat ke satuan, 0,5 ke atas; tuntas bila hasil bulat ≥ target |
-| Nilai tertinggi | Semua peraih disebut; lebih dari 5 → tiga nama + "dan N lainnya" |
+| Nilai tertinggi | 1–3 peraih disebut namanya; 4 atau lebih ditulis "N dari M siswa" (nama bisa dibuka di layar, tidak dicetak); tidak pernah sebagian nama |
 | Warna target | Tinta netral putus-putus + label; merah hanya untuk "di bawah target" |
 | Warna mapel | Tidak diubah |
 | Telusur di cetak bulanan | Selalu disembunyikan; ada tombol cetak khusus satu siswa |
