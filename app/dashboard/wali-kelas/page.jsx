@@ -310,7 +310,7 @@ export default function DasborWaliKelas() {
             <section className={`${gaya.kartu} ${gaya.kartuAkademik}`}>
               <h2 className={gaya.judulKartu}>Capaian Hasil Belajar per Siswa</h2>
               <p className={gaya.ketKartu}>
-                Garis merah putus-putus adalah target kelas ({target}).
+                Garis putus-putus adalah target kelas ({target}).
               </p>
               <GrafikKelasAkademik baris={baris} target={target} />
               <CatatanTerbaik baris={baris} />

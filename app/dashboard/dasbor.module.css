@@ -11,7 +11,9 @@
   --seri-1: #2a78d6;
   --seri-2: #eb6834;
   --seri-3: #1baf7a;
-  --target: #d03b3b;
+  /* Garis target/ambang: tinta netral, bukan merah. Merah hanya berarti
+     satu hal -- DI BAWAH target / perlu tindakan (--kritis, --tindakan). */
+  --target: #3a3936;
 
   /* ----------------------------------------------------------------
      Empat tingkat meter ketuntasan
@@ -76,7 +78,7 @@
     --seri-1: #3987e5;
     --seri-2: #d95926;
     --seri-3: #199e70;
-    --target: #e66767;
+    --target: #e9e7df;
 
     --baik: #2fbb2f;
     --baik-teks: #4ecb63;
@@ -767,7 +769,7 @@
 
    Yang dipakai pastel, bukan pelangi penuh, justru karena halaman ini
    sudah memakai warna untuk menyampaikan arti: biru B. Indonesia,
-   oranye Matematika, hijau IPA, merah ambang ketuntasan. Pastel berada
+   oranye Matematika, hijau IPA, garis ambang ketuntasan. Pastel berada
    satu tingkat di bawah semua itu ketegasannya -- cukup terlihat
    sebagai "benda ini hidup dan bisa ditekan", tetapi tidak pernah bisa
    tertukar dengan warna seri data yang pekat di grafik sebelahnya.
@@ -1022,6 +1024,43 @@
 }
 
 /* ================================================================
+   Sakelar urutan batang
+   ================================================================
+   Dua tombol pil berdampingan di atas grafik. Yang aktif berlatar
+   --seri-1, seperti .tombolKecilAktif. Tombol dibuat setinggi 36px:
+   dipakai guru di HP, dan 28px terlalu mudah meleset. */
+.sakelar {
+  display: inline-flex;
+  margin: 0 0 0.5rem;
+  border: 1px solid var(--garis);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--kartu);
+}
+
+.sakelar button {
+  min-height: 36px;
+  padding: 0.3rem 0.9rem;
+  border: none;
+  background: transparent;
+  color: var(--tinta-lembut);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sakelar button.sakelarAktif {
+  background: var(--seri-1);
+  color: #ffffff;
+}
+
+.sakelar button:focus-visible {
+  outline: 2px solid var(--pendar-fokus);
+  outline-offset: -2px;
+}
+
+/* ================================================================
    Nilai tertinggi bulan ini
    ================================================================
    Daftar satu baris per mapel, bukan satu kalimat: sampai puluhan siswa
@@ -1144,7 +1183,7 @@
     --seri-1: #1c5fae;
     --seri-2: #c04f21;
     --seri-3: #12805a;
-    --target: #b62c2c;
+    --target: #000000;
     /* Di atas kertas busurnya ikut ditua-kan: warna cerah boros tinta dan
        sering keluar sebagai pucat. Oranye dijaga tetap jingga terang,
        bukan merah bata: ia kini bertetangga LANGSUNG dengan tingkat
@@ -1310,7 +1349,8 @@
   .tombolAksi,
   .tombolKecil,
   .kepalaAlat label,
-  .namaPeraih {
+  .namaPeraih,
+  .sakelar {
     display: none !important;
   }
 

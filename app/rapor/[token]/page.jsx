@@ -492,7 +492,7 @@ function GrafikAkademik({ bulanan, target }) {
               <Legend content={<LegendaGrafik />} />
               {/* Target digambar sebagai seri, bukan ReferenceLine: hanya
                   seri yang muncul di legenda, dan legenda itulah satu-satunya
-                  tempat pembaca bisa tahu garis merah putus-putus ini artinya
+                  tempat pembaca bisa tahu garis putus-putus ini artinya
                   apa setelah keterangan panjangnya dihapus. */}
               <Line
                 isAnimationActive={!ukuranGrafik.cetak}
@@ -548,7 +548,7 @@ function GrafikQuran({ jenis, judul, bulanan, warna }) {
     <section className={`${gaya.kartu} ${KELAS_KARTU[jenis]}`}>
       <h2 className={gaya.judulKartu}>{judul}</h2>
       <p className={gaya.ketKartu}>
-        Batang menunjukkan capaian, titik merah menunjukkan target bulan itu.
+        Batang menunjukkan capaian, penanda gelap menunjukkan target bulan itu.
       </p>
 
       {adaIsi ? (
