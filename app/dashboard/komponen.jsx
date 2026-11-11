@@ -364,17 +364,16 @@ export function GrafikKelasAkademik({ baris, target, anonim }) {
             stroke="var(--target)"
             strokeWidth={2}
             strokeDasharray="6 4"
+            // Label di lajur sumbu sebelah KIRI garis, bukan di dalam bidang
+            // gambar: di dalam, batang yang menjulang melewati target selalu
+            // menimpanya. Di lajur sumbu tidak ada batang. Angkanya saja;
+            // kata "Target" sudah ada di legenda.
             label={{
-              value: `Target ${target}`,
-              position: 'insideTopRight',
+              value: `${target}`,
+              position: 'left',
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: 700,
               fill: 'var(--target)',
-              // Halo warna kartu: label sering jatuh di atas batang yang
-              // menjulang ke 100, dan tanpa halo tulisannya hilang di situ.
-              stroke: 'var(--kartu)',
-              strokeWidth: 4,
-              paintOrder: 'stroke',
             }}
           />
         </ComposedChart>
