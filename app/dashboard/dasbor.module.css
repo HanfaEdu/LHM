@@ -1022,6 +1022,79 @@
 }
 
 /* ================================================================
+   Nilai tertinggi bulan ini
+   ================================================================
+   Daftar satu baris per mapel, bukan satu kalimat: sampai puluhan siswa
+   bisa sama-sama bernilai 100, dan satu kalimat panjang berisi nama
+   mereka tidak terbaca. Latar dan huruf meniru .narasi supaya terasa
+   satu keluarga; titik warna di depan tiap baris memakai warna mapelnya
+   (diisi lewat style, karena WARNA_MAPEL hidup di komponen). */
+.judulTerbaik {
+  margin: 1rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tinta-samar);
+}
+
+.daftarTerbaik {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0.6rem 1rem;
+  background: var(--surface);
+  border-left: 3px solid var(--seri-1);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--tinta-lembut);
+}
+
+.daftarTerbaik li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.15rem 0;
+}
+
+.daftarTerbaik strong {
+  color: var(--tinta);
+}
+
+.titikMapel {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  transform: translateY(-1px);
+}
+
+/* Daftar nama untuk 4 peraih atau lebih: hanya bisa dibuka di layar.
+   Di kertas ia tidak ikut (lihat blok cetak): siapa orangnya sudah
+   terlihat di grafik batang di atasnya, dan laporan cukup memuat jumlahnya. */
+.namaPeraih {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.namaPeraih summary {
+  cursor: pointer;
+  color: var(--seri-1);
+  font-weight: 600;
+}
+
+.namaPeraih summary:focus-visible {
+  outline: 2px solid var(--pendar-fokus);
+  outline-offset: 2px;
+}
+
+.namaPeraih p {
+  margin: 0.25rem 0 0;
+  color: var(--tinta);
+}
+
+/* ================================================================
    CETAK / SIMPAN PDF  —  BLOK INI HARUS TETAP PALING BAWAH
    ================================================================
    Seluruh aturan cetak dikumpulkan di sini, bukan diselipkan di dekat
@@ -1236,7 +1309,8 @@
   .aksiKecil,
   .tombolAksi,
   .tombolKecil,
-  .kepalaAlat label {
+  .kepalaAlat label,
+  .namaPeraih {
     display: none !important;
   }
 

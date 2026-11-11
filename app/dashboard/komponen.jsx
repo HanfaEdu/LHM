@@ -19,6 +19,7 @@ import {
   bulat,
   capaianTerbaik,
   distribusi,
+  kalimatTerbaik,
   ketuntasan,
   peringatanDini,
   rataRata,
@@ -551,10 +552,34 @@ export function CatatanTerbaik({ baris }) {
   const terbaik = capaianTerbaik(baris, useMapel());
   if (!terbaik.length) return null;
   return (
-    <p className={gaya.narasi}>
-      Capaian terbaik bulan ini:{' '}
-      {terbaik.map((t) => `${t.nama} (${t.mapel} ${t.nilai})`).join(', ')}.
-    </p>
+    <>
+      <h3 className={gaya.judulTerbaik}>Nilai tertinggi bulan ini</h3>
+      <ul className={gaya.daftarTerbaik}>
+        {terbaik.map((t) => {
+          const { potongan } = kalimatTerbaik(t);
+          return (
+            <li key={t.kunci}>
+              <span
+                className={gaya.titikMapel}
+                style={{ background: WARNA_MAPEL[t.kunci] }}
+                aria-hidden="true"
+              />
+              <span>
+                {potongan.map((p, i) => (p.tebal ? <strong key={i}>{p.teks}</strong> : p.teks))}
+                {/* 4 peraih atau lebih: nama tidak ditulis di kalimat, tetapi
+                    tetap bisa dibuka di layar. Tidak ikut tercetak. */}
+                {t.peraih.length >= 4 && (
+                  <details className={gaya.namaPeraih}>
+                    <summary>lihat nama</summary>
+                    <p>{t.peraih.join(', ')}</p>
+                  </details>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
 

@@ -28,6 +28,7 @@ import {
 import {
   AMBANG_KETUNTASAN,
   adaIsiBulan,
+  barisDinilai,
   bulanBawaan,
   bulat,
   ketuntasanMapel,
@@ -256,7 +257,12 @@ export default function DasborKepalaSekolah() {
   const ringkasan = useMemo(
     () =>
       kelasTahunIni.map((k) => {
-        const baris = dataKelas[k.id]?.[bulan] || [];
+        const terdaftarBulanIni = dataKelas[k.id]?.[bulan] || [];
+        /* Yang dihitung hanya siswa yang sudah dinilai. Sinkronisasi
+           membuat baris kosong untuk setiap siswa-bulan (dan siswa yang
+           tercatat di dua kelas menambah baris hantu), jadi baris.length
+           bukan "jumlah siswa yang dinilai". */
+        const baris = barisDinilai(terdaftarBulanIni);
         const target = Number(k.target_akademik ?? 90);
         const perMapel = mapel.map((m) => ketuntasanMapel(baris, m, target));
         const semuaPersen = perMapel.filter(Boolean).map((x) => x.persen);
@@ -266,6 +272,7 @@ export default function DasborKepalaSekolah() {
           baris,
           target,
           jumlah: baris.length,
+          terdaftar: terdaftarBulanIni.length,
           perMapel,
           ketuntasanRata: semuaPersen.length ? rataRata(semuaPersen) : null,
           tahfidz: rekapQuran(baris, 'capaian_tahfidz', 'target_tahfidz'),
@@ -504,7 +511,17 @@ export default function DasborKepalaSekolah() {
                       </button>
                     </td>
                     <td className={gaya.kiri}>{r.kelas.wali_kelas || '–'}</td>
-                    <td>{r.jumlah || <span className={gaya.kosong}>–</span>}</td>
+                    <td>
+                      {!r.jumlah ? (
+                        <span className={gaya.kosong}>–</span>
+                      ) : r.terdaftar === r.jumlah ? (
+                        r.jumlah
+                      ) : (
+                        <span title={`${r.jumlah} sudah dinilai dari ${r.terdaftar} terdaftar`}>
+                          {r.jumlah} / {r.terdaftar}
+                        </span>
+                      )}
+                    </td>
                     {r.perMapel.map((k, i) => (
                       <td key={i}>
                         {k ? `${bulat(k.persen)}%` : <span className={gaya.kosong}>–</span>}
