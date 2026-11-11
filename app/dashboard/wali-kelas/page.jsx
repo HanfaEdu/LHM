@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { flushSync } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import {
   bulanTerisi,
@@ -59,6 +60,21 @@ export default function DasborWaliKelas() {
   const [nisSiswa, setNisSiswa] = useState('');
 
   const { modeCetak, cetak } = usePersiapanCetak();
+
+  /* Apa yang akan dicetak: laporan bulanan kelas (bawaan, termasuk Ctrl+P)
+     atau hanya bagian Telusur untuk siswa yang sedang dipilih. Kembali ke
+     bawaan begitu cetak selesai, supaya Ctrl+P berikutnya mencetak laporan
+     bulanan -- bukan lembar siswa yang tertinggal dari cetakan sebelumnya.
+     Efek ini hanya jalan saat modeCetak BERUBAH, jadi tidak membatalkan
+     pilihan 'siswa' yang baru dipasang tepat sebelum cetak(). */
+  const [sasaranCetak, setSasaranCetak] = useState('bulanan'); // 'bulanan' | 'siswa'
+  useEffect(() => {
+    if (!modeCetak) setSasaranCetak('bulanan');
+  }, [modeCetak]);
+  const cetakSiswa = () => {
+    flushSync(() => setSasaranCetak('siswa'));
+    cetak();
+  };
 
   /* Tanggal cetak diisi setelah komponen terpasang, bukan saat render.
      new Date() di badan render menghasilkan nilai yang berbeda antara
@@ -201,7 +217,7 @@ export default function DasborWaliKelas() {
   return (
     <KonteksCetak.Provider value={modeCetak}>
     <KonteksJenjang.Provider value={sekolah?.jenjang}>
-    <div className={gaya.halaman}>
+    <div className={gaya.halaman} data-cetak={sasaranCetak}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
           namaSekolah={sekolah?.nama}
@@ -267,7 +283,13 @@ export default function DasborWaliKelas() {
             bagi siapa pun yang menerimanya seminggu kemudian. */}
         <div className={gaya.judulCetak} aria-hidden="true">
           <span className={gaya.judulCetakUtama}>
-            Laporan Bulanan Kelas {namaKelas} · {bulan || '–'}
+            <span className={gaya.judulCetakBulanan}>
+              Laporan Bulanan Kelas {namaKelas} · {bulan || '–'}
+            </span>
+            <span className={gaya.judulCetakSiswa}>
+              Laporan Capaian Siswa · {siswaTerpilih?.nama_lengkap || '–'} · Kelas {namaKelas} · T.A.{' '}
+              {kelas?.tahun_ajaran ?? ''}
+            </span>
           </span>
           <span className={gaya.judulCetakSisi}>
             {tanggalCetak ? `Dicetak ${tanggalCetak}` : ''}
@@ -277,7 +299,7 @@ export default function DasborWaliKelas() {
         <TombolPasang />
 
         {!baris.length ? (
-          <div className={gaya.kartu}>
+          <div className={`${gaya.kartu} ${gaya.tumpuk2Luar}`}>
             <p className={gaya.kosong}>
               Belum ada nilai yang tersinkron untuk kelas ini. Jalankan menu
               SiPaGi → Sinkronkan Sekarang di Master Rekap.
@@ -326,7 +348,7 @@ export default function DasborWaliKelas() {
             </>
             )}
 
-            <div className={gaya.tumpuk2}>
+            <div className={`${gaya.tumpuk2} ${gaya.tumpuk2Luar}`}>
               {poin.map((p) => (
                 <section key={p.jenis} className={`${gaya.kartu} ${KELAS_KARTU[p.jenis]}`}>
                   <h2 className={gaya.judulKartu}>Capaian {p.label}</h2>
@@ -357,7 +379,7 @@ export default function DasborWaliKelas() {
             siswa tersebut, supaya wali kelas tahu apa yang sedang dibaca
             orang tua saat mereka bertanya. */}
         {daftarSiswa.length > 0 && (
-          <section className={`${gaya.kartu} ${gaya.kartuAlat}`}>
+          <section className={`${gaya.kartu} ${gaya.kartuAlat} ${gaya.bagianTelusur}`}>
             {/* .kepalaAlat, bukan .penyaring: seluruh isi .penyaring
                 disembunyikan saat mencetak, dan judul beserta NAMA SISWA
                 yang dulu berada di dalamnya ikut lenyap dari kertas --
@@ -383,6 +405,14 @@ export default function DasborWaliKelas() {
                   ))}
                 </select>
               </label>
+              {/* Satu-satunya jalan mencetak capaian satu siswa: bagian ini
+                  tidak ikut laporan bulanan. Baru muncul setelah siswanya
+                  dipilih -- tidak ada yang bisa dicetak sebelum itu. */}
+              {bulananSiswa && (
+                <div className={gaya.aksiKecil}>
+                  <TombolCetak onClick={cetakSiswa} label="Cetak Laporan Siswa" />
+                </div>
+              )}
             </div>
 
             {bulananSiswa && (
@@ -429,8 +459,14 @@ export default function DasborWaliKelas() {
             dan tertumpuk bersama laporan kelas lain. */}
         <footer className={gaya.kakiCetak} aria-hidden="true">
           <span>
-            Kelas {namaKelas} · {bulan || '–'}
-            {kelas?.tahun_ajaran ? ` · T.A. ${kelas.tahun_ajaran}` : ''}
+            <span className={gaya.kakiBulanan}>
+              Kelas {namaKelas} · {bulan || '–'}
+              {kelas?.tahun_ajaran ? ` · T.A. ${kelas.tahun_ajaran}` : ''}
+            </span>
+            <span className={gaya.kakiSiswa}>
+              {siswaTerpilih?.nama_lengkap || '–'} · Kelas {namaKelas}
+              {kelas?.tahun_ajaran ? ` · T.A. ${kelas.tahun_ajaran}` : ''}
+            </span>
           </span>
           <span>
             {sekolah?.nama || SEKOLAH_BAWAAN}

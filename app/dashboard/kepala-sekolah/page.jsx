@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { flushSync } from 'react-dom';
 import {
   Bar,
   CartesianGrid,
@@ -96,6 +97,20 @@ export default function DasborKepalaSekolah() {
   const [nisSiswa, setNisSiswa] = useState('');
 
   const { modeCetak, cetak } = usePersiapanCetak();
+
+  /* Apa yang akan dicetak: laporan bulanan sekolah (bawaan, termasuk
+     Ctrl+P) atau hanya bagian Telusur untuk siswa yang sedang dipilih.
+     Kembali ke bawaan begitu cetak selesai. Efek ini hanya jalan saat
+     modeCetak BERUBAH, jadi tidak membatalkan pilihan 'siswa' yang baru
+     dipasang tepat sebelum cetak(). */
+  const [sasaranCetak, setSasaranCetak] = useState('bulanan'); // 'bulanan' | 'siswa'
+  useEffect(() => {
+    if (!modeCetak) setSasaranCetak('bulanan');
+  }, [modeCetak]);
+  const cetakSiswa = () => {
+    flushSync(() => setSasaranCetak('siswa'));
+    cetak();
+  };
 
   /* Tanggal cetak diisi setelah komponen terpasang, bukan saat render:
      new Date() di badan render menghasilkan nilai yang berbeda antara
@@ -333,7 +348,7 @@ export default function DasborKepalaSekolah() {
   return (
     <KonteksCetak.Provider value={modeCetak}>
     <KonteksJenjang.Provider value={sekolah?.jenjang}>
-    <div className={gaya.halaman}>
+    <div className={gaya.halaman} data-cetak={sasaranCetak}>
       <div className={gaya.wadah}>
         <KepalaSekolahan
           namaSekolah={sekolah?.nama}
@@ -447,7 +462,13 @@ export default function DasborKepalaSekolah() {
             menjelaskan. */}
         <div className={gaya.judulCetak} aria-hidden="true">
           <span className={gaya.judulCetakUtama}>
-            Laporan Bulanan Sekolah · {bulan || '–'}
+            <span className={gaya.judulCetakBulanan}>
+              Laporan Bulanan Sekolah · {bulan || '–'}
+            </span>
+            <span className={gaya.judulCetakSiswa}>
+              Laporan Capaian Siswa · {siswaTerpilih?.nama_lengkap || '–'} · Kelas{' '}
+              {tampilKelas(kelasSiswaObj?.nama_kelas ?? '', sekolah?.jenjang)} · T.A. {tahunAjaran}
+            </span>
           </span>
           <span className={gaya.judulCetakSisi}>
             {tanggalCetak ? `Dicetak ${tanggalCetak}` : ''}
@@ -628,7 +649,7 @@ export default function DasborKepalaSekolah() {
               </section>
             )}
 
-            <div className={gaya.tumpuk2}>
+            <div className={`${gaya.tumpuk2} ${gaya.tumpuk2Luar}`}>
               {poin.map((p) => (
                 <section key={p.jenis} className={`${gaya.kartu} ${KELAS_KARTU[p.jenis]}`}>
                   <h2 className={gaya.judulKartu}>{p.label}</h2>
@@ -650,7 +671,7 @@ export default function DasborKepalaSekolah() {
             dua pilihan (kelas, lalu nama) supaya daftar nama tidak perlu
             memuat seluruh 113 siswa sekaligus. Kosong secara bawaan, sama
             seperti drill-down kelas di atas. */}
-        <section className={`${gaya.kartu} ${gaya.kartuAlat}`}>
+        <section className={`${gaya.kartu} ${gaya.kartuAlat} ${gaya.bagianTelusur}`}>
           <h2 className={gaya.judulKartu}>Telusur Satu Siswa</h2>
           <p className={gaya.ketKartu}>
             Pilih kelas, lalu nama siswa, untuk melihat capaiannya sepanjang
@@ -691,6 +712,12 @@ export default function DasborKepalaSekolah() {
                 ))}
               </select>
             </label>
+            {/* Satu-satunya jalan mencetak capaian satu siswa: bagian ini
+                tidak ikut laporan bulanan. Baru muncul setelah siswanya
+                dipilih. */}
+            {bulananSiswa && (
+              <TombolCetak onClick={cetakSiswa} label="Cetak Laporan Siswa" />
+            )}
           </div>
 
           {bulananSiswa && (
@@ -728,8 +755,15 @@ export default function DasborKepalaSekolah() {
             sekolah dan bulan mana. */}
         <footer className={gaya.kakiCetak} aria-hidden="true">
           <span>
-            Laporan Bulanan · {bulan || '–'}
-            {tahunAjaran ? ` · T.A. ${tahunAjaran}` : ''}
+            <span className={gaya.kakiBulanan}>
+              Laporan Bulanan · {bulan || '–'}
+              {tahunAjaran ? ` · T.A. ${tahunAjaran}` : ''}
+            </span>
+            <span className={gaya.kakiSiswa}>
+              {siswaTerpilih?.nama_lengkap || '–'} ·{' '}
+              Kelas {tampilKelas(kelasSiswaObj?.nama_kelas ?? '', sekolah?.jenjang)}
+              {tahunAjaran ? ` · T.A. ${tahunAjaran}` : ''}
+            </span>
           </span>
           <span>
             {sekolah?.nama || SEKOLAH_BAWAAN}
