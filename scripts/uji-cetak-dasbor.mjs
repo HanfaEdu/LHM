@@ -229,7 +229,17 @@ async function ukurCetak(page, label, kirimBeforeprint = true) {
           .map((el) => Math.round(el.getBoundingClientRect().right))
       ),
       adaSelect: [...document.querySelectorAll('select')].some(terlihat),
-      adaTombol: [...document.querySelectorAll('button, a[href]')].some(terlihat),
+      /* Nama kelas di kolom pertama tabel Rekap Seluruh Kelas kebetulan
+         berbentuk <button> (diklik di layar untuk menelusuri kelas), tetapi
+         di atas kertas ia SENGAJA tetap tercetak sebagai teks tabel: itulah
+         satu-satunya penanda baris tersebut (lihat .tombolKelas di blok
+         @media print dasbor.module.css). Isinya data, bukan perintah, jadi
+         tidak dihitung sebagai tombol. Pengecualiannya sempit: harus
+         bernama .tombolKelas DAN berada di dalam sel tabel -- tombol lain
+         di mana pun tetap dianggap tercetak. */
+      adaTombol: [...document.querySelectorAll('button, a[href]')]
+        .filter((el) => !(el.className.includes('tombolKelas') && el.closest('td')))
+        .some(terlihat),
       teks: document.body.innerText,
 
       /* Dua cara grafik bisa rusak saat dicetak, keduanya tanpa galat
