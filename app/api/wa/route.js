@@ -6,6 +6,7 @@ import { susunBalasan } from '@/lib/wa-balasan';
 import { memintaTautan } from '@/lib/wa-kata-kunci';
 import { SEKOLAH_BAWAAN } from '@/lib/sekolah';
 import { tampilKelas } from '@/lib/kelas';
+import { ambilSemua } from '@/lib/ambil-semua';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,8 +156,10 @@ async function sekolahPengirim(db, device) {
   if (!nomor) return null;
 
   try {
-    const { data } = await db.from('sekolah').select('id, nama, kode, wa_pengirim');
-    return (data || []).find((s) => nomorWa(s.wa_pengirim) === nomor) || null;
+    const data = await ambilSemua(() =>
+      db.from('sekolah').select('id, nama, kode, wa_pengirim').order('id', { ascending: true })
+    );
+    return data.find((s) => nomorWa(s.wa_pengirim) === nomor) || null;
   } catch {
     // Migrasi 003 belum dijalankan. Layanan tetap berjalan untuk sekolah tunggal.
     return null;
@@ -288,18 +291,21 @@ export async function POST(request) {
      Disaring ke sekolah pemilik nomor tujuan bila diketahui: satu
      aplikasi melayani beberapa sekolah, dan pesan yang masuk ke nomor
      Kudus tidak boleh dijawab dengan data Pati. */
-  let cari = db
-    .from('siswa')
-    .select('nis, nama_lengkap, nama_panggilan, sekolah_id')
-    .contains('wa_normal', [pengirim]);
+  const cari = () => {
+    let q = db
+      .from('siswa')
+      .select('nis, nama_lengkap, nama_panggilan, sekolah_id')
+      .contains('wa_normal', [pengirim]);
+    if (sekolah) q = q.eq('sekolah_id', sekolah.id);
+    return q.order('nis', { ascending: true });
+  };
 
-  if (sekolah) cari = cari.eq('sekolah_id', sekolah.id);
-
-  const { data: siswa, error: galatSiswa } = await cari;
-
-  if (galatSiswa) {
+  let siswa;
+  try {
+    siswa = await ambilSemua(cari);
+  } catch (galatSiswa) {
     return NextResponse.json(
-      { error: 'Gagal mencari data siswa: ' + galatSiswa.message },
+      { error: 'Gagal mencari data siswa: ' + (galatSiswa?.message || 'tidak diketahui') },
       { status: 500 }
     );
   }

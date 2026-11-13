@@ -4,6 +4,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { BULAN_AJARAN } from '@/quran_mapping';
 import { namaPoin } from '@/lib/poin';
 import { adaIsiBulan, bulanBerdata, potongTargetBulanKosong } from '@/lib/statistik';
+import { ambilSemua } from '@/lib/ambil-semua';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,23 +153,42 @@ export async function POST(request) {
     .eq('nis', nis)
     .eq('kelas_id', kelas.id);
 
-  // --- Nilai seluruh kelas, untuk grafik perbandingan ---
-  // Target ikut diambil: grafik perbandingan perlu menggambar garis target
-  // pada bulan yang sedang dilihat, dan target Tahfidz/Tahsin berbeda tiap
-  // bulan (tidak bisa diambil dari target_akademik yang tetap).
-  const { data: nilaiKelas } = await db
-    .from('nilai_bulanan')
-    .select(
-      'nis, bulan, urutan_bulan, rata_b_indo, rata_mtk, rata_ipa, ' +
-        'target_tahfidz, capaian_tahfidz, target_tahsin, capaian_tahsin, ' +
-        'target_peng_bindo, capaian_peng_bindo, target_peng_mtk, capaian_peng_mtk'
-    )
-    .eq('kelas_id', kelas.id);
+  /* --- Nilai seluruh kelas, untuk grafik perbandingan ---
+     Target ikut diambil: grafik perbandingan perlu menggambar garis target
+     pada bulan yang sedang dilihat, dan target Tahfidz/Tahsin berbeda tiap
+     bulan (tidak bisa diambil dari target_akademik yang tetap).
 
-  const { data: siswaKelas } = await db
-    .from('penempatan')
-    .select('nis, siswa:nis (nis, nama_lengkap, nama_panggilan)')
-    .eq('kelas_id', kelas.id);
+     Dibaca halaman demi halaman (lib/ambil-semua.js): satu kelas x dua
+     belas bulan x puluhan siswa mudah melewati batas 1.000 baris per
+     query, dan terpotongnya tidak bersuara -- siswa terakhir hilang dari
+     perbandingan. Galatnya dilempar, bukan ditelan: perbandingan yang
+     tampak lengkap padahal terpotong lebih buruk daripada gagal. */
+  let nilaiKelas;
+  let siswaKelas;
+  try {
+    [nilaiKelas, siswaKelas] = await Promise.all([
+      ambilSemua(() =>
+        db
+          .from('nilai_bulanan')
+          .select(
+            'nis, bulan, urutan_bulan, rata_b_indo, rata_mtk, rata_ipa, ' +
+              'target_tahfidz, capaian_tahfidz, target_tahsin, capaian_tahsin, ' +
+              'target_peng_bindo, capaian_peng_bindo, target_peng_mtk, capaian_peng_mtk'
+          )
+          .eq('kelas_id', kelas.id)
+          .order('id', { ascending: true })
+      ),
+      ambilSemua(() =>
+        db
+          .from('penempatan')
+          .select('nis, siswa:nis (nis, nama_lengkap, nama_panggilan)')
+          .eq('kelas_id', kelas.id)
+          .order('id', { ascending: true })
+      ),
+    ]);
+  } catch {
+    return NextResponse.json({ error: 'Gangguan pada server.' }, { status: 500 });
+  }
 
   const label = buatLabelAnonim(
     (siswaKelas || []).map((p) => p.siswa).filter(Boolean),
