@@ -39,6 +39,7 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 | `app/rapor/[token]/` | Dashboard orang tua (tautan pribadi, tanpa login). |
 | `app/api/rapor/` | Endpoint server: verifikasi token (PIN opsional) + penyamaran nama sekelas. |
 | `app/api/wa/` | Webhook WhatsApp: mengenali nomor pengirim, membalas tautan rapor anaknya. |
+| `middleware.js` | Mengalihkan kunjungan produksi lewat alamat `*.vercel.app` ke domain sekolah (kecuali `/api`). |
 | `app/press/` | Halaman presentasi sistem (`/press`) untuk IFP / smart TV. Data contoh fiktif. |
 | `migrasi/` | Perubahan skema susulan. Dijalankan berurutan, sekali masing-masing. |
 | `perawatan/pindah-akun/` | Memindahkan semua file Sheets ke akun Google lain (mis. belajar.id → pribadi) dan menyambung ulang IMPORTRANGE otomatis. |
