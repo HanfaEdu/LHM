@@ -82,7 +82,7 @@ export default function HomeRouter() {
       <div style={{
         display: 'flex', justifyContent: 'center', alignItems: 'center',
         height: '100vh', backgroundColor: '#0b1329', color: '#f8fafc',
-        fontFamily: 'Outfit, sans-serif',
+        fontFamily: 'var(--font-title)',
       }}>
         <div style={{ textAlign: 'center' }}>
           <div className="progress-bar-container" style={{ width: '200px', margin: '0 auto 16px' }}>

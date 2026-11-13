@@ -23,7 +23,7 @@
   overflow: hidden;
   background: var(--malam);
   color: var(--tinta);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
@@ -179,7 +179,7 @@
 }
 
 .labelBesar {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 28px;
   letter-spacing: 0.32em;
   text-transform: uppercase;
@@ -188,7 +188,7 @@
 }
 
 .judulUtama {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 132px;
   line-height: 1;
   font-weight: 700;
@@ -234,7 +234,7 @@
   margin-bottom: 10px;
 }
 .judul {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 56px;
   font-weight: 600;
   line-height: 1.1;
@@ -346,7 +346,7 @@
   border: 1px solid var(--garis);
 }
 .sisi small { font-size: 20px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tinta-3); }
-.sisi p { font-family: 'Outfit', sans-serif; font-size: 40px; line-height: 1.2; font-weight: 500; }
+.sisi p { font-family: var(--font-title), sans-serif; font-size: 40px; line-height: 1.2; font-weight: 500; }
 .sisiDulu { background: rgba(60, 30, 30, 0.45); }
 .sisiDulu .ikonBulat { background: rgba(236, 167, 160, 0.16); color: var(--mawar); }
 .sisiKini {
@@ -381,7 +381,7 @@
   text-align: center;
   gap: 8px;
 }
-.simpul strong { font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 600; margin-top: 14px; }
+.simpul strong { font-family: var(--font-title), sans-serif; font-size: 32px; font-weight: 600; margin-top: 14px; }
 .simpul > span:last-child { font-size: 21px; color: var(--tinta-2); line-height: 1.35; }
 .simpulIkon {
   width: 136px;
@@ -449,7 +449,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 84px;
   font-weight: 700;
   color: var(--malam);
@@ -458,7 +458,7 @@
   margin-bottom: 30px;
 }
 .judulBagian {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 104px;
   font-weight: 700;
   line-height: 1.05;
@@ -494,14 +494,14 @@
   border-radius: 16px;
   display: grid;
   place-items: center;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 26px;
   font-weight: 600;
   color: var(--malam);
   background: var(--sage);
 }
 .poinKini .poinTanda { background: var(--emas); }
-.poin strong { display: block; font-family: 'Outfit', sans-serif; font-size: 29px; font-weight: 600; line-height: 1.2; }
+.poin strong { display: block; font-family: var(--font-title), sans-serif; font-size: 29px; font-weight: 600; line-height: 1.2; }
 .poin p { font-size: 22px; color: var(--tinta-2); line-height: 1.4; margin-top: 4px; }
 
 /* ------------------------------------------------------------ kartu */
@@ -516,7 +516,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 30px;
   font-weight: 600;
   color: var(--krem);
@@ -547,7 +547,7 @@
 .jendelaBar i { width: 14px; height: 14px; border-radius: 50%; background: #d4cebe; }
 .jendelaBar span { margin-left: 18px; font-size: 18px; color: #6b6a63; }
 .jendelaIsi { position: relative; padding: 32px; }
-.navJudul { font-family: 'Outfit', sans-serif; font-size: 30px; font-weight: 600; margin-bottom: 20px; }
+.navJudul { font-family: var(--font-title), sans-serif; font-size: 30px; font-weight: 600; margin-bottom: 20px; }
 .tabJenjang { display: flex; gap: 10px; margin-bottom: 26px; }
 .tabJenjang span {
   padding: 8px 22px;
@@ -563,7 +563,7 @@
   border-radius: 18px;
   display: grid;
   place-items: center;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 25px;
   font-weight: 600;
   background: #fff;
@@ -601,7 +601,7 @@
   align-items: center;
   gap: 12px;
   padding: 20px 26px;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 24px;
   font-weight: 600;
   color: #fff;
@@ -677,7 +677,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 14px;
@@ -864,7 +864,7 @@
   color: #fff;
 }
 .raporKepala small { font-size: 13px; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.75; }
-.raporKepala strong { display: block; font-family: 'Outfit', sans-serif; font-size: 26px; margin: 4px 0 2px; }
+.raporKepala strong { display: block; font-family: var(--font-title), sans-serif; font-size: 26px; margin: 4px 0 2px; }
 .raporKepala span { font-size: 15px; opacity: 0.85; }
 .meteran { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px 14px 6px; }
 .meteran div {
@@ -875,7 +875,7 @@
   border-bottom: 4px solid var(--w);
   box-shadow: 0 4px 10px -6px rgba(0, 0, 0, 0.2);
 }
-.meteran b { display: block; font-family: 'Outfit', sans-serif; font-size: 28px; color: #1f2d2b; }
+.meteran b { display: block; font-family: var(--font-title), sans-serif; font-size: 28px; color: #1f2d2b; }
 .meteran small { font-size: 12px; color: #6b6a63; }
 .grafikKartu { margin: 10px 14px; padding: 10px; border-radius: 16px; background: #10302b; }
 .grafik { width: 100%; display: block; }
@@ -906,7 +906,7 @@
 }
 .cincin.on circle + circle { stroke-dashoffset: calc(314.16 * (1 - var(--p))); }
 .cincinAngka { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-.cincinAngka b { font-family: 'Outfit', sans-serif; font-size: 56px; }
+.cincinAngka b { font-family: var(--font-title), sans-serif; font-size: 56px; }
 .cincinAngka small { font-size: 20px; color: var(--tinta-2); }
 
 .anakTangga { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; height: 220px; align-content: center; }
@@ -915,7 +915,7 @@
   border-radius: 16px;
   display: grid;
   place-items: center;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-title), sans-serif;
   font-size: 22px;
   color: var(--tinta-3);
   border: 1px solid var(--garis);
@@ -1013,7 +1013,7 @@
   align-items: center;
 }
 .ujung { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
-.ujung strong { font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 600; }
+.ujung strong { font-family: var(--font-title), sans-serif; font-size: 26px; font-weight: 600; }
 .tumpukHp { display: flex; color: var(--sage); }
 .tumpukHp svg { margin: 0 -8px; }
 .tumpukHp svg:nth-child(2) { transform: translateY(-14px); color: var(--krem); }
@@ -1043,7 +1043,7 @@
   border: 1px solid rgba(98, 203, 189, 0.5);
   box-shadow: 0 0 90px rgba(98, 203, 189, 0.25);
 }
-.gerbangInti strong { font-family: 'Outfit', sans-serif; font-size: 27px; }
+.gerbangInti strong { font-family: var(--font-title), sans-serif; font-size: 27px; }
 .denyut {
   position: absolute;
   inset: 0;
@@ -1074,7 +1074,7 @@
 }
 .pengirim svg { color: var(--toska); }
 .pengirim small, .hasilCocok small { display: block; font-size: 19px; color: var(--tinta-2); }
-.pengirim b { font-family: 'Outfit', sans-serif; font-size: 32px; letter-spacing: 0.04em; }
+.pengirim b { font-family: var(--font-title), sans-serif; font-size: 32px; letter-spacing: 0.04em; }
 .daftarNomor {
   position: relative;
   padding: 20px 22px;
@@ -1187,7 +1187,7 @@
 
 .progres { display: flex; flex-direction: column; gap: 20px; }
 .progres > div { display: grid; grid-template-columns: 170px 1fr 64px; gap: 16px; align-items: center; font-size: 21px; }
-.progres b { display: flex; justify-content: flex-end; color: #6fd39a; font-family: 'Outfit', sans-serif; }
+.progres b { display: flex; justify-content: flex-end; color: #6fd39a; font-family: var(--font-title), sans-serif; }
 .progres .kurang b { color: var(--mawar); }
 .progresJalur { height: 16px; border-radius: 999px; background: rgba(244, 236, 216, 0.08); overflow: hidden; }
 .progresJalur i {
@@ -1203,7 +1203,7 @@
 /* ------------------------------------------------------------ keamanan */
 .empatKartu { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; align-content: center; }
 .kartuAman { display: flex; flex-direction: column; gap: 16px; min-height: 400px; }
-.kartuAman strong { font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 600; line-height: 1.2; }
+.kartuAman strong { font-family: var(--font-title), sans-serif; font-size: 32px; font-weight: 600; line-height: 1.2; }
 .kartuAman p { font-size: 22px; line-height: 1.5; color: var(--tinta-2); }
 .ikonAman {
   width: 96px;
@@ -1220,7 +1220,7 @@
 /* ------------------------------------------------------------ penutup */
 .petaPenutup { width: 1300px; margin-bottom: 40px; transform: scale(0.85); }
 .terimaKasih { margin-top: 40px; display: flex; flex-direction: column; gap: 6px; }
-.terimaKasih span { font-family: 'Outfit', sans-serif; font-size: 48px; font-weight: 600; color: var(--krem); }
+.terimaKasih span { font-family: var(--font-title), sans-serif; font-size: 48px; font-weight: 600; color: var(--krem); }
 .terimaKasih small { font-size: 26px; color: var(--emas); font-style: italic; }
 .alamat {
   margin-top: 22px;

@@ -2,7 +2,8 @@
    DESAIN SISTEM PREMIUM (VANILLA CSS)
    ========================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+/* Fon Inter dan Outfit dimuat lewat next/font di app/layout.jsx (variabel
+   --fon-inter dan --fon-outfit), bukan lewat @import yang menahan render. */
 
 :root {
   /* Color Palette (Slate & Emerald Accents) */
@@ -23,8 +24,8 @@
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   
   /* Fonts */
-  --font-title: 'Outfit', 'Inter', sans-serif;
-  --font-body: 'Inter', sans-serif;
+  --font-title: var(--fon-outfit), 'Outfit', 'Inter', sans-serif;
+  --font-body: var(--fon-inter), 'Inter', sans-serif;
   
   /* Transitions */
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -139,6 +140,17 @@ h1, h2, h3, h4, h5, h6 {
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.2);
+}
+
+/* Sorot papan ketik untuk SEMUA tombol dan <select>. :where() membuat
+   kekhususannya nol: kontrol yang sudah punya gaya fokus sendiri di
+   modul CSS-nya tetap memakainya, dan yang belum punya mendapat cincin
+   ini alih-alih sorot bawaan peramban yang berbeda-beda. Token
+   --pendar-fokus didefinisikan di dasbor; di halaman lain nilai
+   cadangannya yang dipakai. */
+:where(button, select):focus-visible {
+  outline: 2px solid var(--pendar-fokus, rgb(42 120 214 / 35%));
+  outline-offset: 2px;
 }
 
 /* Premium Layout Grid */
