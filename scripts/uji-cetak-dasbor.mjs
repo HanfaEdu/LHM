@@ -23,7 +23,7 @@
  * dijawab data contoh, dan sesi login dipalsukan lewat localStorage. Jadi
  * berkas ini aman dijalankan siapa pun tanpa kunci apa pun.
  */
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -340,7 +340,7 @@ async function ukurCetak(page, label, kirimBeforeprint = true) {
 
   const pdf = join(keluaran, `${label}.pdf`);
   await page.pdf({ path: pdf, format: 'A4', printBackground: true, preferCSSPageSize: true });
-  return { ...hasil, pdf };
+  return { ...hasil, pdf, kataHalamanAkhir: kataHalamanAkhir(pdf) };
 }
 
 /* ----------------------------------------------------------------
@@ -350,6 +350,27 @@ const HALAMAN = [
   ['wali_kelas', '/dashboard/wali-kelas', 'wali-kelas'],
   ['kepala_sekolah', '/dashboard/kepala-sekolah', 'kepala-sekolah'],
 ];
+
+/* Jumlah kata pada halaman TERAKHIR berkas PDF, atau null bila alat
+   pdfinfo/pdftotext (poppler-utils) tidak terpasang.
+
+   Cacat yang dijaga: bantalan di ujung wadah pernah tumpah menjadi satu
+   lembar tambahan yang isinya hanya kaki berulang (belasan kata). Dari
+   dalam peramban lembar itu tidak kelihatan -- ia baru ada setelah
+   halaman dipecah menjadi kertas -- jadi yang diperiksa berkas PDF-nya. */
+function kataHalamanAkhir(pdf) {
+  try {
+    const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
+    const n = Number(/Pages:\s+(\d+)/.exec(info)?.[1]);
+    if (!n) return null;
+    const teks = execFileSync('pdftotext', ['-f', String(n), '-l', String(n), pdf, '-'], {
+      encoding: 'utf8',
+    });
+    return teks.split(/\s+/).filter(Boolean).length;
+  } catch {
+    return null;
+  }
+}
 
 /* Membuka halaman dan memilih satu siswa. Dibuka pada lebar 390px (HP):
    di sinilah kesalahan lebar grafik paling merusak, karena selisih
@@ -404,6 +425,13 @@ function periksaBersama(h) {
   periksa('kaki mencantumkan nama sekolah',
     h.teks.includes('SD Yaumi Fatimah Kudus'));
   periksa('kaki mencantumkan tanggal cetak', h.teks.includes('dicetak'));
+  if (h.kataHalamanAkhir === null) {
+    console.log('DILEWATI  halaman terakhir tidak kosong — pdfinfo/pdftotext tidak terpasang');
+  } else {
+    // Kaki berulang sendirian berisi belasan kata; halaman berisi jauh di atas itu.
+    periksa('halaman terakhir tidak kosong (bukan kaki saja)',
+      h.kataHalamanAkhir > 30, `${h.kataHalamanAkhir} kata`);
+  }
   periksa('daftar keterangan poin tidak ikut tercetak',
     !h.teks.includes('Lihat keterangan seluruh capaian'));
 }

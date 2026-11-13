@@ -1393,16 +1393,34 @@
 
     min-height: 0;
     padding: 0;
-    /* Ruang untuk kaki berulang di bawah; kaki itu position:fixed
-       sehingga tidak menyisakan tempatnya sendiri. */
-    padding-bottom: 13mm;
+    /* TIDAK ada padding-bottom di sini. Dulu 13mm disisakan untuk kaki
+       berulang, tetapi bantalan di ujung wadah hanya menjaga halaman
+       TERAKHIR -- dan begitu kartu terakhir berakhir dekat tepi bawah
+       kertas, bantalan itu sendiri yang tumpah menjadi satu lembar
+       kosong berisi kaki saja. Ruang kaki kini disisakan di SETIAP
+       halaman oleh .wadah::after di bawah. */
     background: #ffffff;
     color: #000000;
   }
 
+  /* .wadah dijadikan tabel hanya untuk satu hal: kelompok kaki tabel
+     (table-footer-group) DIULANG peramban di dasar tiap halaman. ::after
+     kosong setinggi 8mm itulah yang menyisakan tempat bagi .kakiCetak
+     (position: fixed) di setiap lembar, sehingga isi tidak pernah
+     tertimpa kaki -- dan tidak ada bantalan di ujung yang bisa tumpah
+     ke lembar baru. */
   .wadah {
+    display: table;
+    table-layout: fixed;
+    width: 186mm;
     max-width: 186mm;
     margin: 0;
+  }
+
+  .wadah::after {
+    content: '';
+    display: table-footer-group;
+    height: 8mm;
   }
 
   /* ----------------------------------------------------------------
@@ -1423,6 +1441,24 @@
     /* Satu bagian tidak boleh terbelah dua halaman: grafik yang
        kepalanya di halaman 2 dan batangnya di halaman 3 tidak bisa
        dibaca sebagai satu hal. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Daftar "Perlu Pendampingan" boleh berpindah halaman di ANTARA dua
+     siswa. Kartu lain tidak boleh terbelah karena isinya grafik; kartu
+     ini daftar, dan pada kelas yang banyak siswanya di bawah target ia
+     bisa setinggi satu halaman penuh. Kartu sebesar itu yang dilarang
+     terbelah berakhir tepat di dasar halaman, sehingga ruang kaki 8mm
+     (.wadah::after) tidak muat dan tumpah menjadi lembar kosong berisi
+     kaki saja. Ditulis .kartu.kartuTindak supaya menang atas larangan
+     terbelah pada .kartu di atas, yang kekhususannya hanya satu kelas. */
+  .kartu.kartuTindak {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .daftarPeringatan li {
     break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -1611,8 +1647,8 @@
   }
 
   /* position:fixed dipakai karena elemen berposisi tetap diulang oleh
-     peramban di setiap halaman cetakan; ruangnya sudah disisakan lewat
-     padding-bottom pada .halaman di atas. */
+     peramban di setiap halaman cetakan; ruangnya disisakan di tiap
+     halaman oleh .wadah::after di atas. */
   .kakiCetak {
     display: flex;
     position: fixed;
