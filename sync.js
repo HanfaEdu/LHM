@@ -262,6 +262,12 @@ function sinkronkanSemua() {
                    ' peringatan target — lihat log untuk detail.)');
       Logger.log('Peringatan target:\n' + isi.targetTeksBermasalah.join('\n'));
     }
+    const luarRentang = isi.nilaiDiLuarRentang || [];
+    if (luarRentang.length) {
+      catatan.push('       (' + luarRentang.length + ' nilai di luar 0–100 dilewati ' +
+                   '(dikirim kosong) — lihat log untuk detail.)');
+      Logger.log('Nilai di luar 0–100 yang dilewati:\n' + luarRentang.map(kalimatNilaiDiLuarRentang).join('\n'));
+    }
   } catch (e) {
     catatan.push('[GAGAL] Nilai: ' + e.message);
   }
@@ -479,13 +485,30 @@ function cekKesehatanData() {
     const nis = kunci.split('|')[1];
     const kelas = kelasPerNis[kunci];
     const nama = namaPerNis[kunci];
-    if (kelas.length > 1 || nama.length > 1) {
+    if (nama.length > 1) {
       temuan.push(
         'NIS ' + nis + ' dipakai lebih dari satu kali' +
         (kelas.length > 1 ? ' di kelas ' + kelas.join(' dan ') : ' di kelas ' + kelas[0]) +
         (nama.length > 1 ? ', atas nama: ' + nama.join(' / ') : '') +
         '. Kedua anak akan MELEBUR menjadi satu siswa dan nilainya ' +
         'bercampur. Perbaiki salah satu NIS-nya di Master Rekap.'
+      );
+    }
+    /* Satu nama, banyak kelas: bukan dua anak yang melebur, melainkan
+       siswa yang pindah kelas dan barisnya masih tertinggal di file kelas
+       yang lama. Sinkronisasi hanya menambah, jadi penempatan lamanya ikut
+       tersimpan dan ia terhitung di kedua kelas. Ditangkap di sini, di
+       hulu; sisa yang sudah ada di database dibersihkan lewat
+       perawatan/penempatan-ganda.sql, bukan otomatis. */
+    else if (kelas.length > 1) {
+      temuan.push(
+        'NIS ' + nis + (nama[0] ? ' (' + nama[0] + ')' : '') +
+        ' tercatat di lebih dari satu kelas pada tahun ajaran ' +
+        kunci.split('|')[0] + ': ' + kelas.join(' dan ') + '. Kalau siswa ini ' +
+        'pindah kelas, hapus barisnya dari file kelas yang lama. Selama ' +
+        'dibiarkan, ia terhitung di kedua kelas dan rapor orang tuanya ' +
+        'harus memilih salah satu. Sisa yang sudah terlanjur ada di ' +
+        'database dibersihkan lewat perawatan/penempatan-ganda.sql.'
       );
     }
   });
@@ -622,6 +645,20 @@ function cekKesehatanData() {
 
   // 5. Target/capaian Tahfidz-Tahsin yang tidak bisa dikenali otomatis
   isi.targetTeksBermasalah.forEach(function (t) { temuan.push(t); });
+
+  /* 5b. Nilai mapel di luar 0-100.
+
+     Salah ketik yang paling sering: 105 untuk 95, atau -- karena titik
+     desimal -- 9400 untuk 94,00. Saat sinkronisasi, nilai seperti itu
+     DIKIRIM KOSONG supaya tidak ikut dirata-ratakan; di sini ia dilaporkan
+     supaya guru tahu sel mana yang harus dibetulkan. Setelah spreadsheet
+     dibetulkan dan disinkron ulang, nilai yang benar masuk sendiri. */
+  (isi.nilaiDiLuarRentang || []).forEach(function (n) {
+    temuan.push(
+      'Nilai di luar 0–100: ' + kalimatNilaiDiLuarRentang(n) + '. Nilai ini ' +
+      'tidak dikirim (dikosongkan) sampai selnya dibetulkan di Master Rekap.'
+    );
+  });
 
   /* 6. Jenjang sekolah.
 
@@ -904,6 +941,9 @@ function bacaMasterRekap() {
     });
   }
 
+  // Sebelum apa pun memakai nilainya: yang di luar 0-100 dikosongkan dan dicatat.
+  const nilaiDiLuarRentang = kosongkanNilaiDiLuarRentang(nilai);
+
   isiTargetKeBulanBerikutnya(nilai);
 
   return {
@@ -911,11 +951,49 @@ function bacaMasterRekap() {
     kelasMap: kelasMap,
     nilai: nilai,
     targetTeksBermasalah: unik(targetTeksBermasalah),
+    nilaiDiLuarRentang: nilaiDiLuarRentang,
     // Cek Kesehatan Data perlu membedakan "seluruh sel No WA kosong"
     // dari "kolomnya memang tidak ada" -- dua masalah dengan dua
     // perbaikan yang sama sekali berbeda.
     adaKolomNoWa: kol.noWa !== -1,
   };
+}
+
+/**
+ * Nilai mapel di luar 0-100 -> dikosongkan (null), dan dicatat.
+ *
+ * Nilai seperti 105 atau -3 hampir pasti salah ketik, dan kalau dibiarkan
+ * masuk, ia ikut dirata-ratakan: satu sel salah menggeser rata-rata dan
+ * ketuntasan seluruh kelas tanpa satu pun pesan galat. Dikosongkan, ia
+ * tampak sebagai "belum dinilai" -- dan ketahuan, karena setiap nilai
+ * yang dibuang dilaporkan (Cek Kesehatan Data, dan ringkasan sinkronisasi).
+ *
+ * Hanya mapel berskala 0-100. Target/capaian Al-Qur'an dan poin PG
+ * memang bukan persen. Mengubah isi `nilai` di tempat, dan mengembalikan
+ * daftar yang dibuang: {kelas, tahun_ajaran, bulan, nama, mapel, nilai}.
+ */
+function kosongkanNilaiDiLuarRentang(nilai) {
+  const mapel = [['rata_b_indo', 'B. Indonesia'], ['rata_mtk', 'Matematika'], ['rata_ipa', 'IPA']];
+  const luar = [];
+  nilai.forEach(function (b) {
+    mapel.forEach(function (m) {
+      const v = b[m[0]];
+      if (v !== null && v !== undefined && (v < 0 || v > 100)) {
+        luar.push({
+          kelas: b.nama_kelas, tahun_ajaran: b.tahun_ajaran, bulan: b.bulan,
+          nama: b.nama_lengkap, mapel: m[1], nilai: v,
+        });
+        b[m[0]] = null;
+      }
+    });
+  });
+  return luar;
+}
+
+/** Satu nilai di luar rentang -> kalimat untuk laporan dan log. */
+function kalimatNilaiDiLuarRentang(n) {
+  return 'kelas ' + n.kelas + ', ' + n.bulan + ', ' + n.nama + ', ' + n.mapel +
+         ' = ' + n.nilai;
 }
 
 /**

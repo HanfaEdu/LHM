@@ -13,7 +13,16 @@ import {
   siswaDalamKelas,
   susunBulananSiswa,
 } from '@/lib/data-dasbor';
-import { barisDinilai, bulanBawaan, ketuntasanMapel, mapelSkor, mapelUntuk, narasiKelas } from '@/lib/statistik';
+import {
+  barisDinilai,
+  bulanBawaan,
+  formatWaktuSinkron,
+  ketuntasanMapel,
+  mapelSkor,
+  mapelUntuk,
+  narasiKelas,
+  terakhirSinkron,
+} from '@/lib/statistik';
 import { poinUntuk } from '@/lib/poin';
 import { tampilKelas } from '@/lib/kelas';
 import {
@@ -164,6 +173,12 @@ export default function DasborWaliKelas() {
 
   const kelas = daftarKelas.find((k) => String(k.id) === String(kelasId));
   const daftarBulan = useMemo(() => bulanTerisi(perBulan), [perBulan]);
+  /* Kesegaran data: waktu sinkronisasi terbaru di antara baris kelas yang
+     SUDAH dimuat (seluruh bulan) -- tanpa query baru. */
+  const sinkronTerakhir = useMemo(
+    () => formatWaktuSinkron(terakhirSinkron(...Object.values(perBulan))),
+    [perBulan]
+  );
   const terdaftar = perBulan[bulan] || [];
   // Hanya siswa yang sudah dinilai yang dihitung; baris kosong hasil
   // sinkronisasi bukan "jumlah siswa yang dinilai".
@@ -230,7 +245,7 @@ export default function DasborWaliKelas() {
               : baris.length === terdaftar.length
                 ? ` · ${baris.length} siswa`
                 : ` · ${baris.length} dari ${terdaftar.length} siswa sudah dinilai`
-          }`}
+          }${sinkronTerakhir ? ` · Data terakhir disinkron: ${sinkronTerakhir}` : ''}`}
           aksi={
             <>
               <TombolLhm alamat={sekolah?.link_lhm} />
@@ -470,6 +485,7 @@ export default function DasborWaliKelas() {
           </span>
           <span>
             {sekolah?.nama || SEKOLAH_BAWAAN}
+            {sinkronTerakhir ? ` · data disinkron ${sinkronTerakhir}` : ''}
             {tanggalCetak ? ` · dicetak ${tanggalCetak}` : ''}
           </span>
         </footer>

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { dalamCakupan } from '@/lib/cakupan';
+import { ambilSemua } from '@/lib/ambil-semua';
 
 export const dynamic = 'force-dynamic';
 
@@ -213,56 +214,82 @@ export async function POST(request) {
        lain ikut singgah di memori, dan baris yang ditarik dibatasi
        1.000 per query oleh PostgREST sehingga makin banyak sekolah
        makin besar kemungkinan siswa sekolah ini terpotong. */
-    const { data: kelasIni, error: galatKelas } = await db
-      .from('kelas')
-      .select('id, nama_kelas, tahun_ajaran, sekolah_id')
-      .in('sekolah_id', sekolahBoleh)
-      .eq('tahun_ajaran', tahunAjaran);
+    /* Setiap query dibaca halaman demi halaman (lib/ambil-semua.js) dan
+       diurutkan menurut kunci utama: PostgREST memotong jawaban pada
+       1.000 baris tanpa tanda apa pun, dan penempatan SEMUA kelas yang
+       boleh dilihat biro akademik mudah melewatinya. */
+    let kelasIni;
+    let penempatan;
+    let sekolah;
+    let akses;
+    try {
+      kelasIni = await ambilSemua(() =>
+        db
+          .from('kelas')
+          .select('id, nama_kelas, tahun_ajaran, sekolah_id')
+          .in('sekolah_id', sekolahBoleh)
+          .eq('tahun_ajaran', tahunAjaran)
+          .order('id', { ascending: true })
+      );
 
-    if (galatKelas) {
-      return NextResponse.json({ error: galatKelas.message }, { status: 500 });
-    }
-
-    const kelasPerId = new Map((kelasIni || []).map((k) => [k.id, k]));
-    const idKelas = [...kelasPerId.keys()];
-
-    const penempatan = [];
-    for (const potongan of dalamPotongan(idKelas)) {
-      const { data, error } = await db
-        .from('penempatan')
-        .select('nis, kelas_id, siswa:nis (nis, nama_lengkap, nama_panggilan)')
-        .in('kelas_id', potongan);
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+      const idKelas = kelasIni.map((k) => k.id);
+      penempatan = [];
+      for (const potongan of dalamPotongan(idKelas)) {
+        penempatan.push(
+          ...(await ambilSemua(() =>
+            db
+              .from('penempatan')
+              .select('nis, kelas_id, siswa:nis (nis, nama_lengkap, nama_panggilan)')
+              .in('kelas_id', potongan)
+              .order('id', { ascending: true })
+          ))
+        );
       }
-      penempatan.push(...(data || []));
+
+      sekolah = await ambilSemua(() =>
+        db
+          .from('sekolah')
+          .select('id, nama, jenjang')
+          .in('id', sekolahBoleh)
+          .order('id', { ascending: true })
+      );
+
+      const idKelasSet = new Set(idKelas);
+      const nisTahunIni = [
+        ...new Set(
+          penempatan.filter((p) => p.siswa && idKelasSet.has(p.kelas_id)).map((p) => p.nis)
+        ),
+      ];
+      akses = [];
+      for (const potongan of dalamPotongan(nisTahunIni)) {
+        akses.push(
+          ...(await ambilSemua(() =>
+            db
+              .from('akses_ortu')
+              .select('nis, token, aktif, terakhir_dibuka')
+              .in('nis', potongan)
+              .order('id', { ascending: true })
+          ))
+        );
+      }
+    } catch (galat) {
+      return NextResponse.json(
+        { error: galat?.message || 'Gagal memuat daftar siswa.' },
+        { status: 500 }
+      );
     }
+
+    const kelasPerId = new Map(kelasIni.map((k) => [k.id, k]));
 
     // Nama sekolah dilampirkan ke tiap baris supaya biro akademik bisa
     // membedakan "A1" milik Kudus dari "A1" milik Pati -- dan menyaringnya.
-    const { data: sekolah } = await db
-      .from('sekolah')
-      .select('id, nama, jenjang')
-      .in('id', sekolahBoleh);
-    const namaSekolah = new Map((sekolah || []).map((x) => [x.id, x.nama]));
+    const namaSekolah = new Map(sekolah.map((x) => [x.id, x.nama]));
     // Jenjang ikut dikirim hanya untuk TAMPILAN nama kelas PG (lib/kelas.js).
-    const jenjangSekolah = new Map((sekolah || []).map((x) => [x.id, x.jenjang]));
+    const jenjangSekolah = new Map(sekolah.map((x) => [x.id, x.jenjang]));
 
     const barisTahunIni = penempatan
       .filter((p) => p.siswa && kelasPerId.has(p.kelas_id))
       .map((p) => ({ ...p, kelas: kelasPerId.get(p.kelas_id) }));
-
-    const akses = [];
-    for (const potongan of dalamPotongan([...new Set(barisTahunIni.map((p) => p.nis))])) {
-      const { data, error } = await db
-        .from('akses_ortu')
-        .select('nis, token, aktif, terakhir_dibuka')
-        .in('nis', potongan);
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-      akses.push(...(data || []));
-    }
 
     const perNis = new Map(akses.map((a) => [a.nis, a]));
 

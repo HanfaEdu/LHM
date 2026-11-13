@@ -32,12 +32,14 @@ import {
   barisDinilai,
   bulanBawaan,
   bulat,
+  formatWaktuSinkron,
   ketuntasanMapel,
   mapelSkor,
   mapelUntuk,
   narasiKelas,
   rataRata,
   rekapQuran,
+  terakhirSinkron,
 } from '@/lib/statistik';
 import { poinUntuk } from '@/lib/poin';
 import { tampilKelas } from '@/lib/kelas';
@@ -195,17 +197,24 @@ export default function DasborKepalaSekolah() {
 
   // Memuat seluruh kelas pada tahun ajaran terpilih.
   useEffect(() => {
+    /* Dikosongkan lebih dulu: berganti sekolah (biro akademik) atau tahun
+       ajaran tidak boleh sempat menampilkan nilai kelas sebelumnya di
+       bawah judul sekolah yang baru selama data barunya dimuat. */
+    setDataKelas({});
     if (!kelasTahunIni.length) return;
     let batal = false;
 
     (async () => {
       setMemuat(true);
       try {
-        const hasil = {};
-        for (const k of kelasTahunIni) {
-          const { perBulan } = await muatNilaiKelas(k.id);
-          hasil[k.id] = perBulan;
-        }
+        /* Seluruh kelas dimuat SERENTAK, bukan satu per satu: sebelumnya
+           tiap kelas menunggu kelas di depannya selesai, sehingga waktu
+           muat tumbuh lurus mengikuti jumlah kelas. */
+        const hasil = Object.fromEntries(
+          await Promise.all(
+            kelasTahunIni.map(async (k) => [k.id, (await muatNilaiKelas(k.id)).perBulan])
+          )
+        );
         if (batal) return;
         setDataKelas(hasil);
 
@@ -253,6 +262,16 @@ export default function DasborKepalaSekolah() {
     if (!tahunTersedia.length) return;
     if (!tahunTersedia.includes(tahunAjaran)) setTahunAjaran(tahunTersedia[0]);
   }, [tahunTersedia, tahunAjaran]);
+
+  /* Kesegaran data: waktu sinkronisasi terbaru di antara seluruh baris
+     yang SUDAH dimuat -- tanpa query baru. Kosong selama data belum
+     termuat atau bila kolomnya belum terisi. */
+  const sinkronTerakhir = useMemo(
+    () => formatWaktuSinkron(
+      terakhirSinkron(...Object.values(dataKelas).flatMap((p) => Object.values(p)))
+    ),
+    [dataKelas]
+  );
 
   const bulanTersedia = useMemo(
     () => BULAN_AJARAN.filter((b) => Object.values(dataKelas).some((p) => adaIsiBulan(p[b]))),
@@ -363,11 +382,12 @@ export default function DasborKepalaSekolah() {
               : `Dasbor Sekolah · ${bulan || 'belum ada data'}`
           }
           keterangan={
-            banyakSekolah
+            (banyakSekolah
               ? `${profil?.nama ?? ''} · Biro Akademik${
                   sekolah?.area ? ` ${sekolah.area}` : ''
                 } · ${daftarSekolah.length} sekolah · ${kelasTahunIni.length} kelas`
-              : `${profil?.nama ?? ''} · ${kelasTahunIni.length} kelas`
+              : `${profil?.nama ?? ''} · ${kelasTahunIni.length} kelas`) +
+            (sinkronTerakhir ? ` · Data terakhir disinkron: ${sinkronTerakhir}` : '')
           }
           aksi={
             <>
@@ -767,6 +787,7 @@ export default function DasborKepalaSekolah() {
           </span>
           <span>
             {sekolah?.nama || SEKOLAH_BAWAAN}
+            {sinkronTerakhir ? ` · data disinkron ${sinkronTerakhir}` : ''}
             {tanggalCetak ? ` · dicetak ${tanggalCetak}` : ''}
           </span>
         </footer>
