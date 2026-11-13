@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { infoPoin, namaPoin, petaPoin } from '@/lib/poin';
 import {
+  AMBANG_KETUNTASAN,
   bulanBerdata,
   bulat,
   capaianTerbaik,
@@ -26,8 +27,11 @@ import {
   peringatanDini,
   rataRata,
   rekapQuran,
+  selisihAngka,
+  tingkatKetuntasan,
 } from '@/lib/statistik';
 import LegendaGrafik from '@/app/komponen/LegendaGrafik';
+import TombolKeluar from '@/app/komponen/TombolKeluar';
 import PenandaTarget, { LEGENDA_PENANDA_TARGET } from '@/app/komponen/PenandaTarget';
 import { useUkuranGrafik } from '@/app/komponen/cetak';
 import { useJenjang, useMapel, useMapelSkor, usePoin } from '@/app/komponen/jenjang';
@@ -112,6 +116,293 @@ function SakelarUrutan({ urutan, ubah }) {
   );
 }
 
+/**
+ * Sel persen di tabel rekap: titik status di depan angkanya.
+ *
+ * Titik memakai empat tingkat yang sama dengan meter (tingkatKetuntasan),
+ * digolongkan dari persen yang DIBULATKAN. Angkanya tetap warna tinta --
+ * warna status hanya di titik, dan namanya dibawa lewat title/aria-label
+ * supaya status tidak hanya bergantung pada warna. Sel tanpa data tetap
+ * tanda hubung, tanpa titik.
+ */
+export function SelPersen({ persen }) {
+  if (persen === null || persen === undefined) return <span className={gaya.kosong}>–</span>;
+  const bulatan = Math.round(persen);
+  const tingkat = tingkatKetuntasan(bulatan);
+  return (
+    <span className={gaya.selPersen}>
+      <span
+        className={gaya.titikStatus}
+        style={{ background: `var(--${tingkat.kunci})` }}
+        role="img"
+        aria-label={tingkat.nama}
+        title={tingkat.nama}
+      />
+      {bulatan}%
+    </span>
+  );
+}
+
+/* ================================================================
+   Ubin angka kunci
+   ================================================================
+   Empat angka terpenting sekolah di puncak dasbor kepala sekolah, tiap
+   ubin dengan selisihnya terhadap bulan sebelumnya. Angka besar memakai
+   warna TINTA, bukan warna status: warna dipakai satu kali saja, pada
+   selisihnya, supaya "naik" dan "membaik" tidak tertukar -- untuk kelas
+   di bawah ambang dan siswa perlu pendampingan, turun justru membaik.
+
+   `selisih` dari selisihAngka() di lib/statistik.js; null = bulan
+   sebelumnya belum berdata, dan selisihnya tidak dikarang. Keterangan
+   teksnya ("naik 3, membaik") dibawa lewat aria-label supaya pembaca
+   layar tidak hanya mendengar segitiga. */
+function SelisihUbin({ selisih, satuan, pembanding }) {
+  if (!selisih) return null;
+  const kelas = selisih.membaik === null
+    ? gaya.selisihSama
+    : selisih.membaik ? gaya.selisihBaik : gaya.selisihBuruk;
+  const lambang = selisih.arah === 'naik' ? '▲' : selisih.arah === 'turun' ? '▼' : '';
+  const teks = selisih.arah === 'sama' ? 'sama' : `${lambang} ${selisih.besar}${satuan ? ` ${satuan}` : ''}`;
+  const arti = selisih.arah === 'sama'
+    ? 'sama'
+    : `${selisih.arah === 'naik' ? 'naik' : 'turun'} ${selisih.besar}${satuan ? ` ${satuan}` : ''}, ${selisih.membaik ? 'membaik' : 'memburuk'}`;
+  return (
+    <p className={`${gaya.ubinSelisih} ${kelas}`} aria-label={`${arti} dibanding ${pembanding}`}>
+      {teks} <span className={gaya.ubinPembanding}>dari {pembanding}</span>
+    </p>
+  );
+}
+
+function UbinAngka({ label, nilai, kecil, selisih, satuanSelisih, pembanding }) {
+  return (
+    <div className={gaya.ubin}>
+      <p className={gaya.ubinLabel}>{label}</p>
+      <p className={gaya.ubinAngka}>{nilai}</p>
+      {kecil && <p className={gaya.ubinKecil}>{kecil}</p>}
+      <SelisihUbin selisih={selisih} satuan={satuanSelisih} pembanding={pembanding} />
+    </div>
+  );
+}
+
+/**
+ * Kartu "Angka Kunci" dasbor kepala sekolah.
+ *
+ *   sekarang, sebelumnya  hasil angkaKunci() bulan ini dan bulan sebelumnya
+ *                         (null bila bulan sebelumnya belum berdata)
+ *   bulanSebelumnya       nama bulan pembanding
+ *   namaKelas             fungsi nama kelas -> teks tampilan (PG: "Playgroup")
+ */
+export function BarisAngkaKunci({ sekarang, sebelumnya, bulanSebelumnya, namaKelas }) {
+  const tuntas = sekarang.ketuntasan === null ? null : Math.round(sekarang.ketuntasan);
+  const tuntasSebelum = !sebelumnya || sebelumnya.ketuntasan === null ? null : Math.round(sebelumnya.ketuntasan);
+  const diBawah = sekarang.kelasDiBawah;
+
+  return (
+    <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
+      <h2 className={gaya.judulKartu}>Angka Kunci</h2>
+      <div className={gaya.barisUbin}>
+        <UbinAngka
+          label="Siswa dinilai"
+          nilai={sekarang.dinilai}
+          kecil={`dari ${sekarang.terdaftar} terdaftar`}
+          selisih={sebelumnya ? selisihAngka(sekarang.dinilai, sebelumnya.dinilai) : null}
+          pembanding={bulanSebelumnya}
+        />
+        <UbinAngka
+          label="Ketuntasan akademik"
+          nilai={tuntas === null ? '–' : `${tuntas}%`}
+          kecil="rata-rata antar kelas"
+          selisih={selisihAngka(tuntas, tuntasSebelum)}
+          satuanSelisih="poin"
+          pembanding={bulanSebelumnya}
+        />
+        <UbinAngka
+          label="Kelas di bawah ambang"
+          nilai={diBawah.length}
+          kecil={diBawah.length ? diBawah.map((k) => namaKelas(k.nama_kelas)).join(', ') : `semua ≥ ${AMBANG_KETUNTASAN}%`}
+          selisih={sebelumnya ? selisihAngka(diBawah.length, sebelumnya.kelasDiBawah.length, true) : null}
+          pembanding={bulanSebelumnya}
+        />
+        <UbinAngka
+          label="Perlu pendampingan"
+          nilai={sekarang.pendampingan}
+          kecil="siswa di bawah target"
+          selisih={sebelumnya ? selisihAngka(sekarang.pendampingan, sebelumnya.pendampingan, true) : null}
+          pembanding={bulanSebelumnya}
+        />
+      </div>
+    </section>
+  );
+}
+
+/* ================================================================
+   Tren ketuntasan sepanjang tahun
+   ================================================================
+   Satu garis per mapel (warna yang sama dengan seluruh dasbor), garis
+   ambang netral berlabel. Datanya dari trenKetuntasan() -- sudah dalam
+   persen bulat. Mapel yang digambar mengikuti jenjang sekolah (konteks):
+   di Playgroup tidak ada garis IPA karena IPA tidak dinilai di sana. */
+function GrafikTren({ data }) {
+  const ukuran = useUkuranGrafikDasbor();
+  const mapel = useMapel();
+
+  return (
+    <div className={gaya.grafik}>
+      <ResponsiveContainer
+        key={ukuran.cetak ? 'cetak' : 'layar'}
+        width={ukuran.width}
+        height={ukuran.height}
+      >
+        {/* Margin kanan lebih lebar daripada grafik lain: label bulan
+            terakhir terpusat di titik terakhir dan terpotong di tepi. */}
+        <ComposedChart data={data} margin={{ top: 8, right: 32, bottom: 8, left: -8 }}>
+          <CartesianGrid stroke="var(--garis)" vertical={false} />
+          <XAxis
+            dataKey="bulan"
+            tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--garis)' }}
+            interval={0}
+            angle={data.length > 6 ? -35 : 0}
+            textAnchor={data.length > 6 ? 'end' : 'middle'}
+            height={data.length > 6 ? 60 : 30}
+          />
+          <YAxis
+            domain={[0, 100]}
+            ticks={[0, 25, 50, 75, 100]}
+            unit="%"
+            tick={{ fontSize: 11, fill: 'var(--tinta-lembut)' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <Tooltip
+            contentStyle={kotakTooltip}
+            formatter={(v, n) => [v === null || v === undefined ? 'belum dinilai' : `${v}%`, n]}
+          />
+          <Legend
+            content={
+              <LegendaGrafik
+                tambahanDepan={[
+                  {
+                    kunci: 'ambang',
+                    label: `Ambang ${AMBANG_KETUNTASAN}%`,
+                    jenis: 'garis',
+                    warna: 'var(--target)',
+                    putusPutus: true,
+                  },
+                ]}
+              />
+            }
+          />
+          {mapel.map((m) => (
+            <Line
+              key={m.kunci}
+              isAnimationActive={!ukuran.cetak}
+              dataKey={m.kunci}
+              name={m.label}
+              stroke={WARNA_MAPEL[m.kunci]}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              connectNulls={false}
+            />
+          ))}
+          {/* Digambar SESUDAH garis mapel supaya tidak tertutup (urutan
+              z mengikuti urutan JSX); labelnya di lajur sumbu, bukan di
+              atas bidang gambar -- sama seperti grafik ketuntasan kelas. */}
+          <ReferenceLine
+            y={AMBANG_KETUNTASAN}
+            stroke="var(--target)"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            ifOverflow="extendDomain"
+            label={{
+              value: `${AMBANG_KETUNTASAN}%`,
+              position: 'left',
+              fontSize: 11,
+              fontWeight: 700,
+              fill: 'var(--target)',
+            }}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/**
+ * Kartu "Tren Ketuntasan". Tampil hanya bila ada >= 2 bulan berdata:
+ * satu titik tidak menunjukkan arah apa pun. Ikut tercetak di laporan
+ * bulanan (dan disembunyikan di cetak lembar siswa, seperti kartu lain).
+ */
+export function KartuTren({ data }) {
+  if (!data || data.length < 2) return null;
+  return (
+    <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
+      <h2 className={gaya.judulKartu}>Tren Ketuntasan</h2>
+      <p className={gaya.ketKartu}>
+        Persentase siswa yang mencapai target, bulan demi bulan. Garis
+        putus-putus adalah ambang {AMBANG_KETUNTASAN}%.
+      </p>
+      <GrafikTren data={data} />
+    </section>
+  );
+}
+
+/* ================================================================
+   Keadaan memuat dan gagal
+   ================================================================ */
+
+/**
+ * Kerangka halaman selagi data dimuat: kepala dan tiga kartu abu-abu
+ * yang berdenyut pelan, menggantikan tulisan "Memuat data…". Bentuknya
+ * menyerupai halaman sungguhan sehingga isinya tidak melompat saat tiba.
+ * `denyut` hanya animasi opasitas dan dimatikan bagi yang memilih gerak
+ * dikurangi (lihat .kerangka di dasbor.module.css).
+ *
+ * `tanpaKepala` dipakai di dalam halaman yang kepalanya sudah tampil
+ * (mis. berganti sekolah): hanya kartunya yang diganti kerangka.
+ */
+export function KerangkaMemuat({ tanpaKepala = false, label = 'Memuat data…' }) {
+  return (
+    <div className={tanpaKepala ? undefined : gaya.halaman} role="status" aria-live="polite" aria-busy="true">
+      <span className={gaya.hanyaPembaca}>{label}</span>
+      <div className={tanpaKepala ? undefined : gaya.wadah} aria-hidden="true">
+        {!tanpaKepala && <div className={`${gaya.kerangka} ${gaya.kerangkaKepala}`} />}
+        <div className={`${gaya.kerangka} ${gaya.kerangkaKartu}`} />
+        <div className={`${gaya.kerangka} ${gaya.kerangkaKartu}`} />
+        <div className={`${gaya.kerangka} ${gaya.kerangkaKartu}`} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Layar galat dengan jalan keluar. Pesan galat tanpa tombol adalah jalan
+ * buntu: gangguan jaringan sesaat hanya butuh muat ulang, dan akun yang
+ * belum terdaftar perlu bisa keluar untuk masuk dengan akun lain.
+ */
+export function LayarGalat({ pesan }) {
+  const belumTerdaftar = /belum terdaftar/i.test(String(pesan));
+  return (
+    <div className={gaya.halaman}>
+      <div className={gaya.pesan} role="alert">
+        <p>{pesan}</p>
+        <div className={gaya.aksiGalat}>
+          <button type="button" className={gaya.tombolAksi} onClick={() => window.location.reload()}>
+            Coba lagi
+          </button>
+          {belumTerdaftar && (
+            <span className={gaya.keluarGalat}>
+              <TombolKeluar />
+              <span>Keluar dari akun</span>
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ================================================================
    Meter ketuntasan — pengganti gauge di rapor PDF
    ================================================================ */
@@ -145,13 +436,9 @@ export function MeterKetuntasan({ label, hasil }) {
      angka dan warnanya tidak pernah bisa saling bertentangan. */
   const persen = Number(bulat(hasil.persen));
 
-  const TINGKAT = [
-    { batas: 90, kunci: 'baik', nama: 'Baik' },
-    { batas: 75, kunci: 'dipantau', nama: 'Perlu dipantau' },
-    { batas: 60, kunci: 'perhatian', nama: 'Perlu perhatian' },
-    { batas: 0, kunci: 'tindakan', nama: 'Perlu tindakan' },
-  ];
-  const tingkat = TINGKAT.find((t) => persen >= t.batas);
+  // Tabelnya satu untuk seluruh dasbor (lib/statistik.js): meter, titik
+  // status di tabel rekap, dan ubin angka harus sepakat soal warna.
+  const tingkat = tingkatKetuntasan(persen);
 
   /* Busur dan angka memakai warna BERBEDA dari rona yang sama.
 
