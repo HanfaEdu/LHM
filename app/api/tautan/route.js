@@ -135,6 +135,17 @@ async function nisYangBoleh(db, sekolahBoleh, daftarNis) {
 }
 
 /**
+ * Memecah daftar menjadi potongan berisi paling banyak 200 butir, untuk
+ * query .in(...): daftar yang terlalu panjang membuat alamat permintaan
+ * ke PostgREST melewati batas panjangnya.
+ */
+function* dalamPotongan(daftar, ukuran = 200) {
+  for (let i = 0; i < daftar.length; i += ukuran) {
+    yield daftar.slice(i, i + ukuran);
+  }
+}
+
+/**
  * Token acak 12 karakter.
  *
  * Sebelumnya 48 karakter heksadesimal, yang membuat tautan WhatsApp
@@ -194,36 +205,66 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Tahun ajaran wajib diisi.' }, { status: 400 });
     }
 
-    const { data: penempatan, error } = await db
-      .from('penempatan')
-      .select(
-        'nis, siswa:nis (nis, nama_lengkap, nama_panggilan), ' +
-        'kelas:kelas_id (id, nama_kelas, tahun_ajaran, sekolah_id)'
-      );
+    /* Dari sekolah ke bawah, bukan dari seluruh tabel ke atas: kelas
+       sekolah yang boleh dulu, lalu penempatan kelas-kelas itu saja,
+       lalu tautan siswa-siswa itu saja. Sebelumnya seluruh penempatan
+       dan seluruh akses_ortu SEMUA sekolah ditarik ke server lalu
+       disaring di JavaScript -- hasilnya sama, tetapi token sekolah
+       lain ikut singgah di memori, dan baris yang ditarik dibatasi
+       1.000 per query oleh PostgREST sehingga makin banyak sekolah
+       makin besar kemungkinan siswa sekolah ini terpotong. */
+    const { data: kelasIni, error: galatKelas } = await db
+      .from('kelas')
+      .select('id, nama_kelas, tahun_ajaran, sekolah_id')
+      .in('sekolah_id', sekolahBoleh)
+      .eq('tahun_ajaran', tahunAjaran);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (galatKelas) {
+      return NextResponse.json({ error: galatKelas.message }, { status: 500 });
+    }
+
+    const kelasPerId = new Map((kelasIni || []).map((k) => [k.id, k]));
+    const idKelas = [...kelasPerId.keys()];
+
+    const penempatan = [];
+    for (const potongan of dalamPotongan(idKelas)) {
+      const { data, error } = await db
+        .from('penempatan')
+        .select('nis, kelas_id, siswa:nis (nis, nama_lengkap, nama_panggilan)')
+        .in('kelas_id', potongan);
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      penempatan.push(...(data || []));
     }
 
     // Nama sekolah dilampirkan ke tiap baris supaya biro akademik bisa
     // membedakan "A1" milik Kudus dari "A1" milik Pati -- dan menyaringnya.
-    const { data: sekolah } = await db.from('sekolah').select('id, nama, jenjang');
+    const { data: sekolah } = await db
+      .from('sekolah')
+      .select('id, nama, jenjang')
+      .in('id', sekolahBoleh);
     const namaSekolah = new Map((sekolah || []).map((x) => [x.id, x.nama]));
     // Jenjang ikut dikirim hanya untuk TAMPILAN nama kelas PG (lib/kelas.js).
     const jenjangSekolah = new Map((sekolah || []).map((x) => [x.id, x.jenjang]));
 
-    const barisTahunIni = (penempatan || []).filter(
-      (p) =>
-        p.kelas?.tahun_ajaran === tahunAjaran &&
-        p.siswa &&
-        sekolahBoleh.includes(p.kelas?.sekolah_id)
-    );
+    const barisTahunIni = penempatan
+      .filter((p) => p.siswa && kelasPerId.has(p.kelas_id))
+      .map((p) => ({ ...p, kelas: kelasPerId.get(p.kelas_id) }));
 
-    const { data: akses } = await db
-      .from('akses_ortu')
-      .select('nis, token, aktif, terakhir_dibuka');
+    const akses = [];
+    for (const potongan of dalamPotongan([...new Set(barisTahunIni.map((p) => p.nis))])) {
+      const { data, error } = await db
+        .from('akses_ortu')
+        .select('nis, token, aktif, terakhir_dibuka')
+        .in('nis', potongan);
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      akses.push(...(data || []));
+    }
 
-    const perNis = new Map((akses || []).map((a) => [a.nis, a]));
+    const perNis = new Map(akses.map((a) => [a.nis, a]));
 
     const daftar = barisTahunIni
       .map((p) => {

@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { nomorWaDaftar } from '@/lib/nomor-wa';
+import {
+  TABEL_TERIKAT,
+  bacaKodeDirektur,
+  bacaKunciSekolah,
+  kodePemilikKunci,
+  pesanPelanggaran,
+  periksaBaris,
+  samaAman,
+} from '@/lib/sinkron-terikat';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +30,23 @@ export const dynamic = 'force-dynamic';
  *
  * Nama tabel dibatasi lewat daftar putih supaya kunci rahasia yang bocor
  * tidak bisa dipakai menulis ke tabel sembarang.
+ *
+ * KUNCI PER SEKOLAH
+ * -----------------
+ * Daftar putih tabel saja belum cukup: endpoint ini memakai service_role
+ * (menembus RLS), jadi pemegang satu kunci bersama bisa menulis baris
+ * sekolah MANA PUN, termasuk users_access -- yaitu mengangkat emailnya
+ * sendiri menjadi kepala sekolah/direktur di sekolah lain. Maka ada dua
+ * mode, dipilih dari kunci yang dikirim:
+ *
+ *   TERIKAT  kunci cocok dengan salah satu nilai env SYNC_SECRETS
+ *            ({"SDYFK":"<kunci>", ...}). Kode sekolahnya diketahui dari
+ *            kunci itu, dan setiap baris diperiksa (lib/sinkron-terikat.js)
+ *            sebelum ditulis. Satu baris melanggar -> seluruh permintaan
+ *            ditolak 403, tanpa menulis apa pun.
+ *   LAMA     kunci sama dengan SYNC_SHARED_SECRET. Perilaku persis seperti
+ *            sebelumnya. Hanya masa peralihan: begitu variabel itu dihapus
+ *            dari Vercel, mode ini mati dengan sendirinya.
  */
 
 const TABEL_DIIZINKAN = [
@@ -59,11 +85,69 @@ function lengkapiNomorWa(tabel, data) {
   );
 }
 
+/**
+ * Data pembanding untuk mode terikat: id sekolah pemilik kunci, seluruh
+ * id kelasnya, dan email (dari baris yang akan ditulis) yang sudah milik
+ * sekolah lain. Satu kegagalan baca = ditolak; tidak pernah diteruskan.
+ *
+ * Seluruh kelas satu sekolah jauh di bawah batas 1.000 baris per query.
+ */
+async function ambilKonteksTerikat(db, kode, tabel, data) {
+  const { data: sekolah, error } = await db
+    .from('sekolah')
+    .select('id')
+    .eq('kode', kode)
+    .maybeSingle();
+  if (error) throw error;
+
+  const sekolahId = sekolah?.id ?? null;
+  let idKelas = [];
+  let emailMilikLain = [];
+
+  if (sekolahId !== null && ['penempatan', 'nilai_bulanan'].includes(tabel)) {
+    const { data: kelas, error: galatKelas } = await db
+      .from('kelas')
+      .select('id')
+      .eq('sekolah_id', sekolahId);
+    if (galatKelas) throw galatKelas;
+    idKelas = (kelas || []).map((k) => k.id);
+  }
+
+  if (sekolahId !== null && tabel === 'users_access') {
+    const email = [...new Set(
+      data.map((b) => String(b?.email || '').toLowerCase().trim()).filter(Boolean)
+    )];
+    if (email.length) {
+      const { data: ada, error: galatEmail } = await db
+        .from('users_access')
+        .select('email, sekolah_id')
+        .in('email', email);
+      if (galatEmail) throw galatEmail;
+      emailMilikLain = (ada || [])
+        .filter((u) => u.sekolah_id !== null && u.sekolah_id !== undefined
+          && String(u.sekolah_id) !== String(sekolahId))
+        .map((u) => String(u.email).toLowerCase());
+    }
+  }
+
+  return { sekolahId, idKelas, emailMilikLain };
+}
+
 export async function POST(request) {
   const kunciRahasia = request.headers.get('x-sync-secret');
-  const kunciServer = process.env.SYNC_SHARED_SECRET;
 
-  if (!kunciRahasia || kunciRahasia !== kunciServer) {
+  /* Mode ditentukan dari kunci: kunci sekolah -> TERIKAT; kunci lama ->
+     LAMA; selain itu 401. Kunci lama hanya berlaku selama variabelnya
+     masih ada di Vercel. */
+  const kodeTerikat = kodePemilikKunci(
+    kunciRahasia,
+    bacaKunciSekolah(process.env.SYNC_SECRETS)
+  );
+  const kunciLama = process.env.SYNC_SHARED_SECRET;
+  const modeLama = kodeTerikat === null
+    && Boolean(kunciRahasia) && Boolean(kunciLama) && samaAman(kunciRahasia, kunciLama);
+
+  if (kodeTerikat === null && !modeLama) {
     return NextResponse.json({ error: 'Tidak diizinkan.' }, { status: 401 });
   }
 
@@ -90,6 +174,25 @@ export async function POST(request) {
 
   try {
     const db = supabaseServer();
+
+    /* Mode terikat: SEMUA baris diperiksa sebelum satu pun ditulis.
+       Gagal tertutup -- galat membaca data pembanding juga menolak
+       (500), tidak pernah meneruskan tanpa pemeriksaan. */
+    if (kodeTerikat !== null) {
+      if (!TABEL_TERIKAT.includes(tabel)) {
+        return NextResponse.json({ error: 'Tabel "' + tabel + '" tidak diizinkan.' }, { status: 400 });
+      }
+      const konteks = await ambilKonteksTerikat(db, kodeTerikat, tabel, data);
+      const pelanggaran = periksaBaris(tabel, data, {
+        kode: kodeTerikat,
+        ...konteks,
+        kodeDirektur: bacaKodeDirektur(process.env.SYNC_KODE_DIREKTUR),
+      });
+      if (pelanggaran.length) {
+        return NextResponse.json({ error: pesanPelanggaran(tabel, pelanggaran) }, { status: 403 });
+      }
+    }
+
     const { data: hasil, error } = await db
       .from(tabel)
       .upsert(lengkapiNomorWa(tabel, data), { onConflict })

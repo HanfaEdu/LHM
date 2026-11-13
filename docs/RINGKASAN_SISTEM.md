@@ -226,7 +226,7 @@ bagian paling atas, bentuknya sama di kedua berkas:
 
 ```js
 const APP_URL     = '…';            // domain Vercel — TIDAK ada di GitHub
-const SYNC_SECRET = '…';            // kunci rahasia — TIDAK ada di GitHub
+const SYNC_SECRET = '…';            // kunci rahasia SEKOLAH INI (env SYNC_SECRETS) — TIDAK ada di GitHub
 const KODE_SEKOLAH    = 'SDYFK';    // <jenjang><singkatan>, tidak boleh diubah kelak
 const NAMA_SEKOLAH    = 'SD Yaumi Fatimah Kudus';   // tampil apa adanya
 const AREA_SEKOLAH    = 'Pati Raya';                // harus SAMA PERSIS antar sekolah se-area

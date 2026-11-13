@@ -13,7 +13,8 @@ Ya, polanya sama seperti tahun ini:
 2. Buat file **Master Rekap** baru, pasang IMPORTRANGE ke ketujuh file kelas
    yang baru, dan otorisasi ketujuhnya.
 3. Pasang `sync.js` di Apps Script file Master Rekap yang baru, isi `APP_URL`
-   dan `SYNC_SECRET` sama persis seperti tahun sebelumnya.
+   dan `SYNC_SECRET` (kunci sekolah ini di `SYNC_SECRETS`) sama persis seperti
+   tahun sebelumnya.
 4. Pasang pemicu harian di file yang baru, dan **matikan pemicu di file
    Master Rekap tahun lama** — kalau dibiarkan, keduanya akan sinkron
    bergantian dan data tahun lama ikut ditulis ulang tanpa perlu.
