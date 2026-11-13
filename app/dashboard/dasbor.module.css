@@ -277,6 +277,7 @@
   font-size: 1.6rem;
   font-weight: 700;
   margin: 0.15rem 0 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .meterLabel {
@@ -1141,6 +1142,188 @@
 }
 
 /* ================================================================
+   Fase 6 — ubin angka kunci, status tabel, kerangka memuat
+   ================================================================
+   Seluruhnya memakai token yang sudah ada. Aturan cetaknya ada di blok
+   @media print paling bawah, bukan di sini. */
+
+/* ---- Ubin angka kunci (kepala sekolah) ---- */
+.barisUbin {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .barisUbin {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ubin {
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+  background: var(--kartu);
+  font-variant-numeric: tabular-nums;
+}
+
+.ubinLabel {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--tinta-lembut);
+}
+
+/* Angka besar berwarna TINTA, bukan warna status: warna hanya dipakai
+   sekali, pada selisihnya. */
+.ubinAngka {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-title);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--tinta);
+}
+
+.ubinKecil {
+  margin: 0.1rem 0 0;
+  font-size: 0.74rem;
+  color: var(--tinta-samar);
+  overflow-wrap: anywhere;
+}
+
+.ubinSelisih {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ubinPembanding {
+  font-weight: 400;
+  color: var(--tinta-samar);
+}
+
+.selisihBaik {
+  color: var(--baik-teks);
+}
+
+.selisihBuruk {
+  color: var(--tindakan-teks);
+}
+
+.selisihSama {
+  color: var(--tinta-lembut);
+}
+
+/* ---- Titik status di sel persen tabel rekap ---- */
+.selPersen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.titikStatus {
+  flex: none;
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+}
+
+/* Baris kelas yang sedang dirinci. Selektornya ikut menimpa belang zebra
+   (.tabel tbody tr:nth-child(even)) yang kekhususannya sama. */
+.tabel tbody tr.barisFokus,
+.tabel tbody tr.barisFokus:nth-child(even) {
+  background: var(--pendar-nyala);
+}
+
+/* Tabel rekap yang banyak barisnya digulir di dalam kotaknya sendiri,
+   dan kepala kolomnya menempel di puncak kotak itu. Bingkai kepala digambar
+   dengan bayangan: pada tabel border-collapse, garis tepi sel yang lengket
+   ikut terbawa hilang saat digulir. */
+.gulirTinggi {
+  max-height: 28rem;
+  overflow: auto;
+}
+
+.gulirTinggi .tabel th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-shadow: inset 0 -1px 0 var(--garis);
+}
+
+/* ---- Keadaan memuat dan gagal ---- */
+.kerangka {
+  border-radius: 12px;
+  background: var(--garis);
+  animation: denyutKerangka 1.4s ease-in-out infinite;
+}
+
+.kerangkaKepala {
+  height: 7.5rem;
+  margin-bottom: 1rem;
+}
+
+.kerangkaKartu {
+  height: 11rem;
+  margin-bottom: 1rem;
+}
+
+@keyframes denyutKerangka {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kerangka {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  .redup {
+    transition: none;
+  }
+}
+
+/* Teks untuk pembaca layar saja. */
+.hanyaPembaca {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Isi lama diredupkan selama data baru dimuat -- bukan dikosongkan. */
+.redup {
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.aksiGalat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.keluarGalat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--tinta-lembut);
+}
+
+/* ================================================================
    CETAK / SIMPAN PDF  —  BLOK INI HARUS TETAP PALING BAWAH
    ================================================================
    Seluruh aturan cetak dikumpulkan di sini, bukan diselipkan di dekat
@@ -1501,6 +1684,48 @@
 
   .halaman[data-cetak='bulanan'] .judulCetakSiswa,
   .halaman[data-cetak='bulanan'] .kakiSiswa {
+    display: none !important;
+  }
+
+  /* ----------------------------------------------------------------
+     Fase 6: ubin angka, status tabel, kerangka
+     ----------------------------------------------------------------
+     Titik status HARUS tercetak: tanpa print-color-adjust peramban
+     membuang warna latar, dan titik itu satu-satunya pembawa warnanya
+     (angka di sebelahnya berwarna tinta). Empat ubin tetap sejajar
+     selebar kertas, bukan menumpuk dua-dua seperti di layar HP. */
+  .titikStatus {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .barisUbin {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ubin {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Kotak gulir tabel rekap tidak digulir di atas kertas: seluruh
+     barisnya tercetak, dan kepala kolom kembali biasa. */
+  .gulirTinggi {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .gulirTinggi .tabel th {
+    position: static;
+    box-shadow: none;
+  }
+
+  /* Peredupan dan kerangka hanya untuk layar. */
+  .redup {
+    opacity: 1;
+  }
+
+  .kerangka {
     display: none !important;
   }
 }

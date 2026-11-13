@@ -1,5 +1,18 @@
+import { Inter, Outfit } from 'next/font/google';
 import './globals.css';
 import PendaftarSW from './komponen/PendaftarSW';
+
+/* Fon dimuat lewat next/font, bukan @import Google Fonts di globals.css.
+   @import di dalam CSS menahan render: peramban baru tahu fonnya setelah
+   mengunduh dan mengurai CSS, lalu masih harus ke fonts.googleapis.com
+   dan fonts.gstatic.com. next/font mengunduhnya SAAT BUILD dan
+   menyajikannya dari domain sendiri, dengan font-display: swap.
+
+   Variabel yang dibuatnya sengaja diberi nama lain (--fon-*); yang
+   dipakai seluruh CSS tetap --font-title dan --font-body, yang kini
+   dirakit di globals.css dari variabel di bawah ini. */
+const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--fon-inter' });
+const outfit = Outfit({ subsets: ['latin'], display: 'swap', variable: '--fon-outfit' });
 
 /**
  * Identitas yang terlihat orang luar: judul tab peramban dan pratinjau
@@ -92,7 +105,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="id">
+    <html lang="id" className={`${inter.variable} ${outfit.variable}`}>
       <body>
         {children}
         <PendaftarSW />

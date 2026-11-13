@@ -29,6 +29,7 @@ import {
 import {
   AMBANG_KETUNTASAN,
   adaIsiBulan,
+  angkaKunci,
   barisDinilai,
   bulanBawaan,
   bulat,
@@ -39,20 +40,27 @@ import {
   narasiKelas,
   rataRata,
   rekapQuran,
+  susunRingkasan,
   terakhirSinkron,
+  trenKetuntasan,
 } from '@/lib/statistik';
 import { poinUntuk } from '@/lib/poin';
 import { tampilKelas } from '@/lib/kelas';
 import {
+  BarisAngkaKunci,
   CatatanTerbaik,
   GrafikKelasAkademik,
   GrafikKelasQuran,
   GrafikTahunanAkademik,
   GrafikTahunanQuran,
+  KartuTren,
+  KerangkaMemuat,
   KeteranganQuran,
+  LayarGalat,
   MeterKetuntasan,
   PeringatanDini,
   RekapQuran,
+  SelPersen,
   TabelBulananSiswa,
   TabelDistribusi,
   useUkuranGrafikDasbor,
@@ -289,32 +297,42 @@ export default function DasborKepalaSekolah() {
   const poin = poinUntuk(sekolah?.jenjang);
 
   const ringkasan = useMemo(
-    () =>
-      kelasTahunIni.map((k) => {
-        const terdaftarBulanIni = dataKelas[k.id]?.[bulan] || [];
-        /* Yang dihitung hanya siswa yang sudah dinilai. Sinkronisasi
-           membuat baris kosong untuk setiap siswa-bulan (dan siswa yang
-           tercatat di dua kelas menambah baris hantu), jadi baris.length
-           bukan "jumlah siswa yang dinilai". */
-        const baris = barisDinilai(terdaftarBulanIni);
-        const target = Number(k.target_akademik ?? 90);
-        const perMapel = mapel.map((m) => ketuntasanMapel(baris, m, target));
-        const semuaPersen = perMapel.filter(Boolean).map((x) => x.persen);
-
-        return {
-          kelas: k,
-          baris,
-          target,
-          jumlah: baris.length,
-          terdaftar: terdaftarBulanIni.length,
-          perMapel,
-          ketuntasanRata: semuaPersen.length ? rataRata(semuaPersen) : null,
-          tahfidz: rekapQuran(baris, 'capaian_tahfidz', 'target_tahfidz'),
-          tahsin: rekapQuran(baris, 'capaian_tahsin', 'target_tahsin'),
-        };
-      }),
+    () => susunRingkasan(kelasTahunIni, dataKelas, bulan, mapel),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [kelasTahunIni, dataKelas, bulan, sekolah?.jenjang]
+  );
+
+  /* Angka kunci bulan ini dan bulan sebelumnya. Bulan sebelumnya adalah
+     bulan berdata tepat di depan bulan terpilih (bulanTersedia sudah
+     berurutan menurut tahun ajaran) -- bukan bulan kalender, supaya
+     bulan yang dilewati tanpa penilaian tidak membuat selisihnya hilang. */
+  const kunciSekarang = useMemo(() => angkaKunci(ringkasan, mapel),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ringkasan]);
+  const bulanSebelumnya = useMemo(() => {
+    const i = bulanTersedia.indexOf(bulan);
+    return i > 0 ? bulanTersedia[i - 1] : null;
+  }, [bulanTersedia, bulan]);
+  const kunciSebelumnya = useMemo(
+    () => (bulanSebelumnya
+      ? angkaKunci(susunRingkasan(kelasTahunIni, dataKelas, bulanSebelumnya, mapel), mapel)
+      : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bulanSebelumnya, kelasTahunIni, dataKelas, sekolah?.jenjang]
+  );
+
+  // Tren ketuntasan seluruh siswa sekolah, per bulan berdata.
+  const tren = useMemo(
+    () => trenKetuntasan(
+      kelasTahunIni.map((k) => ({
+        perBulan: dataKelas[k.id],
+        target: Number(k.target_akademik ?? 90),
+      })),
+      bulanTersedia,
+      mapel
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [kelasTahunIni, dataKelas, bulanTersedia, sekolah?.jenjang]
   );
 
   const grafikKelas = ringkasan
@@ -344,31 +362,24 @@ export default function DasborKepalaSekolah() {
     return susunBulananSiswa(dataKelas[kelasSiswa] || {}, nisSiswa);
   }, [dataKelas, kelasSiswa, nisSiswa]);
 
-  if (galat) {
-    return (
-      <div className={gaya.halaman}>
-        <div className={gaya.pesan}>
-          <p>{galat}</p>
-        </div>
-      </div>
-    );
-  }
+  if (galat) return <LayarGalat pesan={galat} />;
 
   if (memuat && !ringkasan.length) {
-    return (
-      <div className={gaya.halaman}>
-        <div className={gaya.pesan}>
-          <p className={gaya.subJudul}>Memuat data seluruh kelas…</p>
-        </div>
-      </div>
-    );
+    return <KerangkaMemuat label="Memuat data seluruh kelas…" />;
   }
+
+  /* Isi halaman belum siap: kelasnya sudah dikenal, tetapi nilainya
+     sedang dimuat (pertama kali, atau setelah berganti sekolah/tahun --
+     dataKelas dikosongkan lebih dulu agar nilai sekolah sebelumnya tidak
+     tampil di bawah judul sekolah yang baru). Selama itu kartu diganti
+     kerangka, bukan tabel dan grafik kosong yang berkedip. */
+  const isiBelumSiap = memuat && Object.keys(dataKelas).length === 0;
 
   return (
     <KonteksCetak.Provider value={modeCetak}>
     <KonteksJenjang.Provider value={sekolah?.jenjang}>
     <div className={gaya.halaman} data-cetak={sasaranCetak}>
-      <div className={gaya.wadah}>
+      <div className={gaya.wadah} aria-busy={memuat}>
         <KepalaSekolahan
           namaSekolah={sekolah?.nama}
           /* Biro akademik membawahi beberapa sekolah, jadi judulnya
@@ -497,6 +508,21 @@ export default function DasborKepalaSekolah() {
 
         <TombolPasang />
 
+        {isiBelumSiap ? (
+          <KerangkaMemuat tanpaKepala label="Memuat nilai kelas…" />
+        ) : (
+        <>
+        {/* Angka kunci sekolah di puncak, dengan selisih terhadap bulan
+            sebelumnya. Hanya bila bulan ini punya nilai. */}
+        {kunciSekarang.dinilai > 0 && (
+          <BarisAngkaKunci
+            sekarang={kunciSekarang}
+            sebelumnya={kunciSebelumnya}
+            bulanSebelumnya={bulanSebelumnya}
+            namaKelas={(n) => tampilKelas(n, sekolah?.jenjang)}
+          />
+        )}
+
         <section className={`${gaya.kartu} ${gaya.kartuRingkas}`}>
           <h2 className={gaya.judulKartu}>Ketuntasan Antar Kelas</h2>
           <p className={gaya.ketKartu}>
@@ -517,7 +543,7 @@ export default function DasborKepalaSekolah() {
           <p className={gaya.ketKartu}>
             Klik nama kelas untuk menelusuri rinciannya.
           </p>
-          <div className={gaya.gulir}>
+          <div className={`${gaya.gulir} ${gaya.gulirTinggi}`}>
             <table className={gaya.tabel}>
               <thead>
                 <tr>
@@ -533,7 +559,10 @@ export default function DasborKepalaSekolah() {
               </thead>
               <tbody>
                 {ringkasan.map((r) => (
-                  <tr key={r.kelas.id}>
+                  <tr
+                    key={r.kelas.id}
+                    className={String(fokus) === String(r.kelas.id) ? gaya.barisFokus : undefined}
+                  >
                     <td className={gaya.kiri}>
                       {/* .tombolKelas menandai tombol yang ISINYA data:
                           di atas kertas rupa tombolnya dilucuti tetapi
@@ -565,22 +594,14 @@ export default function DasborKepalaSekolah() {
                     </td>
                     {r.perMapel.map((k, i) => (
                       <td key={i}>
-                        {k ? `${bulat(k.persen)}%` : <span className={gaya.kosong}>–</span>}
+                        <SelPersen persen={k ? k.persen : null} />
                       </td>
                     ))}
                     <td>
-                      {r.tahfidz.persenTuntas === null ? (
-                        <span className={gaya.kosong}>–</span>
-                      ) : (
-                        `${bulat(r.tahfidz.persenTuntas)}%`
-                      )}
+                      <SelPersen persen={r.tahfidz.persenTuntas} />
                     </td>
                     <td>
-                      {r.tahsin.persenTuntas === null ? (
-                        <span className={gaya.kosong}>–</span>
-                      ) : (
-                        `${bulat(r.tahsin.persenTuntas)}%`
-                      )}
+                      <SelPersen persen={r.tahsin.persenTuntas} />
                     </td>
                   </tr>
                 ))}
@@ -588,6 +609,10 @@ export default function DasborKepalaSekolah() {
             </table>
           </div>
         </section>
+
+        {/* Tren seluruh siswa sekolah sepanjang tahun; hanya bila ada
+            dua bulan berdata atau lebih. */}
+        <KartuTren data={tren} />
 
         {/* Pemilih kelas berada di LUAR blok bersyarat di bawahnya. Kalau
             ditaruh di dalam, dropdown-nya baru muncul setelah sebuah kelas
@@ -768,6 +793,8 @@ export default function DasborKepalaSekolah() {
             </>
           )}
         </section>
+        </>
+        )}
 
         {/* Kaki berulang di tiap halaman cetakan: laporan sekolah
             berjumlah beberapa lembar, dan halaman kedua dan seterusnya

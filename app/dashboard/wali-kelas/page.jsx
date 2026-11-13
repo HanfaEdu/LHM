@@ -22,6 +22,7 @@ import {
   mapelUntuk,
   narasiKelas,
   terakhirSinkron,
+  trenKetuntasan,
 } from '@/lib/statistik';
 import { poinUntuk } from '@/lib/poin';
 import { tampilKelas } from '@/lib/kelas';
@@ -31,7 +32,10 @@ import {
   GrafikKelasQuran,
   GrafikTahunanAkademik,
   GrafikTahunanQuran,
+  KartuTren,
+  KerangkaMemuat,
   KeteranganQuran,
+  LayarGalat,
   MeterKetuntasan,
   PeringatanDini,
   RekapQuran,
@@ -197,6 +201,13 @@ export default function DasborWaliKelas() {
      berlaku di sana -- keduanya tampil sebagai kartu poin di bawah,
      bersama Tahfidz dan Tahsin. */
   const adaSkor = mapelSkor(mapel).length > 0;
+
+  // Tren ketuntasan kelas ini per bulan berdata (grafik garis).
+  const tren = useMemo(
+    () => trenKetuntasan([{ perBulan, target }], daftarBulan, mapel),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [perBulan, target, daftarBulan, sekolah?.jenjang]
+  );
   const poin = poinUntuk(sekolah?.jenjang);
 
   // Telusur satu siswa sepanjang tahun ajaran. Wali kelas hanya memegang
@@ -209,31 +220,22 @@ export default function DasborWaliKelas() {
     [perBulan, nisSiswa]
   );
 
-  if (galat) {
-    return (
-      <div className={gaya.halaman}>
-        <div className={gaya.pesan}>
-          <p>{galat}</p>
-        </div>
-      </div>
-    );
-  }
+  if (galat) return <LayarGalat pesan={galat} />;
 
-  if (memuat && !kelas) {
-    return (
-      <div className={gaya.halaman}>
-        <div className={gaya.pesan}>
-          <p className={gaya.subJudul}>Memuat data…</p>
-        </div>
-      </div>
-    );
-  }
+  if (memuat && !kelas) return <KerangkaMemuat />;
+
+  /* Nilai kelas sedang dimuat. Kali pertama (belum ada data sama sekali)
+     kartunya diganti kerangka -- bukan tulisan "belum ada nilai" yang
+     salah. Saat berganti kelas, isi kelas lama diredupkan sampai yang
+     baru tiba, bukan berkedip kosong. */
+  const adaDataKelas = Object.keys(perBulan).length > 0;
+  const isiBelumSiap = memuat && !adaDataKelas;
 
   return (
     <KonteksCetak.Provider value={modeCetak}>
     <KonteksJenjang.Provider value={sekolah?.jenjang}>
     <div className={gaya.halaman} data-cetak={sasaranCetak}>
-      <div className={gaya.wadah}>
+      <div className={memuat && adaDataKelas ? `${gaya.wadah} ${gaya.redup}` : gaya.wadah} aria-busy={memuat}>
         <KepalaSekolahan
           namaSekolah={sekolah?.nama}
           judul={`Kelas ${namaKelas} · ${bulan || 'belum ada data'}`}
@@ -313,7 +315,9 @@ export default function DasborWaliKelas() {
 
         <TombolPasang />
 
-        {!baris.length ? (
+        {isiBelumSiap ? (
+          <KerangkaMemuat tanpaKepala label="Memuat nilai kelas…" />
+        ) : !baris.length ? (
           <div className={`${gaya.kartu} ${gaya.tumpuk2Luar}`}>
             <p className={gaya.kosong}>
               Belum ada nilai yang tersinkron untuk kelas ini. Jalankan menu
@@ -341,6 +345,10 @@ export default function DasborWaliKelas() {
               </div>
               <p className={gaya.narasi}>{narasiKelas(baris, target, bulan, mapel)}</p>
             </section>
+
+            {/* Tren kelas sepanjang tahun, tepat di bawah meter bulan ini;
+                hanya bila ada dua bulan berdata atau lebih. */}
+            <KartuTren data={tren} />
 
             {adaSkor && (
             <>
