@@ -196,7 +196,7 @@ try {
     /* Kepala sekolah hanya punya pemilih Bulan (Tahun Ajaran menjadi teks
        selama baru satu tahun). Munculnya pemilih kedua berarti pemilih
        sekolah ikut bocor ke dasbor yang seharusnya tidak punya. */
-    const jumlahPemilih = await page.locator('header select').count();
+    const jumlahPemilih = await page.locator('[class*="barisPenyaring"] select').count();
     periksa('TIDAK ada pemilih sekolah', jumlahPemilih === 1,
       `${jumlahPemilih} dropdown di kepala halaman`);
     periksa('tidak menyebut Biro Akademik', !teks.includes('Biro Akademik'));
@@ -220,7 +220,7 @@ try {
        teks label: <label> di sini membungkus <select>-nya, jadi teks
        labelnya ikut memuat seluruh nama pilihan dan getByLabel yang
        "exact" tidak pernah cocok. Pemilih sekolah selalu yang pertama. */
-    const pemilih = page.locator('header select').first();
+    const pemilih = page.locator('[class*="barisPenyaring"] select').first();
     periksa('ada pemilih sekolah', (await pemilih.count()) === 1);
 
     /* Sekolah pertama: PG Kudus, dua kelas, tanpa IPA. */

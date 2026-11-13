@@ -257,7 +257,10 @@ export default function DasborWaliKelas() {
               </div>
             </>
           }
-          anak={
+        />
+        {/* Baris penyaring lengket di bawah kartu kepala (6.5); lihat
+            catatan di dasbor kepala sekolah. */}
+        <div className={gaya.barisPenyaring}>
             <div className={gaya.penyaring}>
             {daftarKelas.length > 1 && (
               <label>
@@ -290,8 +293,7 @@ export default function DasborWaliKelas() {
                 ke tempat wali kelas benar-benar bekerja, jadi ia harus
                 terlihat tanpa perlu menggulir ke mana pun. */}
             </div>
-          }
-        />
+        </div>
 
         {/* Judul dokumen. Hanya muncul di atas kertas: di layar, apa yang
             sedang dilihat sudah jelas dari kepala halaman dan dari kedua
