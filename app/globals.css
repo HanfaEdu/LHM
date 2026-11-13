@@ -145,11 +145,13 @@ h1, h2, h3, h4, h5, h6 {
 /* Sorot papan ketik untuk SEMUA tombol dan <select>. :where() membuat
    kekhususannya nol: kontrol yang sudah punya gaya fokus sendiri di
    modul CSS-nya tetap memakainya, dan yang belum punya mendapat cincin
-   ini alih-alih sorot bawaan peramban yang berbeda-beda. Token
-   --pendar-fokus didefinisikan di dasbor; di halaman lain nilai
-   cadangannya yang dipakai. */
+   ini alih-alih sorot bawaan peramban yang berbeda-beda. Warnanya
+   --seri-1 PEKAT (bukan --pendar-fokus yang transparan 35%, yang di atas
+   kartu putih nyaris tak terlihat). --seri-1 didefinisikan di dasbor
+   (dan berganti di mode gelap); di halaman lain nilai cadangannya yang
+   dipakai. */
 :where(button, select):focus-visible {
-  outline: 2px solid var(--pendar-fokus, rgb(42 120 214 / 35%));
+  outline: 2px solid var(--seri-1, #2a78d6);
   outline-offset: 2px;
 }
 
