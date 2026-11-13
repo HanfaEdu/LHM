@@ -359,8 +359,12 @@ Supabase sama sekali.
    ditampilkan — jauh lebih baik daripada mengarahkan wali kelas ke
    aplikasi sekolah lain.
 
-   `APP_URL` dan `SYNC_SECRET` **tetap sama** — satu penerapan Vercel
-   melayani semua sekolah.
+   `APP_URL` **tetap sama** — satu penerapan Vercel melayani semua
+   sekolah. `SYNC_SECRET` **berbeda untuk tiap sekolah**: buat satu kunci
+   acak baru, tambahkan ke env var `SYNC_SECRETS` di Vercel dengan kode
+   sekolah ini sebagai kuncinya (`{"SDYFK":"…","KODEBARU":"<kunci baru>"}`),
+   Redeploy, lalu isi kunci yang sama di `SYNC_SECRET` sekolah ini. Kunci
+   itu hanya bisa menulis baris sekolah berkode `KODE_SEKOLAH`-nya.
 
 3. Jalankan **SiPaGi → Cek Kesehatan Data** lebih dulu. Dua baris
    paling atas laporannya menyebut sekolah yang akan disinkronkan

@@ -53,13 +53,19 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 2. Jalankan `schema.sql` di Supabase SQL Editor.
 3. Isi variabel lingkungan Vercel: `NEXT_PUBLIC_SUPABASE_URL`,
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (kunci
-   `secret`/`service_role`, dipakai server saja), dan `SYNC_SHARED_SECRET`
-   (string acak buatan sendiri — kunci rahasia khusus antara GAS dan
-   endpoint `/api/sync`, **bukan** kunci Supabase). Redeploy setelah diisi.
+   `secret`/`service_role`, dipakai server saja), dan `SYNC_SECRETS`
+   (JSON satu kunci acak **per sekolah**, mis.
+   `{"SDYFK":"<kunci>","PGYFK":"<kunci>"}` — kunci rahasia khusus antara
+   GAS dan endpoint `/api/sync`, **bukan** kunci Supabase; tiap kunci
+   hanya boleh menulis baris sekolahnya sendiri). Redeploy setelah diisi.
+   Opsional: `SYNC_KODE_DIREKTUR` (kode sekolah dipisah koma) — bila diisi,
+   hanya sekolah berkode itu yang boleh mengirim baris peran
+   `direktur_area`; kosong = tidak dibatasi.
 4. Pasang `sync.js` (SD/TK) atau `sync-pg.js` (PG) — sesuai jenjang
    sekolah ini — di Apps Script file Master Rekap, isi `APP_URL`
-   (domain Vercel Anda) dan `SYNC_SECRET` (samakan persis dengan
-   `SYNC_SHARED_SECRET` di langkah 3) di bagian atas berkas.
+   (domain Vercel Anda) dan `SYNC_SECRET` (kunci sekolah ini — samakan
+   persis dengan nilainya untuk `KODE_SEKOLAH` di `SYNC_SECRETS`,
+   langkah 3) di bagian atas berkas.
 5. Jalankan menu **SiPaGi → Cek Kesehatan Data** untuk memastikan bersih.
 6. Jalankan **SiPaGi → Sinkronkan Sekarang**, lalu pasang pemicu harian.
 7. Jalankan berkas di `migrasi/` secara berurutan di Supabase SQL Editor.
@@ -73,8 +79,8 @@ file kelas putus, itu akan diam-diam kosong tanpa validasi ini.
 kunci `sb_secret_...` kalau permintaan terdeteksi berasal dari browser,
 dan `UrlFetchApp` Apps Script ikut ter-deteksi begitu walau jelas
 berjalan di server Google. `app/api/sync/route.js` jadi jembatan — GAS
-memanggil endpoint itu (pakai `SYNC_SHARED_SECRET`, bukan kunci
-Supabase), lalu endpoint itu sendiri (berjalan di server Vercel) yang
+memanggil endpoint itu (pakai kunci sekolahnya di `SYNC_SECRETS`,
+bukan kunci Supabase), lalu endpoint itu sendiri (berjalan di server Vercel) yang
 benar-benar bicara ke Supabase.
 
 ## Catatan penting soal data

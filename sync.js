@@ -56,9 +56,16 @@
 // catatan "KENAPA LEWAT PROXY" di bawah.
 const APP_URL = 'https://ISI_DENGAN_DOMAIN_VERCEL_ANDA.vercel.app';
 
-// Kunci rahasia bersama antara GAS dan endpoint /api/sync di Vercel.
-// HARUS SAMA PERSIS dengan env var SYNC_SHARED_SECRET di Vercel.
-// Ini BUKAN kunci Supabase -- boleh dibuat sendiri, string acak apa saja.
+// Kunci rahasia antara GAS dan endpoint /api/sync di Vercel.
+// SETIAP SEKOLAH PUNYA KUNCI SENDIRI: isi dengan kunci sekolah ini, yang
+// HARUS SAMA PERSIS dengan nilai untuk KODE_SEKOLAH ini di env var
+// SYNC_SECRETS di Vercel (JSON: {"SDYFK":"<kunci>", ...}). Kunci itu
+// hanya boleh menulis baris milik sekolah ini -- dipakai di sekolah lain,
+// permintaannya ditolak. Jangan membagikannya antar sekolah.
+// (Masa peralihan: kunci lama bersama, env var SYNC_SHARED_SECRET, masih
+// diterima sampai pemilik menghapusnya dari Vercel.)
+// Ini BUKAN kunci Supabase -- buat sendiri, string acak panjang (>= 32
+// karakter).
 const SYNC_SECRET = 'ISI_DENGAN_KUNCI_RAHASIA_YANG_SAMA_DENGAN_VERCEL';
 
 /**
