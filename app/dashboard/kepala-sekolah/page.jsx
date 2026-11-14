@@ -423,7 +423,12 @@ export default function DasborKepalaSekolah() {
               </div>
             </>
           }
-          anak={
+        />
+        {/* Baris penyaring: di LUAR kartu kepala, tepat di bawahnya, dan
+            lengket di puncak layar saat digulir (6.5). Harus saudara kartu
+            kepala di dalam .wadah -- di dalam kartu kepala, tingginya hanya
+            sebaris dan position: sticky tidak punya ruang untuk menempel. */}
+        <div className={gaya.barisPenyaring}>
             <div className={gaya.penyaring}>
             {/* Pemilih sekolah HANYA muncul kalau memang ada lebih dari
                 satu yang boleh dilihat. Bagi kepala sekolah, baris
@@ -484,8 +489,7 @@ export default function DasborKepalaSekolah() {
               </select>
             </label>
             </div>
-          }
-        />
+        </div>
 
         {/* Judul dokumen, hanya di atas kertas. Lembar yang sampai ke
             direktur area harus menyebut sendiri sekolah, bulan, dan tahun

@@ -1141,6 +1141,31 @@
   color: var(--tinta);
 }
 
+/* ----------------------------------------------------------------
+   6.5 Baris penyaring lengket
+   ----------------------------------------------------------------
+   Berdiri sendiri di bawah kartu kepala, bukan di dalamnya: sticky
+   hanya menempel selama induknya masih terlihat, dan di dalam kartu
+   kepala induknya setinggi baris itu sendiri. Saudara kartu kepala di
+   dalam .wadah (setinggi seluruh halaman) membuatnya menempel di
+   puncak layar sepanjang digulir. */
+.barisPenyaring {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  padding: 0.65rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .barisPenyaring {
+    padding: 0.5rem 0.9rem;
+  }
+}
+
 /* ================================================================
    Fase 6 — ubin angka kunci, status tabel, kerangka memuat
    ================================================================
@@ -1726,6 +1751,11 @@
   }
 
   .kerangka {
+    display: none !important;
+  }
+
+  /* 6.5: baris penyaring tidak tercetak, termasuk bingkainya. */
+  .barisPenyaring {
     display: none !important;
   }
 }

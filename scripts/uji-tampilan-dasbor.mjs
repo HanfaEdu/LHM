@@ -272,6 +272,30 @@ try {
       const tren = page.locator('section').filter({ hasText: 'Tren Ketuntasan' }).first();
       periksa(`${awal}: tren menggambar tiga garis mapel`, (await tren.locator('.recharts-line').count()) === 3);
       periksa(`${awal}: tren memuat garis ambang 90%`, (await tren.locator('.recharts-reference-line').count()) === 1);
+      /* 6.5: baris penyaring di luar kartu kepala, tepat di bawahnya, dan
+         menempel di puncak layar saat halaman digulir jauh. */
+      {
+        const bar = page.locator('[class*="barisPenyaring"]').first();
+        periksa(`${awal}: baris penyaring ada, dengan dropdown`, (await bar.locator('select').count()) >= 1);
+        periksa(`${awal}: tidak ada dropdown lagi di dalam kartu kepala`, (await page.locator('header select').count()) === 0);
+        const urutan = await page.evaluate(() => {
+          const h = document.querySelector('header');
+          const b = document.querySelector('[class*="barisPenyaring"]');
+          return { sesudah: h.nextElementSibling === b, saudara: h.parentElement === b.parentElement };
+        });
+        periksa(`${awal}: baris penyaring tepat di bawah kartu kepala`, urutan.sesudah && urutan.saudara, JSON.stringify(urutan));
+        const pos = await bar.evaluate((e) => { const c = getComputedStyle(e); return [c.position, c.top, c.zIndex, c.backgroundColor].join(' '); });
+        periksa(`${awal}: sticky, top 0, z-index 5, latar kartu`, /^sticky 0px 5 rgb\(255, 255, 255\)$/.test(pos), pos);
+        const awalY = await bar.evaluate((e) => Math.round(e.getBoundingClientRect().top));
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(250);
+        const y = await bar.evaluate((e) => { const r = e.getBoundingClientRect(); return { top: Math.round(r.top), tinggi: Math.round(r.height) }; });
+        periksa(`${awal}: setelah digulir ke dasar halaman, baris menempel di puncak layar`, y.top === 0 && awalY > 0, `awal ${awalY}px -> ${y.top}px (tinggi ${y.tinggi}px)`);
+        periksa(`${awal}: tinggi baris lengket wajar (<= 45% layar)`, y.tinggi <= 800 * 0.45, `${y.tinggi}px`);
+        const dropdownTerlihat = await bar.locator('select').first().evaluate((e) => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight; });
+        periksa(`${awal}: dropdown masih terlihat dan bisa dipakai saat digulir`, dropdownTerlihat);
+        await page.evaluate(() => window.scrollTo(0, 0));
+      }
       if (peran === 'kepala_sekolah') {
         periksa(`${awal}: Angka Kunci dengan empat ubin`,
           ['Siswa dinilai', 'Ketuntasan akademik', 'Kelas di bawah ambang', 'Perlu pendampingan'].every((t) => teks.includes(t)));
@@ -402,9 +426,11 @@ try {
           titikCetak: titik ? getComputedStyle(titik).printColorAdjust || getComputedStyle(titik).webkitPrintColorAdjust : null,
           gulir: (() => { const g = document.querySelector('[class*="gulirTinggi"]'); return g ? getComputedStyle(g).maxHeight : null; })(),
           kerangka: document.querySelectorAll('[class*="kerangka"]').length,
+          barisPenyaring: terlihat(document.querySelector('[class*="barisPenyaring"]')),
         };
       });
       periksa(`${label}: kartu Tren Ketuntasan ikut tercetak`, hasil.tren === true);
+      periksa(`${label}: baris penyaring (6.5) tidak tercetak, bingkainya pun tidak`, hasil.barisPenyaring === false);
       if (peran === 'kepala_sekolah') {
         periksa('kepala sekolah: kartu Angka Kunci ikut tercetak', hasil.angka === true);
         periksa('kepala sekolah: titik status tidak dibuang peramban (print-color-adjust: exact)', hasil.titikCetak === 'exact', String(hasil.titikCetak));
@@ -419,6 +445,32 @@ try {
       periksa(`${label}: laporan siswa TIDAK memuat kartu Tren`, siswaMode.tren === false);
       if (peran === 'kepala_sekolah') periksa('kepala sekolah: laporan siswa TIDAK memuat Angka Kunci', siswaMode.angka === false);
       await page.close();
+    }
+    await konteks.close();
+  }
+
+  console.log('\n--- F. cincin fokus ---');
+  {
+    const konteks = await peramban.newContext({ viewport: { width: 1100, height: 800 } });
+    const page = await siapkanHalaman(konteks, 'kepala_sekolah');
+    await page.goto(`${ASAL}/dashboard/kepala-sekolah`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    /* Tombol nama kelas di tabel rekap tidak punya gaya fokus sendiri,
+       jadi memakai aturan global. (Tombol aksi di kepala dan dropdown
+       penyaring punya sorot bayangan sendiri sejak dulu; itu dibiarkan.) */
+    for (let i = 0; i < 80; i++) {
+      await page.keyboard.press('Tab');
+      if (await page.evaluate(() => document.activeElement.tagName === 'BUTTON' && document.activeElement.closest('table'))) break;
+    }
+    const f = await page.evaluate(() => {
+      const e = document.activeElement; const c = getComputedStyle(e);
+      const seri1 = getComputedStyle(document.querySelector('[class*="halaman"]')).getPropertyValue('--seri-1').trim();
+      return { tag: e.tagName, warna: c.outlineColor, gaya: c.outlineStyle, lebar: c.outlineWidth, seri1 };
+    });
+    periksa('papan ketik: elemen berfokus adalah tombol/dropdown', ['BUTTON', 'SELECT'].includes(f.tag), f.tag);
+    {
+      periksa('cincin fokus berwarna --seri-1 PEKAT (alfa 1), bukan 35%', f.warna === 'rgb(42, 120, 214)' && f.seri1.toLowerCase() === '#2a78d6', `${f.warna} / ${f.seri1}`);
+      periksa('cincin fokus 2px solid', f.gaya === 'solid' && f.lebar === '2px', `${f.gaya} ${f.lebar}`);
     }
     await konteks.close();
   }
